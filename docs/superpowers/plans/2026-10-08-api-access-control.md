@@ -170,11 +170,11 @@
 - Modify: `Modules/CMS/app/Models/Contributor.php`, `Comment.php`, the ratings model (`user_id`, and `shared_components` per R10), `Modules/Core/app/Models/Media.php` (`toArray`, R8), `Modules/Core/app/Http/Resources/MediaResource.php` (URL building shared, temporary URLs), `Modules/Core/config/config.php` (`media.signed_url_ttl_minutes`)
 - Test: `Modules/Core/tests/Feature/Media/MediaProjectionTest.php`, `Modules/CMS/tests/Feature/Controllers/AnonymousHiddenAttributesTest.php`
 
-- [ ] **Step 1: Write the failing tests:** anonymous through `/api`: contributors, comments and ratings come without `user_id` (and `shared_components` if R10 says so), staff through `/app` gets them; a media through `/api` (as entity, as relation and as `cover`) has `url`, `conversions`, `mime_type`, `size`, collection and alternative text and no `custom_properties`, `disk`, `conversions_disk`, `file_name`; an `api` caller with `vend_media.update` gets the full record; `/app` is unchanged; a temporary-URL disk returns a signed URL valid for 60 minutes; a local private disk returns `null` URLs.
-- [ ] **Step 2: Run** the files. Expected: FAIL.
-- [ ] **Step 3: Implement** R8, R9, R10.
-- [ ] **Step 4: Run** the files and the Core `Feature/Media` folder. Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/Core` and `Modules/CMS`: `feat: hide attributes from anonymous callers and project media on the api guard`.
+- [x] **Step 1: Write the failing tests:** anonymous through `/api`: contributors, comments and ratings come without `user_id` (and `shared_components` if R10 says so), staff through `/app` gets them; a media through `/api` (as entity, as relation and as `cover`) has `url`, `conversions`, `mime_type`, `size`, collection and alternative text and no `custom_properties`, `disk`, `conversions_disk`, `file_name`; an `api` caller with `vend_media.update` gets the full record; `/app` is unchanged; a temporary-URL disk returns a signed URL valid for 60 minutes; a local private disk returns `null` URLs.
+- [x] **Step 2: Run** the files. Expected: FAIL.
+- [x] **Step 3: Implement** R8, R9, R10.
+- [x] **Step 4: Run** the files and the Core `Feature/Media` folder. Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/Core` and `Modules/CMS`: `feat: hide attributes from anonymous callers and project media on the api guard`.
 
 ### Task 8: Personal tokens and service accounts
 
