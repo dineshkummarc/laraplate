@@ -512,13 +512,13 @@ php artisan test --compact Modules/Core/tests/Feature/Http/DomainActionRouteTest
 **Backlog:** `3-02`  
 **Modules:** Core (+ ERP route group)
 
-- [ ] Enable Sanctum token auth for domain-action + read-only CRUD subset
-- [ ] Routes: `Route::prefix('api/v1/erp')->middleware(['auth:sanctum', 'ensure.crud.api'])`
-- [ ] Reuse `DomainActionDispatcher` + `CrudExposureRegistry` — no duplicate logic
-- [ ] Version header `Accept: application/vnd.laraplate.v1+json` — 406 if unsupported
-- [ ] Rate limiting: `throttle:api`
-- [ ] Test: token without permission → 403; with permission → domain action works
-- [ ] **Default:** `expose_crud_api=false` in production config; document enablement in `Modules/Core/docs/CRUD_SYSTEM.md`
+- [-] Enable Sanctum token auth for domain-action + read-only CRUD subset (superseded by `2026-10-08-api-access-control.md`: personal tokens and service accounts with abilities on the `api` guard are delivered there)
+- [-] Routes: `Route::prefix('api/v1/erp')->middleware(['auth:sanctum', 'ensure.crud.api'])` (superseded: every `/api` route runs behind `AuthenticateApiRequest`, which folded `ensure.crud.api` in and owns the `expose_api` switch)
+- [-] Reuse `DomainActionDispatcher` + `CrudExposureRegistry` — no duplicate logic (superseded: external domain actions stay deferred with Task 2, on top of the new switch)
+- [-] Version header `Accept: application/vnd.laraplate.v1+json` — 406 if unsupported (not built by the access control plan; reopen with a concrete external client contract)
+- [-] Rate limiting: `throttle:api` (superseded: the `api` rate limiter, `core.api.rate_limit_per_minute`, applies to every `/api` route)
+- [-] Test: token without permission → 403; with permission → domain action works (superseded: token abilities and permissions are tested in `AuthenticateApiRequestTest` of Core)
+- [-] **Default:** `expose_crud_api=false` in production config; document enablement in `Modules/Core/docs/CRUD_SYSTEM.md` (superseded: `core.expose_api` defaults to `false`, documented in `Modules/Core/README.md` and `Modules/Core/docs/CRUD_SYSTEM.md`)
 
 ---
 
