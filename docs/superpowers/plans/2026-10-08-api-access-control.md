@@ -195,11 +195,11 @@
 - Modify: `Modules/CMS/app/Models/Content.php` (`toSearchableArray` L374-445: `references` with labels and URL hosts; the search mapping of the content index if fields are declared there)
 - Test: `Modules/CMS/tests/Feature/Search/ContentReferencesSearchTest.php`
 
-- [ ] **Step 1: Write the failing test:** a published content with a reference labelled "Nature" at `https://www.nature.com/x` is found by searching `nature.com` and `Nature`; an unpublished one is not, anonymously.
-- [ ] **Step 2: Run** it. Expected: FAIL.
-- [ ] **Step 3: Implement** the document fields (labels, hosts without `www.`).
-- [ ] **Step 4: Run** it and the CMS `Feature/Search` folder. Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/CMS`: `feat(cms): index content references in the content document`; the module docs say existing indexes need a rebuild.
+- [x] **Step 1: Write the failing test:** a published content with a reference labelled "Nature" at `https://www.nature.com/x` is found by searching `nature.com` and `Nature`; an unpublished one is not, anonymously.
+- [x] **Step 2: Run** it. Expected: FAIL.
+- [x] **Step 3: Implement** the document fields (labels, hosts without `www.`).
+- [x] **Step 4: Run** it and the CMS `Feature/Search` folder. Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/CMS`: `feat(cms): index content references in the content document`; the module docs say existing indexes need a rebuild.
 
 ### Task 10: Documentation and closing
 
