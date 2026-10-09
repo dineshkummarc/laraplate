@@ -183,11 +183,11 @@
 - Modify: `Modules/Core/routes/auth.php` (R12), `Modules/Core/database/migrations/2024_03_30_150000_integrate_users_table.php` (`is_service_account` boolean default false), `Modules/Core/app/Models/User.php` (`canAccessPanel` false for service accounts), `Modules/Core/app/Auth/Services/AuthenticationService.php` (refuse service accounts), `Modules/Core/app/Filament/Resources/Users/UserResource.php` (service account toggle; "Issue token" action with abilities and optional expiry; tokens table with `last_used_at` and revoke)
 - Test: `Modules/Core/tests/Feature/Auth/ApiTokenControllerTest.php`, `Modules/Core/tests/Feature/Auth/ServiceAccountTest.php`
 
-- [ ] **Step 1: Write the failing tests:** a user creates a token with abilities among the `api` permissions of its roles and receives the plain token once; an ability outside them, or `*` → 422; an expiry beyond 365 days or none → 422 for a personal token; a superadmin cannot create; list shows name, abilities, `last_used_at`, expiry and never the token; revoke makes the next `/api` call 401; a service account cannot log in through Fortify nor open the panel, and its admin-issued non-expiring token authenticates on `/api`.
-- [ ] **Step 2: Run** the files. Expected: FAIL.
-- [ ] **Step 3: Implement** the controller, request, routes, migration column, login and panel refusal, Filament surfaces.
-- [ ] **Step 4: Run** the files and the Core `Feature/Auth` folder. Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/Core`: `feat(core): personal API tokens and service accounts`.
+- [x] **Step 1: Write the failing tests:** a user creates a token with abilities among the `api` permissions of its roles and receives the plain token once; an ability outside them, or `*` → 422; an expiry beyond 365 days or none → 422 for a personal token; a superadmin cannot create; list shows name, abilities, `last_used_at`, expiry and never the token; revoke makes the next `/api` call 401; a service account cannot log in through Fortify nor open the panel, and its admin-issued non-expiring token authenticates on `/api`.
+- [x] **Step 2: Run** the files. Expected: FAIL.
+- [x] **Step 3: Implement** the controller, request, routes, migration column, login and panel refusal, Filament surfaces.
+- [x] **Step 4: Run** the files and the Core `Feature/Auth` folder. Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/Core`: `feat(core): personal API tokens and service accounts`.
 
 ### Task 9: References in the content search document
 
