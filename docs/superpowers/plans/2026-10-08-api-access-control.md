@@ -208,7 +208,7 @@
 
 - [x] **Step 1: Write** the documentation.
 - [x] **Step 2: Run** `php artisan test --compact tests/Unit/ClosedPlansPointToDocumentationTest.php` after adding `## Delivery status (<date>)` with `**Documented in:**` to this plan. Expected: PASS.
-- [x] **Step 3: Ask the user** to run the full suite with `php artisan test --compact`. (Asked in the closing report of the plan, not run by the documentation task; the suite result is the user's.)
+- [x] **Step 3: Ask the user** to run the full suite with `php artisan test --compact`. (To be asked by the controller in its closing report; not run by the documentation task, the suite result is the user's.)
 - [x] **Step 4: Commit** in each repository: `docs: API access control`.
 
 ## Delivery status (2026-10-09): shipped
@@ -238,5 +238,17 @@ All ten tasks are built. The MES machine-route migration to service accounts (sp
 - **Upgrade (A8, R11).** No migration: an existing installation is rebuilt with `migrate:fresh --seed`. Re-seeding never revokes the old `guest` (`web`) grants (roles get their permissions at creation only), and the anonymous user is cached for good, so it may stay role-less until the cache is flushed.
 - **Task 9.** The reference observer that re-sends a content when one of its references changes is an addition to the plan, and the `references` field is declared in the content mapping.
 - **Task 2 tests.** Only tests that wrote the key `crud.expose_api` literally were renamed; those calling `CrudApiExposure::enable()` keep working, since its methods stayed.
+
+Final review fixes (2026-10-09), one wave after the whole-plan review:
+
+- **Readable columns.** Facets, group-by keys, sorts, filter properties and aggregated columns read values through the query, outside the serialization: a facet on `comments.user_id`, `contributors.shared_components` or a media `file_name` answered the anonymous user what its serialization withholds. `Support\ReadableColumnGuard` now refuses (`400`, before any query) a column hidden from the anonymous user, or a media column outside the projection's queryable columns (`id`, `collection_name`, `mime_type`, `size`) for a projected caller, on every model along a dotted path. The ACL filters stay exempt.
+- **Outside the permission scheme, narrowed.** Of the classes deliberately without permissions, only a pivot reached through a plain relation (`presettable`) and a translation loaded from the model it translates are read as relations; versions, licenses and dynamic entities are read as relations by a superadmin only, model embeddings are refused like tokens, and `embeddings` joined the relation black list (it returned vectors, model keys and content hashes to the anonymous user).
+- **Server errors.** `ResponseBuilder` answers the status text instead of the message of a `5xx` when `app.debug` is off (a failed query returned its SQL and bindings), for every controller built on it; the exception is still reported. A `501` loses its message too.
+- **Token abilities on model paths.** The per-row select check, the write checks, the write-time approval credit and the pending-deletion hide scope asked the Gate, which ignores the request's guard and the token: a token without the `approve` ability gave its owner an approval credit. They ask `AuthorizationService::userHolds()` now, the check every CRUD path uses.
+- **Response cache key.** The key carries the personal access token, so two tokens of one user with different abilities no longer share a cached response.
+- **Unresolvable default eager loads** (a name that is not a typed relation, a path through a morph relation) are dropped instead of loaded unguarded. No production model declares one.
+- **Anonymous `/app` calls** set the anonymous user on the guard for the request only, never signing it in to the web session, which let the next request of the same browser write the shared anonymous row through the `auth` group (preferences, first-login completion).
+- **Graph nodes** build their label and summary only from attributes the model's serialization returns to the caller (no `$hidden`, no attribute hidden from the anonymous user, within the media projection: a media label was its original file name).
+- **Version contents** mask every attribute in the versioned model's `$hidden` (argon hashes, remember tokens, two-factor secrets of a versioned user, not only bcrypt hashes) and, for the anonymous user, its anonymous-hidden attributes. Editors no longer see `$hidden` columns in history.
 
 **Documented in:** `Modules/Core/docs/rag/API_ACCESS_CONTROL.md`, `Modules/Core/docs/CRUD_SYSTEM.md`, `Modules/Core/docs/ACL_SYSTEM.md`, `Modules/Core/docs/rag/MODULE.md`, `Modules/CMS/docs/rag/MODULE.md`, `Modules/MES/docs/MACHINE_CONNECTIVITY.md`, `Modules/MES/docs/rag/MODULE.md`, `Modules/ERP/docs/rag/MODULE.md` and the READMEs of Core (upgrade note, configuration keys), CMS, ERP, SAO and MES.
