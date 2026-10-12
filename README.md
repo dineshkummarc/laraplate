@@ -8,7 +8,7 @@
 <p align="center">
     <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel 12">
     <img src="https://img.shields.io/badge/PHP-8.5+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.2+">
-    <img src="https://img.shields.io/badge/License-GNU_AGPL_v3-green?style=for-the-badge" alt="MIT License">
+    <img src="https://img.shields.io/badge/License-GNU_AGPL_v3-green?style=for-the-badge" alt="GNU AGPL v3 License">
 </p>
 <p>&nbsp;</p>
 
@@ -111,6 +111,8 @@ If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Lar
 ## License
 
 Laraplate and its modules are open-sourced software licensed under the [GNU AGPL v3](https://www.gnu.org/licenses/agpl-3.0.html).
+
+Copyright (c) 2025 Marco P. The full licence text is in [LICENSE](LICENSE).
 
 ## TODO and FIXME
 
