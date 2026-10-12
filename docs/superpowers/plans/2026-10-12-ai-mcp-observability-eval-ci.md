@@ -2,19 +2,21 @@
 status: open
 created_on: 2026-10-12
 ---
-# AI module: evaluation gate in CI, run observability, MCP server, provider hygiene. Implementation Plan
+# AI module: evaluation gate in CI, run observability, provider hygiene. Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block. A step dropped on purpose is `- [-]` with its reason on the same line.
 
-**Status:** Open. No task started. Task 1 goes first: it is the cheapest and it protects the other three.
+**Status:** Open. No task started. Task 1 goes first: it is the cheapest and it protects the other two.
 
-**Goal:** make the AI module's quality measurable and reachable. The evaluation baselines that already exist run on every pull request. Every model call leaves a technical record (tokens, latency, outcome) without storing content. The Core and Graph tools the assistant already uses are exposed as an MCP server under the same permissions. Two small provider defects are removed.
+**Split 2026-10-12:** the MCP server was first drafted here as Task 3. It is a Core surface, not an AI one, and its design exists already: `docs/superpowers/specs/2026-09-12-mcp-server-design.md`. It has its own plan, `2026-10-12-core-mcp-server.md`.
+
+**Goal:** make the AI module's quality measurable and reachable. The evaluation baselines that already exist run on every pull request. Every model call leaves a technical record (tokens, latency, outcome) without storing content. A provider defect is removed.
 
 **Source:** review of `Modules/AI` on 2026-10-12. Findings, each checked against the code on that date:
 
 | # | Finding | Evidence |
 |---|---------|----------|
-| F1 | No MCP server. `laravel/mcp` v1.0.1 is locked as a **dev** dependency, pulled in by `laravel/boost`. | `composer.lock` `packages-dev`; no `Mcp::` or `laravel/mcp` in `Modules`, `app`, `routes`. |
+| F1 | MCP is designed but not built: spec `2026-09-12-mcp-server-design.md` is a draft with no plan, and `laravel/mcp` v1.0.1 is locked as a **dev** dependency only (via `laravel/boost`). Moved to `2026-10-12-core-mcp-server.md`. | `composer.lock` `packages-dev`; no `Mcp::` in `Modules`, `app`, `routes`; spec open point 2. |
 | F2 | No record of tokens, latency or cost per model call. | No usage field in `Modules/AI/app`; the only analytics are the RAG query log and the model switch state. |
 | F3 | The application CI does not run the AI baselines. The workflow checks out without submodules, so `Modules/AI/tests` is absent, and it runs PHP 8.4 while `composer.json` requires `>=8.5`. | `.github/workflows/laravel.yml` lines 17 and 21; `Modules/AI` is a submodule with no `.github` of its own. |
 | F4 | `ProviderFactory` keeps a hardcoded Anthropic fallback model, `claude-sonnet-4-20250514`, while Settings and `ModelCatalog` already choose models. | `ProviderFactory::ANTHROPIC_DEFAULT_MODEL`. |
@@ -29,8 +31,7 @@ created_on: 2026-10-12
 - Schema changes fold into the create migration (pre-stable). Five-driver portability. Table names carry the `ai_` prefix.
 - A switch or tuning value is a seeded setting (`AIDatabaseSeeder::runtimeSettingDefinitions()`), read as `config('ai....')`, with no env variable. No `env()` outside config files.
 - **Privacy stays as the README states it:** the assistant collects no usage data. Task 2 changes the wording only through an explicit, default-off setting and keeps content out of the record.
-- **Dependency rule:** no dependency change without the owner's approval. Task 3 Step 1 is that decision.
-- Core never depends on AI. MCP lives in `Modules/AI` and reads Core contracts only.
+- No dependency change without the owner's approval.
 - Commits go to the repository that owns each file, explicit paths, never `git add -A`.
 
 ## Task 1: The evaluation baselines run in CI
@@ -67,28 +68,7 @@ created_on: 2026-10-12
 - [ ] **Step 8: Docs.** The README privacy section gets a dated note: with the setting on, the instance keeps technical run metadata and no content. `docs/rag/MODULE.md` and the developer doc describe the columns and the setting. Add the setting to the Filament settings docs where the others are listed.
 - [ ] **Step 9: Run the touched tests and the settings tests (`AiRuntimeSettingDefinitionsTest`, `RuntimeSettingNameLengthTest`), format, commit.**
 
-## Task 3: MCP server
-
-**Files:** `composer.json` (Step 1 only), new `Modules/AI/app/Mcp/*`, `Modules/AI/routes/api.php`, `Modules/AI/app/Providers/RouteServiceProvider.php`, `AssistantAccessContextFactory`, seeder settings, docs.
-
-- [ ] **Step 1: Owner decision on the dependency.** `laravel/mcp` is dev-only today. Options: (a) move it to `require` of the application and declare it in `Modules/AI/composer.json`; (b) build the protocol by hand. Recommendation: (a), because the protocol, schema and transport are the library's job and it is first party. Record the decision here before any code.
-- [ ] **Step 2: Read the installed library.** `composer install`, then read `Laravel\Mcp` for: the server class, how a tool declares its schema and handles a call, how routes are registered for the HTTP transport, how authentication middleware attaches. Write the class names here.
-- [ ] **Step 3: Read the existing seams.** `ContextualToolProviderInterface`, `CompositeContextualToolProvider`, `ToolDefinition`, `ToolRegistry`, `AssistantAccessContextFactory` (it has only `forInApp(Conversation, User)`), `AssistantScopeResolver`, `ToolResultGuard`, and the API access control spec `2026-10-07-api-access-control-design.md` (guards, `core.expose_api`, token abilities, rate limit). The server must reuse all of them and add no second permission model.
-- [ ] **Step 4: Design settled in the step, then built.**
-  - **Surface:** read tools only in v1: the Core Graph tools and the application-content search the in-app assistant already has. Writes stay out. The assistant's propose-then-confirm flow needs the user in the app; an MCP client has no equivalent confirm step yet.
-  - **Adapter:** `ToolDefinition` to an MCP tool, one class. The handler is the same closure, so ACL, tenant scope and `ToolNameMatcher` allow and deny lists apply unchanged.
-  - **Context:** a new `AssistantAccessContextFactory::forMcp(User)`. No conversation exists, so nothing is persisted. It reuses `AssistantProfile::InAppAssistance` unless Step 3 shows a profile is needed; a new profile case is a decision recorded here.
-  - **Auth and limits:** the route lives under `/api/v1` and passes through `AuthenticateApiRequest`. It answers 403 with `core.expose_api` off, 401 on an invalid token, and a token needs the ability for the tool it calls. The per-token rate limit applies.
-  - **Guards:** every tool result passes `ToolResultGuard` before it leaves, as it does for the assistant. An external model reads it.
-  - **Switch:** seeded setting `features.mcp.enabled`, default off.
-- [ ] **Step 5: Failing tests first.** Handshake (`initialize`) and `tools/list` list only the tools the token's user may call. `tools/call` is refused without the ability. A row the user cannot see through the ACL is absent from the result, identical to the assistant's answer for the same user. Switch off answers as the API switch does. Invalid token 401. A tool result carrying an instruction is flagged by the guard. A call is counted by Task 2 when it is on, with feature `mcp`.
-- [ ] **Step 6: Build.** The adapter, the server class, the route, the setting, the factory method.
-- [ ] **Step 7: Docs.** User doc: create a token (`user/tokens`), the endpoint, and the three lines a client such as Claude Desktop needs. Developer doc: the adapter, the context, what is deliberately not exposed. README feature list gains one line.
-- [ ] **Step 8: Run the touched tests, format, commit.** Core stays free of any MCP reference: confirm with a search whose command and result go in the commit message.
-
-**Not in this task:** write tools over MCP, MCP prompts and resources, MCP client use of external servers (Neuron has a client side; it is a separate decision).
-
-## Task 4: Provider hygiene
+## Task 3: Provider hygiene
 
 **Files:** `Modules/AI/app/Ai/Providers/ProviderFactory.php`, `AiModelChoice`, `AiModelFeature`, tests `AiModelChoiceTest`, `AiModelFeatureWiringTest`.
 
@@ -101,8 +81,8 @@ created_on: 2026-10-12
 
 **Deferred, not planned:** Azure OpenAI. `ProviderFactory` has no case for it, and Neuron's provider list in 3.17.2 has to be read before anyone says it is supported. Enterprise customers ask for it. It becomes its own plan if the owner wants it.
 
-## Task 5: Documentation and closing
+## Task 4: Documentation and closing
 
-- [ ] **Step 1: Module docs.** Every behaviour of Tasks 1 to 4 is in `Modules/AI/docs/rag/` and the README, in the module's existing style. Added settings are listed with their defaults.
+- [ ] **Step 1: Module docs.** Every behaviour of Tasks 1 to 3 is in `Modules/AI/docs/rag/` and the README, in the module's existing style. Added settings are listed with their defaults.
 - [ ] **Step 2: Index.** Add this plan to `docs/superpowers/plans/INDEX.md` (done when the plan was written) and update its line when it closes.
 - [ ] **Step 3: Close.** Add the `## Delivery status (date)` section with every divergence, add the `**Documented in:**` line naming the module docs, set `status: completed`. `ClosedPlansPointToDocumentationTest` enforces the last two.
