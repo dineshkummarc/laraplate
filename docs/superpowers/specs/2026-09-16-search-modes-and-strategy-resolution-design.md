@@ -1,6 +1,6 @@
 # Search modes and strategy resolution
 
-**Status:** draft for review
+**Status:** delivered 2026-10-12 (plan `2026-09-16-search-modes-and-strategy-resolution.md`). Differences from this draft are recorded in its delivery status: three modes, the parameter is `cost`, no permission for `deep`.
 
 **Date:** 2026-09-16
 
@@ -98,7 +98,7 @@ The AI resolver takes Core's as a fallback and delegates to it for everything th
 
 Three consequences worth stating, because they are the point of the design:
 
-- `mode=fast` **with AI installed executes Core's code path**, not an imitation of it. "As if the AI module were not installed" is literal.
+- `depth=fast` **with AI installed executes Core's code path**, not an imitation of it. "As if the AI module were not installed" is literal.
 - The kill switch stops being a special case. Off means the `deep` branch is never taken, which is the same line of code as AI not being installed.
 - **The expensive objects are constructed only when `deep` is asked for.** Today `AdvancedSearchService` receives `ISearchPlanner` in its constructor, so the LLM implementation is wired in before any parameter can be read. Taking the resolver instead, and asking it per call, is what makes a per-request decision possible at all. This is the substantive refactor; the query parameter is the easy half.
 
@@ -133,14 +133,16 @@ The interface can then say "shown with standard search" rather than letting a us
 
 Retries belong to `deep` only. In `fast` the cap is irrelevant because there is no quality evaluation to trigger one, and the field is `0`.
 
-## Cost control is authorization, not validation
+## Cost control: a cap, and a rate
 
-A cap in Settings stops `retry=9999`. It does nothing about a client sending `mode=deep&retry=3` in a loop, which is where the money goes.
+A cap in Settings stops `retry=9999`. It does nothing about a client sending `cost=deep&retry=3` in a loop, which is where the money goes.
 
-- **A named rate limiter keyed on the user**, applied to deep searches specifically and more tightly than to ordinary ones. Per user, not per route: the cost follows the person, not the endpoint.
-- **A permission for `deep`**, following the existing permission conventions, so the expensive path can be granted to a role and withheld from another. It is included from the start deliberately: retrofitting an authorization axis onto a parameter that shipped without one is the same mistake the MCP design avoids by keeping `mcp:write` in the token model from day one, even while refusing to mint it.
+- **A per-person rate limit on deep searches**, applied to deep searches specifically, not to ordinary ones. Per person, not per route: the cost follows the person, not the endpoint. Setting `search.deep_per_minute`.
+- **No permission for `deep`.** The first draft of this design had one, so that the expensive path could be granted to a role and withheld from another, on the argument that an authorization axis is cheaper to add before a parameter ships than after. On 2026-10-12 the user decided against it: the rate limit is the only control, and a `not_authorized` reason does not exist. If `deep` is ever offered to anonymous callers, or priced per role, this is the decision to revisit.
 
-Without the permission, a caller lacking it gets `fast` with `degraded_reason: not_authorized`, on the same degradation path as everything else. It is not an error, because whether the caller may spend money is not the caller's business to handle as an exception.
+A caller over the limit gets `fast` with `degraded_reason: rate_limited`, on the same degradation path as everything else. It is not an error, because whether the caller may spend money is not the caller's business to handle as an exception.
+
+**The parameter is `cost`, not `mode` or `depth`.** `mode` already exists on the search request and picks the path (`auto`, `basic`, `orchestrated`), and `depth` is the relation depth of the graph search; `cost` is independent of both and only matters on the orchestrated path. Everything above that says `mode=fast|balanced|deep` is the `SearchMode` enum in PHP and `cost` on the wire.
 
 ## `IntelligentSearchAction` is retired, and its idea kept
 
@@ -196,12 +198,12 @@ Caveat: the queries returned no hits on this dataset, so the ensemble figures ar
 ## Consumers
 
 - **CRUD search** is the first, and gains `fast` as its default.
-- **MCP**, whose `search` tool is described in its own design as the highest-value tool of the set, passes `mode=deep`: an external agent tolerates seconds where a grid does not. The MCP rate limiting section already anticipates the per-call embedding cost.
+- **MCP**, whose `search` tool is described in its own design as the highest-value tool of the set, passes `cost=deep`: an external agent tolerates seconds where a grid does not. The MCP rate limiting section already anticipates the per-call embedding cost.
 - **An explicit deep search in the UI**, later, where a person chooses to wait. The UI itself belongs to `laraplate-ui`.
 
 ## Scope boundaries
 
-In scope: the `mode` parameter down to the search path, `ISearchStrategyResolver` and `SearchStrategy` in Core, Core's resolver, AI's decorating resolver, removal of the four global overrides, the degradation contract and its meta, retries bounded by Settings, the rate limiter and permission, retirement of `IntelligentSearchAction` with its quality judgement salvaged.
+In scope: the `cost` parameter down to the search path, `ISearchStrategyResolver` and `SearchStrategy` in Core, Core's resolver, AI's decorating resolver, removal of the four global overrides, the degradation contract and its meta, retries bounded by Settings, the rate limiter (the permission was dropped, see *Cost control*), retirement of `IntelligentSearchAction` with its quality judgement salvaged.
 
 Out of scope: a cache for deep results; changes to ranking parameters, which belong to `2026-09-15-measured-retrieval-tuning-l1-design.md`; the UI affordance; moving the planner out of the synchronous path, which measurement may justify separately.
 
