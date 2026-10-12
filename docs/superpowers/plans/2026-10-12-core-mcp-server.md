@@ -26,7 +26,7 @@ Each row was read on 2026-10-12 in the spec or plan named. Task 1 confirms the c
 | Superadmin tokens must be refused, also at minting. | The shipped middleware answers 401 to a superadmin token. | same spec, section 5.1. |
 | Without a token the route is not reached. | `AuthenticateApiRequest` falls back to the `anonymous` user with the `api` roles when there is no token. MCP must not accept that. | same spec, A3. |
 | Phase 2 is blocked until `ActionRequestService` and `RiskClassifier` move from AI to Core. | Both were retired. Writes go through Core approvals at the model. The spec says MCP writes "inherit sections 3 to 7" of the governed-writes design. | `specs/2026-10-07-assistant-governed-writes-design.md` lines 6, 17 and 107; `plans/2026-10-07-assistant-governed-writes.md`. |
-| Gate is `MCP_ENABLED`, routes not registered when off. | Project rule since 2026-09-29: switches are seeded settings, not env. A route group registered at boot cannot read a settings row safely. A conflict to decide, not to guess. | `Modules/AI/README.md` configuration section; `core.expose_api` is a seeded setting. |
+| Gate is `MCP_ENABLED`, routes not registered when off. | Decided 2026-10-12 by the owner: a seeded Core setting, default `false`, exactly as `expose_api` (`CoreDatabaseSeeder`, `config/config.php`, `CrudApiExposure`, the middleware answering 403). The env variable is dropped. | `Modules/Core/database/seeders/CoreDatabaseSeeder.php` line 105, `app/Http/Middleware/AuthenticateApiRequest.php` line 55. |
 
 ## Global Constraints
 
@@ -35,6 +35,7 @@ Each row was read on 2026-10-12 in the spec or plan named. Task 1 confirms the c
 - Tests live in `Modules/Core/tests`; support classes in `tests/Stubs` or `tests/Support`. No test declares a class. Never run tests with a cached config.
 - Pint from the laraplate root with explicit files. Five-driver portability for any schema change, folded into the create migration.
 - No dependency change without the owner's approval. Given 2026-10-12 for `laravel/mcp` only, in `require` of `Modules/Core`; any other package asks again.
+- The gate is a seeded setting, never an env variable.
 - No MCP-side allowlist or deny-list of entities: permissions and ACL are the whole authorization model, as the spec decided. The tool set is declared, never assembled inside a request handler.
 - Phase 1 exposes no write, no lifecycle tool, and mints no write ability.
 - Commits go to the repository that owns each file, explicit paths, never `git add -A`.
@@ -45,8 +46,7 @@ No feature code. The output is an amended spec and decisions the owner signs.
 
 - [ ] **Step 1: Confirm the shipped state.** Read `User` (`HasApiTokens`), `AuthenticateApiRequest`, `ApiTokenController`, `CreateApiTokenRequest`, the rate limiter and the superadmin refusal. For each row of the table above, write "confirmed" or the difference in this step.
 - [ ] **Step 2: Decision, abilities.** Recommendation: reuse the shipped model. A read-only phase 1 needs no new ability: every tool needs the entity's `select` permission, and a token carries it as an ability. `mcp:write` stays reserved in the spec and is not minted. The spec's `mcp:read` is dropped, or kept only if the owner wants a token that is MCP-only. Record the choice.
-- [x] **Step 3: Decision, gate.** Options: (a) a seeded setting plus routes always registered and the group answering 404 when off, which leaves a fingerprint; (b) the spec's env `MCP_ENABLED` with routes not registered, an exception to the settings rule like `AI_SEARCH_ORCHESTRATION_ENABLED` (decided 2026-10-07 by the owner for a boot-time reason). Recommendation: (b), for the same reason, with the exception stated in the config file and the README.
-  Decided 2026-10-12 by the owner: (b). `MCP_ENABLED`, default false, routes not registered when off. The config file and the Core README say why it is an env variable and not a setting.
+- [x] **Step 3: Decision, gate.** Decided 2026-10-12 by the owner: the switch is a seeded Core setting, default `false`, built like `expose_api`. The name is `expose_mcp` (config `core.expose_mcp`): a proposal that follows the sibling, to confirm when the seeder is written. It replaces the spec's `MCP_ENABLED`. Consequences accepted: the routes are always registered, so a disabled server answers 403 and can be fingerprinted, which the spec wanted to avoid; the switch is read per request through the settings overlay, so an administrator turns it on in Filament without a deploy. `expose_api` stays independent: MCP does not need `/api/v1` on, and `/api/v1` on does not open MCP.
 - [ ] **Step 4: Decision, anonymous.** The MCP group requires a token. No token or an invalid one is 401, never the `anonymous` fallback. Confirm it as the spec's intent.
 - [ ] **Step 5: Phase 2 premise.** Amend the spec's *Write approval* section with a dated note: the blocker named there is gone, and the four questions still stand. No design is done in this plan.
 - [ ] **Step 6: Amend and index.** Add a dated `## Amendments (2026-10-12)` section to the spec with the decisions, and change its status line. Update the spec's line in `specs/INDEX.md`. The spec's body is not rewritten.
@@ -60,16 +60,16 @@ No feature code. The output is an amended spec and decisions the owner signs.
 
 ## Task 3: The surface: route group, gate, user
 
-**Files:** `Modules/Core/routes/mcp.php` (new), `Modules/Core/app/Providers/RouteServiceProvider.php`, `Modules/Core/app/Http/Middleware/*`, config, seeder if Task 1 chose a setting.
+**Files:** `Modules/Core/routes/mcp.php` (new), `Modules/Core/app/Providers/RouteServiceProvider.php`, `Modules/Core/app/Http/Middleware/*`, `Modules/Core/database/seeders/CoreDatabaseSeeder.php`, `Modules/Core/config/config.php`, a helper beside `app/Support/CrudApiExposure.php`.
 
 - [ ] **Step 1: Failing tests.**
-  - Off: the endpoint does not exist (or answers as Task 1 Step 3 decided).
+  - Off (`expose_mcp` false): 403 before authentication, on every route of the group. Turning the setting on at runtime opens it with no restart. The seeded default is `false` and the config default equals it.
   - On, no token: 401. Invalid, expired or revoked token: 401. Superadmin token: refused before any tool runs.
   - A cookie or a session never authenticates the group.
   - A request from an address outside the token's `allowed_cidrs` is refused, as on `/api/v1`.
   - The resolved user is never kept between requests: two requests with two tokens in one process never see each other's user.
   - Revoking a token stops the next JSON-RPC message of an open stream, not only the next connection.
-- [ ] **Step 2: The group.** Its own middleware group: bearer, `auth:sanctum` through the shipped middleware, no `EncryptCookies`, `StartSession`, `VerifyCsrfToken` or `EnsureFrontendRequestsAreStateful`. The spec calls mounting it on the `auth` group the trap. The user is set per request, no static or singleton holds it.
+- [ ] **Step 2: The setting and the group.** The setting first, as `expose_api` is: a seeded definition in `CoreDatabaseSeeder` (boolean, group `core`, default `false`), the matching default in `config/config.php`, a test that the seeded value and the config default agree, and a helper like `CrudApiExposure` so tests can turn it on through the settings overlay, since `config(['core.expose_mcp' => true])` alone is overwritten. Then the group: its own middleware group: bearer, `auth:sanctum` through the shipped middleware, no `EncryptCookies`, `StartSession`, `VerifyCsrfToken` or `EnsureFrontendRequestsAreStateful`. The spec calls mounting it on the `auth` group the trap. The user is set per request, no static or singleton holds it.
 - [ ] **Step 3: Rate limiting.** Reuse the shipped per-token limiter. A stricter named bucket for `search`, because a deep search embeds the query on every call and the spec calls the limiter the control that makes it affordable. Numbers are settings.
 - [ ] **Step 4: Run the touched tests, format, commit.**
 
@@ -97,7 +97,7 @@ The tools are a thin projection of `CrudService` and the Graph controller. They 
 
 ## Task 6: Documentation and closing
 
-- [ ] **Step 1: Core docs.** `Modules/Core/README.md` and `Modules/Core/docs/rag/`: the endpoint, the gate and its exception to the settings rule, the group and why it is not the `auth` group, the tools, what is excluded and why, the audit channel. Any new env or setting listed with its default.
+- [ ] **Step 1: Core docs.** `Modules/Core/README.md` and `Modules/Core/docs/rag/`: the endpoint, the `expose_mcp` setting and its relation to `expose_api`, the group and why it is not the `auth` group, the tools, what is excluded and why, the audit channel. Any new env or setting listed with its default.
 - [ ] **Step 2: User doc.** How to create a token (`/app/auth/user/tokens`, abilities, expiry), a service account for an integration, and the few lines a client such as Claude Desktop needs. Say that a superadmin token does not work and why.
 - [ ] **Step 3: Stack docs.** `laraplate-stack/.cursor/rules/01-ecosystem.mdc` names three HTTP surfaces. This is a fourth: update it, with the licensing boundary unchanged, and note it in `docs/architecture.md`. The stack is a separate repository: a note for the owner if it cannot be done from here.
 - [ ] **Step 4: Close.** Add `## Delivery status (date)` with every divergence, the `**Documented in:**` line naming the Core docs, `status: completed`, and the index line. Phase 2 is listed as not built, with the spec's four questions as its entry point.
