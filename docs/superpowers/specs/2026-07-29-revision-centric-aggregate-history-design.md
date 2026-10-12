@@ -66,11 +66,11 @@ Core provides optimistic record revisions through `HasOptimisticLocking`:
 
 CMS `Content` is still the only model carrying the trait. `cms_contents.lock_version` is now non-nullable with default `1`.
 
-The mechanism protects a caller holding a stale in-memory instance. It does **not** yet protect a Filament form: Livewire re-hydrates the model from the database on the request that submits the form, so the value read when the form opened never reaches the update. `HasForm` injects the hidden column, but mass assignment discards it because the column is guarded. A page-level guard is missing, and `StaleModelLockingException` has no renderable, so a conflict would surface as a 500.
+The mechanism protects a caller holding a stale in-memory instance. On 2026-07-30 it did **not** protect a Filament form: Livewire re-hydrates the model from the database on the request that submits the form, so the value read when the form opened never reached the update. `HasForm` injects the hidden column, but mass assignment discards it because the column is guarded. Since 2026-10-12 the edit pages of the lockable models (`EditContent`, `EditTicket`) use the trait `GuardsAgainstStaleRecord`: the version the form was opened with travels in the form state, is compared with the record before the save and put back on the record so the update query is conditioned on it, and a conflict is shown as a notification instead of a 500. The generic CRUD API reads the expected version from the request (`CrudService::requestedLockVersion()`) and `CrudController` handles `StaleModelLockingException`.
 
 `HasLocks` is a separate advisory application lock based on `locked_at` and `locked_by`. A database `lockForUpdate()` is the pessimistic database lock. These three mechanisms must not be described as interchangeable.
 
-`HasLocks` also assigns `lock_version` from `request('lock_version')` on every save, for every model carrying the trait — nine of which have no such column. No form sends that parameter today, so the code is inert, but it is a trap for the Vue frontend under construction.
+On 2026-07-30 `HasLocks` also assigned `lock_version` from `request('lock_version')` on every save, for every model carrying the trait. That code is gone: on 2026-10-12 the only reader of the request parameter left in Core and CMS is `CrudService::requestedLockVersion()`, and only for a request that names a single record.
 
 ## What the first review assumed, and what was true
 
@@ -407,7 +407,7 @@ Two counters, with separate jobs (D23):
 
 The two never replace each other. Optimistic checks protect against stale writers; they do not make several independent SQL statements atomic. Pessimistic `lockForUpdate()` remains available inside managed transactions. Advisory `HasLocks` controls user-level editing and is independent from revision history; a revert on a record locked by another user is refused.
 
-Two gaps outside this document block the locking work: a Filament page guard that carries the expected version into the update, and a renderable for `StaleModelLockingException`, so that a conflict is not served as a 500. Not yet verified: whether the generic CRUD update reloads the root together with its pending translations in one step.
+The Filament page guard and the notification for `StaleModelLockingException` exist since 2026-10-12 (`GuardsAgainstStaleRecord`). Two limits remain. A save that touches only translated fields never reaches the update query, so it is compared with the database before the write but is not conditioned on the version, until a translation write raises `lock_version` (D23). And the ticket edit page cannot be rendered today because of two defects in `TicketForm` (an unimported `Heroicon` and `icon()` called on a field that does not have it), so its use of the guard has no test of its own. Not yet verified: whether the generic CRUD update reloads the root together with its pending translations in one step.
 
 ## Multi-connection policy
 
@@ -562,5 +562,5 @@ Before implementation resumes:
 8. a new implementation plan identifies which existing commits remain, change or are reverted;
 9. no CMS pilot work starts before the new Core plan passes review.
 
-Outside this document, two gaps block the locking work (see "Concurrency"): a Filament page guard that carries the expected version into the update, and a renderable for `StaleModelLockingException`.
+Outside this document, the locking work depends on the translation write raising `lock_version` (see "Concurrency"); the Filament page guard exists since 2026-10-12.
 
