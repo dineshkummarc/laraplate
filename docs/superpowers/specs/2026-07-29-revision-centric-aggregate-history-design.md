@@ -146,7 +146,7 @@ A complete image of the versionable columns of a record, stored as a `SNAPSHOT` 
 
 ### Epoch
 
-An interval in which the versionable columns and the registered relations of a table did not change. Every version row stores the epoch it was written in; an epoch carries a fingerprint of that definition (D13).
+The definition of a root type at a time: its versionable columns, the versionable columns of its translation model, and its registered relations. Every version row stores the `epoch_id` it was written in; an epoch is a row of `core_versions_epochs` with the fingerprint of that definition and a description of it, and is reused when the same fingerprint returns (D13, D33).
 
 ### Coverage
 
@@ -222,7 +222,7 @@ The CMS pilot may use `Content`, but Core contracts do not mention CMS classes o
 
 ## History representation
 
-The tables are `core_versions_sets` and `core_versions` (D15). Both are append-only: no `deleted_at`, `is_deleted` or `updated_at` (D19); `created_at` stays, because it orders previous and next versions and can be forced by the writer. `Version` and `VersionSet` declare `UPDATED_AT = null`, otherwise Eloquent would still write the column on every insert. `MigrateUtils::timestamps()` gets an optional parameter to omit `updated_at`; its default does not change. `Version` no longer uses `SoftDeletes`: removing a row is a real `DELETE`, performed only by the sanctioned operations of invariant 12.
+The tables are `core_versions_sets` and `core_versions` (D15); every other table tied to the history is named `core_versions_*` too, so they sort together, as the table of the schema epochs will be `core_versions_epochs` (D32). Both are append-only: no `deleted_at`, `is_deleted` or `updated_at` (D19); `created_at` stays, because it orders previous and next versions and can be forced by the writer. `Version` and `VersionSet` declare `UPDATED_AT = null`, otherwise Eloquent would still write the column on every insert. `MigrateUtils::timestamps()` gets an optional parameter to omit `updated_at`; its default does not change. `Version` no longer uses `SoftDeletes`: removing a row is a real `DELETE`, performed only by the sanctioned operations of invariant 12.
 
 Each version row carries:
 
@@ -235,7 +235,7 @@ Each version row carries:
 | the user | The actor |
 | `original_contents`, `contents` | The change, or the whole image for an anchor |
 | `version_strategy` | `DIFF` or `SNAPSHOT`, per row |
-| the schema epoch | The epoch of the table at write time (D13) |
+| `epoch_id` | The epoch of the root type at write time, a row of `core_versions_epochs` (D33) |
 | `compacted_at` | Set when compaction rewrote the row (D18) |
 
 `change_type` takes the names of the Eloquent lifecycle events. `trashed` is a root going to the bin and `restored` leaving it; `deleted` is a row that is physically gone: for a root the snapshot tombstone of a hard delete (D17), for membership a detach. A revert is not a `change_type`: it is recorded at set level and the rows inside stay `updated`. A compaction is not one either.
@@ -257,6 +257,16 @@ The hard-delete snapshot, the compaction rewrite and the forced snapshot at the 
 **Relation-only changes.** They advance the revision and write membership rows. When no scalar column changed, no fabricated scalar change is written.
 
 A restore targets the revision, never the internal id of a row.
+
+## Schema epochs
+
+A change of what is versioned must not make a history look complete when it is not (D13, D33).
+
+- **Table.** `core_versions_epochs`: `id`, `root_type`, `fingerprint`, `definition` (JSON), `first_seen_at`, unique on `(root_type, fingerprint)`. Every version row has an `epoch_id`.
+- **Fingerprint.** Per root type: the versionable columns of the root (name, type, nullable), the versionable columns of its translation model, and the registered relation descriptors (path, ownership, key columns). Defaults, non-versionable columns and the inner shape of JSON columns are left out; a change inside a JSON is a process rule, not an automatic check.
+- **Detection.** At the first write per process and per class the fingerprint is computed from the schema and the code and compared with the latest epoch of the class; a new epoch is created with `firstOrCreate` guarded by the unique key. A deploy that changes the code without a migration is seen too. Static caches are cleared when the workers restart.
+- **Lazy baseline.** Only a class with more than one epoch checks whether the last row of a record belongs to another epoch. If so, the first write of that record writes a complete `SNAPSHOT` of the root and of every locale present, in the same set, so that every stream has an anchor in the new epoch. No record is rewritten by the migration.
+- **At revert.** Equal epoch: compatible. Different: the definitions are compared and the columns classified (D13): compatible ones applied, vanished ones skipped and reported, a recreation that would miss a required value refused; the revision carries `schema-mismatch` or `definition-mismatch`.
 
 ## Relation descriptors
 
@@ -463,11 +473,11 @@ No existing migration or commit is reverted until this draft is approved and a r
 1. Verify with a targeted test that wrapping `save()` and `delete()` of the base model is acceptable for performance and regressions, before adopting it (D28).
 2. The callers that write several locales in a loop (importers, the generic CRUD update) adopt `withinRevision` (D28).
 3. The name and default of the config key of the second retention period, the purge command of expired snapshots and its schedule, the metadata kept in a snapshot (who deleted, when), and the cost of a large purge and the order with the cascading observers of `Content` (D29).
-4. The epoch fingerprint and its detection at the end of a migration.
+4. Check the real cost of reading the schema per class and the clearing of the static caches when workers restart after a deploy (D33).
 5. The scoped revert context that suppresses automatic translation.
 6. Implement the same touch of the owner's `updated_at` for relation-only changes in the version-aware pivot adapters (confirmed with D30).
 
-Designed and no longer open: the hook for translation changes, the grouping of the writes of one operation and the representation of the translations (D28); the hard-delete coordinator, its callers and the recovery (D29).
+Designed and no longer open: the hook for translation changes, the grouping of the writes of one operation and the representation of the translations (D28); the hard-delete coordinator, its callers and the recovery (D29); the schema epoch (D33).
 
 ## Required tests for an approved design
 
@@ -485,6 +495,8 @@ Designed and no longer open: the hook for translation changes, the grouping of t
 - repeated reverts create a new revision without rewriting history;
 - reconstruction: with versions `{title:T1,subtitle:S1}` (snapshot), `{title:T2}`, `{subtitle:S2}`, `{title:T3}`, reverting to the third gives `T2 / S2` (the failing case of C08);
 - an anchor holds the columns that took a database default (C09);
+- a deploy that changes a descriptor or `$dontVersionable` with no migration opens a new epoch at the first write; two processes do not create it twice; a class with a single epoch does not query the last row of the record;
+- the first write of a record after an epoch change writes a complete `SNAPSHOT` of the root and of every locale present, in the set of that write;
 - schema drift: a column added later is kept, a column dropped later is skipped and reported, a required column added later refuses a recreation, never a raw query error;
 - compaction leaves the state of every retained revision at or after the cut-off identical, for both variants, and is refused without an anchor;
 - the anchor check reports a record whose earliest retained row is not an anchor;
