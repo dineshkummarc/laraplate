@@ -276,7 +276,7 @@ Every registered relation declares:
 
 Automatic Eloquent relation discovery is forbidden.
 
-Ownership is one of `reference` or `owned`. In milestone 1 the only owned parts are translations, which have no history of their own (D10); a descriptor that registers more than one authoritative root is rejected (D24).
+The relations registered for `Content` in milestone 1 are `categories`, `tags`, `locations` and `contributors`, all `reference` with membership only: none of their pivots has an attribute besides the key and the timestamps, so no pivot attribute is authoritative and the timestamps are not restored (D31). Ownership is one of `reference` or `owned`. In milestone 1 the only owned parts are translations, which have no history of their own (D10); a descriptor that registers more than one authoritative root is rejected (D24).
 
 ## Excluded from the guarantee
 
@@ -288,6 +288,7 @@ Declared, so that a revert never silently misses them (D21, D8, D24):
 | Lock columns (`locked_at`, `locked_user_id`, `locked_until`) | Transient coordination state, written without events | Untouched; excluded from the versionable columns of every model with `HasLocks`, as `lock_version` already is |
 | Media (Spatie) | Own lifecycle and files; its rows keep their own metadata history | Untouched in milestone 1; to resume later as an ordered membership per collection |
 | Comments and ratings | Contributions of third parties, not part of the document | Untouched, never versioned; their models force versioning off |
+| `ContentReference` (bibliography) | Child table with its own surrogate id and order, bin included; a second owned part by shape, nobody writes it in production | Untouched in milestone 1; keeps its own history; to resume as a second owned part when it is used |
 | Symmetric or multi-root relations (`Content::related()`) | More than one authoritative root | Untouched; registering them is rejected |
 
 A recovery of a hard-deleted record does not bring back comments, ratings or media files.
@@ -321,7 +322,7 @@ The paths that lack the scope today are the Filament saves, `CrudService::insert
 - **The scope.** `save()` and `delete()` of the base model open the revision scope before `saving` and close it after every `saved` handler, only for versioned roots that have a translation or a registered relation. The root, its pending translations and their rows are one set and one transaction. Without it, `VersionWriter` would open a set per row.
 - **Explicit grouping.** `withinRevision(fn)` groups several writes in one revision (importers, any loop over locales).
 - **Async translation.** `TranslateModelJob` is a revision of its own, with a system actor and `reason = "ai-translation"`.
-- **Cases.** The root and its initial translations share the creation set, so the creation anchor is complete. A hard delete snapshots every locale from the live table before the cascade. A translation-only change gives a set made only of translation rows; whether it must touch the root's `updated_at` for caches and search is not decided.
+- **Cases.** The root and its initial translations share the creation set, so the creation anchor is complete. A hard delete snapshots every locale from the live table before the cascade. A translation-only change gives a set made only of translation rows, and the observer of the translation models touches the owner's `updated_at` with a direct update of that column and no events (D30), because the incremental search sync and the freshness fingerprint of the list read it; a deletion is covered too, it does not rise `lock_version`, and it works with versioning off.
 
 ### Switching versioning off and on
 
@@ -335,7 +336,7 @@ The recommended approach does not require every application caller to open a tra
 - version-aware `BelongsToMany` and `MorphToMany` adapters wrap complete public mutations such as `attach()`, `detach()`, `sync()` and `updateExistingPivot()`;
 - Core Pivot and MorphPivot bases join the descriptor-owned active scope;
 - translation writes join the scope of their owner through an observer on the translation models (D28);
-- a hard-delete coordinator owns every force delete: it writes the full snapshot first, removes the history and the root in one transaction, and handles the draining of links (D17). `ClearExpiredModels` stops deleting at builder level without a snapshot; deleting in chunks is acceptable;
+- the `HardDeleteCoordinator` (D29) owns every hard delete that passes through Core: the `deleting` hook of `HasVersions` delegates to it for `forceDelete()` and for `delete()` on a model with the bin switched off or without a bin, and `ClearExpiredModels` calls its `purge()` in chunks instead of deleting at builder level. A cascade from a parent that is not versioned (an `Entity` or a `Preset`) bypasses it and is `best_effort`;
 - query-builder bulk mutations, `saveQuietly()` and uncoordinated cascades are `best_effort` by definition for registered aggregates;
 - Core does not claim to detect arbitrary SQL issued by an operator or an external process with direct database access.
 
@@ -376,7 +377,7 @@ Never automatic. It requires an explicit impact preview because changing a share
 
 ### Recovery of a hard-deleted root
 
-A hard-deleted root is recreated from its snapshot until the snapshot expires (D17). It needs the `restore` permission and does not bring back comments, ratings or media files.
+`recover(rootType, rootId)` recreates the root with the same primary key from its snapshot, with the translations per locale, the membership (a missing reference is skipped, reported and labels the result `partial`) and the `RecordOrigin` data. It writes a new anchor (`created`, with `reason` "recovered") and consumes the snapshot set. It needs the `restore` permission and does not bring back comments, ratings or media files. It is possible until the snapshot expires (D17).
 
 ### Authorization and side effects (D26)
 
@@ -420,7 +421,7 @@ Deferred (D25, I01): milestone 1 uses local ids on one connection, and existing 
 
 The history of a live record is never aged on its own. History disappears only through three sanctioned operations (invariant 12).
 
-**Hard delete (D17).** A full snapshot of the aggregate is written first (columns, the state of the translations, the membership, the data of `RecordOrigin`), then the edit history and the root are removed, all in one transaction. The snapshot is the safety net for an accidental deletion and is itself purged after a second retention period; after that the data cannot be recovered. The foreign-key cascades remove their rows afterwards, so no orphan rows remain.
+**Hard delete (D17, D29).** One `HardDeleteCoordinator` performs every hard delete that passes through Core. In one transaction it reads the aggregate before the deletion (complete root image, translations per locale, membership, `RecordOrigin` data), writes the snapshot set (the root's `deleted` row with the complete image, and `SNAPSHOT` rows per locale, per membership entry and for the origin), removes the edit history of the root, then deletes the root; the foreign-key cascades remove their rows afterwards, so no orphan rows remain. The snapshot is the safety net for an accidental deletion and is itself purged after a second retention period; after that the data cannot be recovered.
 
 **Compaction (D18).** Manual, off by default, not scheduled. Choose a cut-off revision R by age or by number of revisions and find the anchor at or before it. By default the `DIFF` rows between the anchor and R are merged into one `DIFF` row written in place at R, the anchor is kept, and everything before the anchor is deleted. As an option, the row at R is rewritten in place as a full `SNAPSHOT` of the state as of R and everything before R is deleted, for whoever wants to forget the original values. In both cases the row at R keeps its revision coordinate and its unique `(version_set_id, sequence)`, the removal is a real `DELETE`, and the merge never crosses an epoch. It is refused when no anchor exists at or before R. After a compaction the states before the cut-off are no longer reachable, by design. `versions:compact` is redefined this way; today it adds a snapshot of the live state and its purge flag is never read.
 
@@ -461,13 +462,12 @@ No existing migration or commit is reverted until this draft is approved and a r
 
 1. Verify with a targeted test that wrapping `save()` and `delete()` of the base model is acceptable for performance and regressions, before adopting it (D28).
 2. The callers that write several locales in a loop (importers, the generic CRUD update) adopt `withinRevision` (D28).
-3. The hard-delete coordinator and the reworked `ClearExpiredModels`.
+3. The name and default of the config key of the second retention period, the purge command of expired snapshots and its schedule, the metadata kept in a snapshot (who deleted, when), and the cost of a large purge and the order with the cascading observers of `Content` (D29).
 4. The epoch fingerprint and its detection at the end of a migration.
 5. The scoped revert context that suppresses automatic translation.
-6. Which pivot attributes are authoritative for each CMS relation.
-7. Whether a translation-only change must touch the root's `updated_at` (caches, search).
+6. Implement the same touch of the owner's `updated_at` for relation-only changes in the version-aware pivot adapters (confirmed with D30).
 
-Designed in D28 and no longer open: the hook for translation changes, the grouping of the writes of one operation, and the representation of the translations.
+Designed and no longer open: the hook for translation changes, the grouping of the writes of one operation and the representation of the translations (D28); the hard-delete coordinator, its callers and the recovery (D29).
 
 ## Required tests for an approved design
 
@@ -490,7 +490,11 @@ Designed in D28 and no longer open: the hook for translation changes, the groupi
 - the anchor check reports a record whose earliest retained row is not an anchor;
 - switching versioning off deletes the history and keeps the hard-delete snapshots; the first save afterwards writes a complete snapshot and `currentRevision()` is `null` before it;
 - a hard delete writes the snapshot, removes the history and the root atomically, leaves no orphan `RecordOrigin` row, and a recovery recreates the aggregate;
+- every hard-delete path that passes through Core (`forceDelete()`, `delete()` with the bin off, `delete()` without a bin, `ClearExpiredModels`) goes through the coordinator and writes the snapshot, with the history removed only after it is written;
+- recovery recreates the root with the same primary key, consumes the snapshot and skips a vanished reference reporting it;
+- a cascade from a parent that is not versioned leaves no snapshot and is documented as `best_effort`;
 - `lock_version` increments on a translation write and not on a relation change;
+- a translation created, updated or deleted moves the owner's `updated_at` without events and without a version row, also with versioning off;
 - a root saved with its pending translations gives one set and one transaction, and a translation-only change gives a set of translation rows only;
 - a machine translation of several locales in `TranslateModelJob` is one revision with a system actor, separate from the user's;
 - translation models have no version setting and write no version row of their own;
@@ -524,7 +528,7 @@ The decisions recorded on 2026-07-29/30 and reopened by the findings are now set
 7. Which bypasses are rejected and which are labelled: labelled `best_effort` (D6, D17); switching versioning off is a purge (D22).
 8. A revision provider for models without optimistic locking: the two counters stay independent (D23).
 9. Retention reachability: the anchor rule and compaction (D18), hard-delete snapshots (D17).
-10. CMS category semantics: categories, tags, locations and contributors are `reference` (D2); `related()` is outside the guarantee (D24). **Still open:** which pivot attributes are authoritative and which stable subject identity each relation uses.
+10. CMS semantics: categories, tags, locations and contributors are `reference` relations with membership only (no pivot attribute is authoritative, the identity of the subject is its local id) and the translations are the one owned part; `related()` is outside the guarantee (D24), and so are `ContentReference`, `origin`, media, comments, ratings and the lock columns (D31, D21, D8).
 
 ## Milestone 1 scope (confirmed 2026-08-05, amended 2026-10-09)
 
