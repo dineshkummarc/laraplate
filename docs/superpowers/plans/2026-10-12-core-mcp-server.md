@@ -34,7 +34,7 @@ Each row was read on 2026-10-12 in the spec or plan named. Task 1 confirms the c
 - `laravel/mcp` is locked at v1.0.1 as a dev dependency. Before a step relies on one of its classes, read the installed source and write the class and method names in the step's note. The spec says it in its own words: do not rely on recalled API shapes, the protocol moves fast.
 - Tests live in `Modules/Core/tests`; support classes in `tests/Stubs` or `tests/Support`. No test declares a class. Never run tests with a cached config.
 - Pint from the laraplate root with explicit files. Five-driver portability for any schema change, folded into the create migration.
-- No dependency change without the owner's approval. Task 2 is that decision.
+- No dependency change without the owner's approval. Given 2026-10-12 for `laravel/mcp` only, in `require` of `Modules/Core`; any other package asks again.
 - No MCP-side allowlist or deny-list of entities: permissions and ACL are the whole authorization model, as the spec decided. The tool set is declared, never assembled inside a request handler.
 - Phase 1 exposes no write, no lifecycle tool, and mints no write ability.
 - Commits go to the repository that owns each file, explicit paths, never `git add -A`.
@@ -45,14 +45,16 @@ No feature code. The output is an amended spec and decisions the owner signs.
 
 - [ ] **Step 1: Confirm the shipped state.** Read `User` (`HasApiTokens`), `AuthenticateApiRequest`, `ApiTokenController`, `CreateApiTokenRequest`, the rate limiter and the superadmin refusal. For each row of the table above, write "confirmed" or the difference in this step.
 - [ ] **Step 2: Decision, abilities.** Recommendation: reuse the shipped model. A read-only phase 1 needs no new ability: every tool needs the entity's `select` permission, and a token carries it as an ability. `mcp:write` stays reserved in the spec and is not minted. The spec's `mcp:read` is dropped, or kept only if the owner wants a token that is MCP-only. Record the choice.
-- [ ] **Step 3: Decision, gate.** Options: (a) a seeded setting plus routes always registered and the group answering 404 when off, which leaves a fingerprint; (b) the spec's env `MCP_ENABLED` with routes not registered, an exception to the settings rule like `AI_SEARCH_ORCHESTRATION_ENABLED` (decided 2026-10-07 by the owner for a boot-time reason). Recommendation: (b), for the same reason, with the exception stated in the config file and the README.
+- [x] **Step 3: Decision, gate.** Options: (a) a seeded setting plus routes always registered and the group answering 404 when off, which leaves a fingerprint; (b) the spec's env `MCP_ENABLED` with routes not registered, an exception to the settings rule like `AI_SEARCH_ORCHESTRATION_ENABLED` (decided 2026-10-07 by the owner for a boot-time reason). Recommendation: (b), for the same reason, with the exception stated in the config file and the README.
+  Decided 2026-10-12 by the owner: (b). `MCP_ENABLED`, default false, routes not registered when off. The config file and the Core README say why it is an env variable and not a setting.
 - [ ] **Step 4: Decision, anonymous.** The MCP group requires a token. No token or an invalid one is 401, never the `anonymous` fallback. Confirm it as the spec's intent.
 - [ ] **Step 5: Phase 2 premise.** Amend the spec's *Write approval* section with a dated note: the blocker named there is gone, and the four questions still stand. No design is done in this plan.
 - [ ] **Step 6: Amend and index.** Add a dated `## Amendments (2026-10-12)` section to the spec with the decisions, and change its status line. Update the spec's line in `specs/INDEX.md`. The spec's body is not rewritten.
 
 ## Task 2: Package and protocol revision
 
-- [ ] **Step 1: Owner decision on the dependency.** Move `laravel/mcp` from dev to `require`, declared in `Modules/Core/composer.json` so the module installs it. The alternative is a hand-written JSON-RPC layer, not recommended: protocol, schema and transport are the library's job and it is first party. Record the decision before any code.
+- [x] **Step 1: Owner decision on the dependency.** Move `laravel/mcp` from dev to `require`, declared in `Modules/Core/composer.json` so the module installs it. The alternative is a hand-written JSON-RPC layer, not recommended: protocol, schema and transport are the library's job and it is first party. Record the decision before any code.
+  Decided 2026-10-12 by the owner: approved, `laravel/mcp` moves to `require`, declared in `Modules/Core/composer.json`. The move itself, with the lock update, is done in Step 2 when the library is installed and read, so the version is the one that was read.
 - [ ] **Step 2: Read the installed library.** `composer install`, then read `Laravel\Mcp`: the server class, how a tool declares its schema and handles a call, how a resource is declared, how routes are registered for the HTTP transport, how middleware attaches, how a session spans requests. Write the names here.
 - [ ] **Step 3: Pin the protocol revision.** Record which MCP revision the installed version speaks and which one the plan targets. This closes spec open point 1.
 
