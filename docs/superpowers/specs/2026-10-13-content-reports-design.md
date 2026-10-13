@@ -1,7 +1,7 @@
 # Content Reports: Design
 
 **Status:** Draft (for review)
-**Date:** 2026-10-13 (revised twice the same day)
+**Date:** 2026-10-13 (revised three times the same day)
 **Author:** swolley + Claude
 **Related:**
 - `2026-10-12-right-to-erasure-design.md`: a `privacy` report becomes an erasure request.
@@ -34,6 +34,13 @@ Recorded on 2026-10-13.
    approvals for deletes on that table (erasure spec D18). Elsewhere the report only opens the case.
 9. **Media are reportable** like contents. Their deletion waits for approval only where the installation turned
    it on for media; by default it does not.
+10. **Seeded reasons: the short list** of D2, six reasons in Italian and English, editable afterwards.
+11. **The reporter's contact and message are kept 180 days** after the case closes, a setting; category, dates and
+    outcome stay.
+12. **Trigger: a trusted role or a threshold.** At once from a role the staff marks as trusted; otherwise at 3
+    distinct reporters, editable per reason. A single anonymous report never suffices.
+13. **Only content is reported, not people.** A comment is reportable; its author is not. The staff sees the author
+    from the case.
 
 Everything else below is proposed.
 
@@ -63,9 +70,9 @@ The contract gives what the staff screen needs: a label, a link, the owner to no
 edits the list. Each reason has a **category from a fixed enum**, which decides where the report goes; the label
 is free, the routing is not.
 
-| Category | Seeded reason, as an example | Natural outcome |
+| Category | Seeded reason (decided 2026-10-13) | Natural outcome |
 |----------|-----------------------------|-----------------|
-| `Rectification` | "Needs rectification", "Wrong information" | editorial change |
+| `Rectification` | "Needs rectification" | editorial change |
 | `Privacy` | "Contains my personal data" | converted into an erasure request |
 | `Inappropriate` | "Inappropriate content", "Spam" | review, possibly unpublish |
 | `Legal` | "Copyright infringement" | legal review |
@@ -126,8 +133,8 @@ chooses. Removing it for good instead is a force delete, which on contents and m
 an anonymous reporter cannot be a modifier, and the reporter's identity must not reach the record's history. The
 AI module's `ModerationSystemUser` is a precedent to follow, not to reuse, since Core cannot depend on AI.
 
-**Trigger.** Proposed, to confirm: the reaction fires at once when the reporter holds a role the staff marks as
-trusted, and otherwise only when a seeded number of distinct reporters, set per reason, is reached. A single
+**Trigger.** Decided by the owner on 2026-10-13: the reaction fires at once when the reporter holds a role the staff
+marks as trusted, and otherwise when 3 distinct reporters are reached, a value editable per reason. A single
 anonymous report never hides anything by itself, which is what keeps reporting from becoming a way to remove
 content someone dislikes.
 
@@ -166,8 +173,8 @@ a report proves nothing about who sent it.
 ### D8. The reporter's data
 
 - The reporter's identity is never shown to the owner of the reported item, only to the staff.
-- The contact and the message have a retention: a seeded number of days after the report is closed, then
-  removed. The category, the dates and the outcome stay for statistics.
+- The contact and the message have a retention: 180 days after the report is closed by default, a setting, then
+  removed by a purge registered in `core_cron_jobs`. The category, the dates and the outcome stay for statistics.
 - An anonymous report stores no address; the rate limit uses it in memory only.
 
 ### D9. Notifications
@@ -213,14 +220,14 @@ Per table: `select`, `insert`, `update` on reports and reasons. `insert` on repo
 
 ## Open points
 
-1. The seeded reason list and its translations.
+1. Decided 2026-10-13: the short list of D2, in Italian and English.
 2. Decided 2026-10-13: guests may report by default, with a rate limit.
-3. Retention days for the reporter's contact and message.
-4. Whether a report can target a comment's author as well as the comment.
-5. The plan, after the erasure plan's first two steps or alongside them: the two specs share the staff surface.
+3. Decided 2026-10-13: 180 days.
+4. Decided 2026-10-13: no, only the comment.
+5. The plan: `docs/superpowers/plans/2026-10-13-content-reports.md`.
 6. Decided 2026-10-13: `HasApprovals` on `Media`, deletions under approval only where the installation turns them on.
 7. Withdrawn 2026-10-13: removal is a force delete, so no domain action needs `/api/v1` for this spec.
-8. The trigger of D5: trusted roles and per-reason thresholds, and the seeded defaults.
+8. Decided 2026-10-13: trusted role or 3 distinct reporters, editable per reason.
 
 ## Sources
 
