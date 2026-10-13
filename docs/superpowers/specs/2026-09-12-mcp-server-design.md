@@ -321,13 +321,14 @@ like any other account. Consequences:
 Highest-value tool of the set: it is the one an external LLM actually wants, and the
 one that makes Laraplate content usable as a knowledge source.
 
-**It passes `mode=deep`.** Search cost is becoming a per-request choice rather than a global
+**It passes `cost=deep`.** Search cost is becoming a per-request choice rather than a global
 setting (`2026-09-16-search-modes-and-strategy-resolution-design.md`), and this is the caller
 that should pay it: an external agent tolerates seconds where a rendered grid does not. Two
 consequences for this server. The per-user rate limiting reasoned about below is not optional
-for this tool, it is the control that makes a deep search affordable. And `deep` is gated by a
-permission, so the MCP service account needs it like any other user: a token cannot grant what
-the person behind it does not have.
+for this tool, it is the control that makes a deep search affordable. Core already limits deep
+searches per person (`search.deep_per_minute`, over it the search is served as `fast` with
+`degraded_reason: rate_limited`), and the tool should read `meta.search.mode_applied` rather than
+assume it got `deep`. There is no permission for `deep` (decided 2026-10-12).
 
 ### Write — `mcp:write` (phase 2)
 

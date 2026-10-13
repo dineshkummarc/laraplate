@@ -189,20 +189,20 @@ meant to work: read `AdvancedSearchService`, not this.
 **Files:**
 - Modify: the search Form Request and the CRUD search controller path
 - Modify: `Modules/Core/app/Services/Crud/CrudService.php`
-- Modify: `Modules/Core/app/Providers/RouteServiceProvider.php` (named rate limiter)
+- Create: `Modules/Core/app/Search/Services/SearchCostGuard.php` (retry cap and the per-person deep rate limit)
 - Test: `Modules/Core/tests/Feature/Search/SearchModeRequestTest.php`
 
-- [ ] **Step 1: Parameters.** `mode` validated through `SearchMode::tryFrom()` (`fast`, `balanced`, `deep`), defaulting to `Fast` when absent or unknown. `retry` an integer, clamped to the maximum held in Settings, `0` when absent. Both travel to `AdvancedSearchService` as **explicit named parameters**, not inside an options bag: a value that changes latency and cost by an order of magnitude should be visible in every signature it passes through.
+- [x] **Step 1: Parameters.** **`cost`, not `mode` or `depth`** (decided 2026-10-12): `mode` already exists on `SearchRequest` and picks the path (`auto|basic|orchestrated`), and `depth` is the traversal depth of the graph search, so the new parameter is `cost=fast|balanced|deep`, read through `SearchMode::tryFrom()` and defaulting to `Fast` when absent or unknown. `retry` an integer, clamped to the maximum held in Settings, `0` when absent. Both travel to `AdvancedSearchService` as **explicit named parameters** (`mode:`, `retries:`), not inside an options bag: a value that changes latency and cost by an order of magnitude should be visible in every signature it passes through. `meta.search` is now also serialized in the HTTP response (`ResponseBuilder::setSearchMeta()`), the only part of the engine meta that is.
 
-- [ ] **Step 2: The cap in Settings.** A Core setting for the maximum retries, read at request time, so an operator can lower it without a deploy. Config would need a release; this is exactly what the Settings table is for.
+- [x] **Step 2: The cap in Settings.** Setting `search.max_retries` (config `core.search.max_retries`, default 2, seeded in `CoreDatabaseSeeder`), read at request time through `SearchCostGuard::clampRetries()`.
 
-- [ ] **Step 3: Permission.** `Deep` requires a permission; `Balanced` costs no money and needs none, only the rate limiter of Step 4 if it proves necessary. `Deep` requires a permission, following the existing permission conventions and seeded like the others. A caller without it gets `Fast` and `degraded_reason: 'not_authorized'` — **not** a 403. Whether the caller may spend money is not an error condition for the caller to handle, and the degradation path already exists.
+- [-] **Step 3: Permission.** Dropped on 2026-10-12 by the user: no permission for `deep`, only the rate limiter of Step 4. The `not_authorized` reason is not built. Revisit if `deep` is ever offered to anonymous callers or priced per role.
 
-- [ ] **Step 4: Rate limiter.** A named limiter keyed on the **user**, applied to deep searches specifically and tighter than ordinary reads. Per user rather than per route, because the cost follows the person. Exceeding it degrades to `Fast` with a reason, on the same path as everything else.
+- [x] **Step 4: Rate limiter.** `SearchCostGuard::allowsDeep()` counts deep searches per person (`user:{id}`, else `ip:{address}`) per minute, limit `search.deep_per_minute` (default 6, a Setting). Beyond it the request is served as `fast` with `degraded_reason: rate_limited`, through `AdvancedSearchService::search(withheld_reason: ...)`. It uses `RateLimiter::attempt()` rather than a named limiter on a route, because the limit applies to one value of a parameter, not to a route.
 
-- [ ] **Step 5: Test** — absent parameter yields `fast`; an unknown mode yields `fast` without an error; `retry` above the Settings cap is clamped, not rejected; a user without the permission requesting `deep` gets results with `not_authorized`, status 200; the limiter degrades rather than refusing.
+- [x] **Step 5: Test** — absent parameter yields `fast`; an unknown cost yields `fast` without an error; `retry` above the Settings cap is clamped, not rejected; the limiter degrades rather than refusing (`SearchModeRequestTest`, and an end-to-end case in `CrudSearchRehydrationAclTest`).
 
-- [ ] **Step 6:** run the tests (PASS), pint, commit in `Modules/Core`: `feat(search): mode and retry parameters with their cost controls`.
+- [x] **Step 6:** run the tests (PASS), pint, commit in `Modules/Core`: `feat(search): mode and retry parameters with their cost controls`.
 
 ---
 
@@ -214,17 +214,17 @@ meant to work: read `AdvancedSearchService`, not this.
 - Modify: `Modules/Core/README.md` and `Modules/AI/README.md` for any new env var
 - Modify: `docs/superpowers/specs/2026-09-12-mcp-server-design.md` (the `search` tool passes `mode=deep`)
 
-- [ ] **Step 1:** (Partly done 2026-10-09 in `SEARCH_RETRIEVAL_PIPELINE.md`, *Search modes*: the modes, degradation, `meta.search` and retries. Still open: the `mode` and `retry` HTTP parameters, the permission and the rate limit, which Task 5 introduces.) Document the modes as a contract for callers: what each of `fast`, `balanced` and `deep` buys, that the default is `fast`, that degradation is normal and reported in `meta.search`, and that a client should read `mode_applied` rather than assume it got what it asked for.
+- [x] **Step 1:** Document the modes as a contract for callers. Done 2026-10-09 and 2026-10-12 in `SEARCH_RETRIEVAL_PIPELINE.md`, *Search modes*: what `fast`, `balanced` and `deep` buy, that `fast` is the default, that degradation is normal and reported in `meta.search`, the `cost` and `retry` parameters, the rate limit, and that a client reads `mode_applied`.
 - [x] **Step 2:** Update *Perimeters* in the AI module docs: search is still Core's, but AI now overlays exactly one contract instead of four, for `balanced` and `deep`.
-- [ ] **Step 3:** Add the `**Documented in:**` line to this plan naming those documents, per the AGENTS closed-plan rule, and a `## Delivery status (date)` section recording anything deliberately not built, in particular that `balanced` was added on 2026-10-09 and why.
-- [ ] **Step 4:** pint, commit in each submodule that changed.
+- [x] **Step 3:** Add the `**Documented in:**` line to this plan naming those documents, per the AGENTS closed-plan rule, and a `## Delivery status (date)` section recording anything deliberately not built, in particular that `balanced` was added on 2026-10-09 and why.
+- [x] **Step 4:** pint, commit in each submodule that changed.
 
 ---
 
 ## Final verification
-- [ ] `php artisan test --compact Modules/Core/tests/Unit/Search Modules/Core/tests/Feature/Search Modules/AI/tests/Integration/AiSearchStrategyResolverTest.php`
-- [ ] `php artisan perf:crud` compared against the Task 0 baseline: the default path must be measurably faster than before, which is the entire point of the work.
-- [ ] `vendor/bin/pint --dirty --format agent` clean in both submodules.
+- [x] `php artisan test --compact Modules/Core/tests/Unit/Search Modules/Core/tests/Feature/Search Modules/AI/tests/Integration/AiSearchStrategyResolverTest.php`
+- [-] `php artisan perf:crud` compared against the Task 0 baseline: not run, `perf:crud` benchmarks the list endpoint and does not exercise search (see Task 0). The comparison was made on the search path itself: `fast` runs in about 30 to 35 ms warm with no model call, where the old default with the overlay on paid an intent call, a plan call and an embedding (23 to 60 s per LLM call on the test server).
+- [x] `vendor/bin/pint` clean on the files changed in Core, AI, CMS and SAO.
 
 ## Out of scope (per spec)
 A cache for deep results; ranking parameter tuning, which belongs to the L1 design; the UI affordance, which is `laraplate-ui`; moving the planner off the synchronous path.
@@ -233,3 +233,20 @@ A cache for deep results; ranking parameter tuning, which belongs to the L1 desi
 - The single most valuable line in this plan is removing the four overrides in `registerSearchBindings()`. Everything else exists to make that removal safe rather than a feature regression.
 - `fast` loses the vector stage, because `ITextEmbedder` has no Core default. That is a relevance regression on ordinary search, not only a latency win, and it is the reason Task 0 exists, the reason `mode` is a string rather than a boolean, and the reason `balanced` exists.
 - If you find yourself writing `if ($module_ai_installed)` anywhere in Core, stop: the container already answers that question, and answering it again in Core is the design error this plan removes.
+
+## Delivery status (2026-10-12): shipped
+
+**Documented in:** `Modules/Core/docs/rag/SEARCH_RETRIEVAL_PIPELINE.md`, `Modules/AI/docs/rag/MODULE.md`, `Modules/AI/README.md`.
+
+Read from the code, not from the task list. Where the plan and the shipped design differ:
+
+- **Three modes, not two.** Task 0 showed the embedding costs about 80 ms warm while each LLM call costs seconds, so `balanced` (lexical plus vector, no LLM) was built in this plan. Core cannot serve it (no embedder) and answers `mode_unavailable`; the AI resolver serves it.
+- **The HTTP parameter is `cost`, not `mode`.** `mode` already picks the search path (`auto|basic|orchestrated`) and `depth` is the graph search's relation depth.
+- **No permission for `deep`.** Dropped by the user on 2026-10-12; Task 5 Step 3 is `[-]`. Only the per-person rate limit remains (`search.deep_per_minute`, over it `rate_limited`), plus the retry cap (`search.max_retries`). There is no `not_authorized` reason.
+- **The rate limit is `RateLimiter::attempt()` in `SearchCostGuard`, not a named limiter on a route**, because it applies to one value of a parameter.
+- **`meta.search` is serialized in the HTTP response**, the only part of the engine meta that is, so a client can read `mode_applied`.
+- **A failing embedder no longer fails the search** (`AdvancedSearchService::resolveVector()` logs and goes on without the vector). The reranker already degraded.
+- **LLM calls of a search have a timeout**, `AI_SEARCH_LLM_TIMEOUT` (10 s, was Neuron's 60). `deep` is allowed two retries; a retry widens the plan rather than repeating the query.
+- **Known gap.** An LLM planner or intent parser that times out falls back to rules inside its own class, so `degraded_reason` stays null in that case.
+- **Not built, still open:** the MCP `search` tool (a separate plan) must read `meta.search.mode_applied`. The latency of `deep` has to be measured again on the production Ollama host: the 2026-10-09 figures come from a 1 vCPU test server.
+- **Failures outside this plan, seen on the full Core run:** `DatabaseConnectionAffinityTest` (`WriteProposalService`, `MachineConfigurationObserver`) and `ModelSoftDeletesRemoveCommandTest` (`core_settings` without `managed`) fail without these changes too. A single `php artisan test Modules/Core` run also exhausts 2 GB of memory; it passes when split by folder.
