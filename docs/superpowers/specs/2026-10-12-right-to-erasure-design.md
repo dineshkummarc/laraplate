@@ -41,6 +41,9 @@ Recorded on 2026-10-12 and 2026-10-13.
 7. **Exclusion is a direct action on every surface.** On `/app`, `/api` and MCP the same action force deletes a
    record with every copy and adds it to the exclusions table (D14). It does not need an erasure request.
 8. **The exclusions table is also the history of exclusions**, not only the import filter (D15).
+9. **`exclude` is governed by the `forceDelete` permission**, not by a permission of its own: whoever may delete
+   a record for good obtains the same result. Recorded 2026-10-13, replacing D14's first wording.
+10. **The action is needed in Filament and in the Vue UI, for contents and media** (D16).
 
 Everything else below is proposed and open to review.
 
@@ -258,13 +261,34 @@ note; for a media, whether to include the duplicates sharing its `content_hash`,
 caller gets the exclusion's id and the job's status; the deletion is irreversible and every surface says so before
 the call.
 
-The action needs the `exclude` permission on the record's table, plus, on `/api` and MCP, the token ability for it.
-It is in no default role except the staff role. It is never inferred from `delete` or `force_delete`.
+The action needs the **`forceDelete` permission** on the record's table (`ActionEnum::ForceDelete`), plus, on
+`/api` and MCP, the token ability for it. Decided by the owner: excluding gives the result a force delete gives,
+so it needs no permission of its own. It follows the record's approval rule for `Operation::ForceDelete`: a model
+that captures force deletes for approval captures exclusions too, on every surface.
 
 An erasure request ends in this action for its `Purge` items; `Redact` and `Delist` also write an exclusion, but
 do not delete.
 
 **MCP safeguard: open, see the note to the owner in Open points.**
+
+### D16. The action in Filament and in the Vue UI
+
+Decided by the owner: contents and media get the action in both interfaces.
+
+- **Filament.** An `ExcludeAction` next to the force delete actions that `Modules\Core\Filament\Utils\HasTable`
+  already provides, shown only for models with a participant and to users with `forceDelete`. A confirmation
+  modal states that the deletion is irreversible, asks the reason category and an optional note, and for a media
+  lists the duplicates by `content_hash` with the choice to include them. A bulk variant follows the same rules.
+  The exclusions list is a read-only resource with a revoke action (D9, D15).
+- **Vue UI.** The UI's delete modal already shows "Annulla · Sposta nel cestino · Cancella definitivamente" to
+  users with `forceDelete` (stack spec `2026-05-29-laraplate-ui-design.md`, *Delete / soft delete*). The
+  exclusion belongs there, for record types that support it. Its design is the UI's: it is specified in the
+  stack repository, starting from `ui-preview-v2.html`, which is the UI's only visual source of truth. The
+  backend gives it what it needs: a capability flag per record type and the duplicates of a media.
+
+**Force delete stays as it is**, a separate button: it removes the row and leaves the hard-delete image in
+history (D6's table). Whether "Cancella definitivamente" should also purge the history of a model with a
+participant is open point 11.
 
 ### D15. The exclusions table is the history
 
@@ -289,9 +313,9 @@ The staff screens list exclusions with filters on type, reason, channel, author 
 ## Permissions
 
 Per table as every entity: `select`, `insert`, `update` on requests, items and exclusions. Domain-action
-permissions: `verify_identity`, `decide`, `execute`, `exclude` on every participant's table, and `revoke` on
-exclusions. A default role for the person in
-charge holds all of them. No default role grants `decide`, `execute`, `exclude` or `revoke` to a service account.
+permissions: `verify_identity`, `decide`, `execute`, and `revoke` on exclusions. Excluding uses `forceDelete`
+(D14). A default role for the person in
+charge holds all of them. No default role grants `decide`, `execute`, `revoke` or `forceDelete` on contents and media to a service account.
 
 ## Testing
 
@@ -307,8 +331,8 @@ charge holds all of them. No default role grants `decide`, `execute`, `exclude` 
   data exists.
 - Approvals: execution is not captured; pending modifications and restores of the target are gone.
 - Idempotency: running an item twice changes nothing the second time.
-- `exclude` from `/app` and `/api`: same result as a `Purge` item; refused without the permission or, on `/api`,
-  without the token ability; the exclusion row records channel and token.
+- `exclude` from `/app` and `/api`: same result as a `Purge` item; refused without `forceDelete` or, on `/api`,
+  without the token ability; captured when the model captures force deletes; the exclusion row records channel and token.
 - History: a revoked exclusion stays listed with its revocation; no row is ever deleted.
 - No erased value in item reports, exclusions or logs.
 
@@ -329,3 +353,8 @@ charge holds all of them. No default role grants `decide`, `execute`, `exclude` 
    a per-token pre-approval the owner can grant to a trusted integration. Recommended: (c). The MCP spec
    lists "what a token may pre-approve" among its phase 2 questions; this answers it for one action.
 10. The plan, written after points 1 to 5, since they size the participants.
+11. **Force delete and history.** Today a force delete keeps the full image in `core_versions`. For models with a
+    participant, should "Cancella definitivamente" purge the history too, leaving `exclude` as purge plus ban? It
+    would make "definitively" true, and change what force delete does today for every such model.
+12. **MCP safeguard**, point 9, now reads: is the model's approval rule for force deletes enough over MCP, or does
+    MCP add its own confirmation?
