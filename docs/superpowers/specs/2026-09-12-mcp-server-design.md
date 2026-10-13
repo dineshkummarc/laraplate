@@ -502,3 +502,85 @@ own user column, with `auth()->id()` commented out. This affects `/app` equally.
    Reopening the write set means answering the four questions under *Write approval → What
    phase 2 has to answer*, starting with giving the approval mechanism a home in Core. Blocks
    phase 2 only; the read set is unaffected.
+
+## Amendments (2026-10-13)
+
+Decisions taken by the owner on 2026-10-12 and 2026-10-13, while writing the implementation plan
+`docs/superpowers/plans/2026-10-12-core-mcp-server.md`. The body above is kept as written; where a
+decision below contradicts it, the decision wins.
+
+### Decided
+
+1. **Purpose: integration and automation.** The server exists so that external models and agents,
+   scheduled or event driven, can work on the instance's data. It is not a development tool: Laravel
+   Boost, which runs locally over stdio for a developer's coding agent, stays the development tool.
+   Consequence: phase 2, the writes, is where most of the value is, and should not stay a distant phase.
+2. **Phase 1 stays read-only.** Confirmed. It ships the read, search and discovery tools and the
+   resources listed above. No write, lifecycle or command tool.
+3. **Package: `laravel/mcp`, moved to `require`.** Today it is locked at v1.0.1 as a dev dependency pulled
+   in by `laravel/boost`. It is declared in `Modules/Core/composer.json`. Approval covers this package only.
+   This closes the package half of open point 1; the protocol revision is pinned when the installed library
+   is read.
+4. **Gate: a seeded Core setting, default `false`, built like `expose_api`.** It replaces `MCP_ENABLED` in
+   *Gating*. The routes are always registered, so a disabled server answers 403, as `/api` does with
+   `expose_api` off; the spec's wish to leave no endpoint to fingerprint is given up for a switch an
+   administrator turns on in Filament without a deploy. The setting is independent from `expose_api`. The
+   name proposed is `expose_mcp` (config `core.expose_mcp`), to confirm when the seeder is written.
+5. **Commands are not exposed.** Restated from *Explicitly excluded* because it was asked again: no Artisan
+   passthrough, no dynamic `domainAction`. An operation an agent should run becomes a named tool with fixed
+   arguments over a service or a registered domain action, one decision per tool.
+
+### Superseded by later work (to confirm in the code, plan Task 1 Step 1)
+
+Read in specs and plans on 2026-10-12, not yet in the code:
+
+- *Authentication, What is missing today*: `HasApiTokens`, the token routes and the stateless handling
+  shipped with `2026-10-07-api-access-control-design.md` (delivered 2026-10-09).
+- *Ability granularity*: shipped token abilities are permission names of the `api` guard, with `*`
+  refused, and a request needs the role permission and the ability.
+- *Rate limiting*: a per-token limit exists (`core.api.rate_limit_per_minute`, default 600).
+- *Decision: MCP refuses superadmin tokens*: the shipped API middleware already answers 401 to one.
+- *Write approval*: the blocker named there is gone. `ActionRequestService` and `RiskClassifier` were
+  retired; writes go through Core approvals at the model (`2026-10-07-assistant-governed-writes-design.md`).
+  The four phase 2 questions still stand.
+
+### Recommended, not yet decided
+
+- **Guard:** reuse the `api` guard; no `mcp` guard. A new guard would duplicate every permission and every
+  role assignment for no security gain.
+- **Permissions:** the `api` permissions, unchanged. The tools call `CrudService`, which checks them. No
+  `mcp.*` permission. Creating tokens uses the existing `core.auth.tokens.create`.
+- **Middleware:** a dedicated MCP middleware, reusing the token resolution of `AuthenticateApiRequest`
+  rather than that class: the shipped one answers 403 when `expose_api` is off, which would tie MCP to it,
+  and it falls back to the anonymous user without a token, which MCP must refuse (401).
+- **`mcp:read`:** drop it. The read-only property comes from the tools; a token with `select` abilities
+  already cannot write. Keep `mcp:write` reserved, not minted. Reconsider an MCP-only token axis when
+  writes open.
+
+### Recorded for phase 2, not decided
+
+A first catalogue of tools per module was discussed on 2026-10-12. Kinds: **read**; **draft**, a write that
+lands in Core approvals; **act**, executed after a human approves, or kept out. Built over the domain
+action registry, one curated entry per model and action, never the dynamic dispatcher.
+
+| Module | Read | Draft | Act, with approval |
+|--------|------|-------|--------------------|
+| Core | `history`, `pending_approvals` | `insert` and `update` captured by approvals | none; approving stays human |
+| CMS | content search with translations and provenance, comments awaiting moderation | content and translation drafts | |
+| ERP | receivables aging, VAT register, stock levels, price lists, unreconciled bank lines, `Task export_ics` | payment requests | `Invoice post`, `ReturnOrder approve` and `complete` |
+| MES | OEE and KPIs, open downtimes, order status, capacity, lot `forward_trace` and `backward_trace` | `WorkCenter open_downtime`, `Downtime close` | `record_consumption`, operation `start` and `complete`, `QualityCheck execute`, `NonConformance resolve` |
+| SAO | ticket and signal search, fix status, time to truth, release health, `Connection health`, `IngestEvent replay` as a dry run | `Ticket transition` after `transitions`, `close`, `OwnershipSuggestion accept` | |
+
+Kept out of any catalogue: `PaymentRun export_sepa` and `export_cbi_bonifici`, `Invoice unpost`,
+`JournalEntry reverse`, `FiscalPeriod` and `FiscalYear close`, `DocumentSequence reset`,
+`MachineSource issue_token` and `revoke_token`. They move money, rewrite the ledger or mint credentials.
+
+Gaps an automation use needs, with no spec yet:
+
+- **Outbound events.** MCP is pulled by the client. An agent that reacts to the instance, for example an
+  overdue invoice or a machine stop, needs a push channel such as webhooks.
+- **Laraplate as an MCP client.** The AI module calling external servers, for example mail or calendars.
+- **Periodic invoicing.** No action generates the month's invoices today; it would be a new ERP service
+  with a preview, idempotency and a queue before any tool exposes it.
+- **Service accounts per integration.** One account and one named token per automation, so that one can
+  be revoked alone; the shipped token model allows non-expiring service account tokens.
