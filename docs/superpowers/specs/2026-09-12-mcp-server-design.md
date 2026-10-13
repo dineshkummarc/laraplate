@@ -554,6 +554,9 @@ Read in specs and plans on 2026-10-12, not yet in the code:
    permissions right is the job of whoever grants them. This answers phase 2 question 4, "what a token may
    pre-approve": nothing beyond its abilities.
 
+8. **No token, no access.** A request without a token, or with an invalid one, is 401. The `anonymous` fallback
+   of `AuthenticateApiRequest` never applies to MCP.
+
 ### Recommended, not yet decided
 
 - **Guard:** reuse the `api` guard; no `mcp` guard. A new guard would duplicate every permission and every
