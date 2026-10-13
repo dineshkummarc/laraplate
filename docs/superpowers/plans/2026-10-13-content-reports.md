@@ -32,9 +32,10 @@ created_on: 2026-10-13
 
 **Files:** create migration for `core_report_reasons` and its translations, `Modules/Core/app/Models/ReportReason.php` on the `Taxonomy` base, `Modules/Core/app/Enums/ReportCategory.php`, `Modules/Core/app/Enums/CoreTables.php`, `CoreDatabaseSeeder`.
 
-- [ ] **Step 1: Failing tests.** A reason has a translatable label, a category from `ReportCategory` (`Rectification`, `Privacy`, `Inappropriate`, `Legal`, `Other`), active and order; it can require the free text; it can be limited to some reportable types. The seeder writes the six reasons of the spec in Italian and English and leaves the administrator's edits alone on reseeding.
-- [ ] **Step 2: Enum, model, migration, seeding** through `SeedDefinition` like the other Core seeds.
-- [ ] **Step 3: Run the touched tests, Pint, commit.**
+- [ ] **Step 1: Failing tests.** A reason has a translatable label, a category from `ReportCategory` (`Rectification`, `Privacy`, `Inappropriate`, `Legal`, `Other`), active and order; it can require the free text; it can be limited to some reportable types. The seeder writes the six reasons of the spec with a label for every locale `translations()` returns, from Core's lang files, and leaves the administrator's edits alone on reseeding; a locale without a lang file falls back to the default locale.
+- [ ] **Step 2: Lang files.** One key per reason in every locale folder of Core, today `de`, `en`, `es`, `it`, `sl`, checked with `lang:check-translations`.
+- [ ] **Step 3: Enum, model, migration, seeding** through `SeedDefinition` like the other Core seeds.
+- [ ] **Step 4: Run the touched tests, Pint, commit.**
 
 ## Task 2: Reportables (D1)
 

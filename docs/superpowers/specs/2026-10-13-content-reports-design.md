@@ -34,7 +34,9 @@ Recorded on 2026-10-13.
    approvals for deletes on that table (erasure spec D18). Elsewhere the report only opens the case.
 9. **Media are reportable** like contents. Their deletion waits for approval only where the installation turned
    it on for media; by default it does not.
-10. **Seeded reasons: the short list** of D2, six reasons in Italian and English, editable afterwards.
+10. **Seeded reasons: the short list** of D2, six reasons, editable afterwards. Their labels are translated in
+    **every available locale**, not only Italian and English (corrected by the owner the same day): the locales
+    `translations()` returns, today `de`, `en`, `es`, `it`, `sl`.
 11. **The reporter's contact and message are kept 180 days** after the case closes, a setting; category, dates and
     outcome stay.
 12. **Trigger: a trusted role or a threshold.** At once from a role the staff marks as trusted; otherwise at 3
@@ -77,6 +79,12 @@ is free, the routing is not.
 | `Inappropriate` | "Inappropriate content", "Spam" | review, possibly unpublish |
 | `Legal` | "Copyright infringement" | legal review |
 | `Other` | "Other" | review |
+
+**Labels in every available locale.** The seeded labels come from Core's lang files, one key per reason, and the
+seeder writes a translation for each locale `translations()` returns, the list the instance already uses for its
+languages. A locale added later gets its labels by adding the lang file and reseeding; the seeder never overwrites a
+label the administrator edited. A locale without a lang file falls back to the default locale, as other translated
+models do.
 
 A reason can require the free text, so that "Other" is never empty. A reason can be limited to some reportable
 types, so that "Copyright infringement" is not offered on a comment if the administrator does not want it.
@@ -220,7 +228,7 @@ Per table: `select`, `insert`, `update` on reports and reasons. `insert` on repo
 
 ## Open points
 
-1. Decided 2026-10-13: the short list of D2, in Italian and English.
+1. Decided 2026-10-13: the short list of D2, labelled in every available locale.
 2. Decided 2026-10-13: guests may report by default, with a rate limit.
 3. Decided 2026-10-13: 180 days.
 4. Decided 2026-10-13: no, only the comment.
