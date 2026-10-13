@@ -27,8 +27,8 @@ Recorded on 2026-10-13.
    record through Core approvals, so it waits for a decision (D5).
 5. **The existing `Hide` and `Block` strategies are kept as they are.** What a record looks like while its
    deletion waits is its model's `pendingDeletionStrategy()`, unchanged; the report does not choose it.
-6. **Excluding needs no route of its own.** It is a domain action (erasure spec D14), reachable from a report's
-   case as one of the staff's outcomes.
+6. **Removing a reported record needs no route of its own.** It is the existing force delete; on contents and
+   media it also writes the exclusion (erasure spec D2), with the report's reason category.
 
 Everything else below is proposed.
 
@@ -114,7 +114,8 @@ strategies stay as they are; a report does not pick one per request.
 
 **The staff decides through the approval.** Approving the deletion deletes the record and resolves the case as
 `Removed`. Rejecting it brings the record back as it was and resolves the case as `NoAction`, or whatever the staff
-chooses. Excluding instead is the domain action of the erasure spec (D14), with `forceDelete`.
+chooses. Removing it for good instead is a force delete, which on contents and media writes the exclusion
+(erasure spec D2).
 
 **Who requests.** The pending modification is authored by a system actor named for reports, not by the reporter:
 an anonymous reporter cannot be a modifier, and the reporter's identity must not reach the record's history. The
@@ -143,9 +144,8 @@ reporter's identity, and can answer on the case.
 - `POST` under `/api/v1`, through `AuthenticateApiRequest` with its switch and anonymous user.
 - `GET` of the active reasons for a reportable type, so a client can build its form.
 - The staff works from Filament and the generic CRUD, under the usual permissions.
-- Excluding a reported record is not a report route: it is the `exclude` domain action on the existing route
-  `POST /{action}/{module}/{entity}` (`CrudController::domainAction()`). That route exists on `/app` only today;
-  exposing domain actions on `/api/v1` is open point 7.
+- Removing a reported record is not a report route: it is the force delete of the CRUD route
+  `/delete/{module}/{entity}` or of the media route, with the report's reason category (erasure spec D2).
 
 Both posts are rate limited per client address and per user. A reporter cannot report the same item twice while
 their earlier report is open; the second attempt answers as accepted and changes nothing, so the limit does not
@@ -174,12 +174,12 @@ only gets the outcome by whatever channel the instance uses, outside this spec.
 ### D10. MCP
 
 An agent reading a mailbox opens a report, through MCP, with the email text as the message and the channel
-recorded. It reads the status of the reports it opened. It does not handle, resolve or convert them. Excluding a record
-directly is a separate action, under its own permission (erasure spec D14).
+recorded. It reads the status of the reports it opened. It does not handle, resolve or convert them. Removing a record is a
+force delete, under `forceDelete` and the token ability, once MCP opens writes (erasure spec D2).
 
 ### D11. Legal note
 
-The EU Digital Services Act asks hosting services for a notice mechanism for illegal content and a statement of
+The EU Digital Services Act, articles 16 and 17, asks hosting services for a notice mechanism for illegal content and a statement of
 reasons for decisions. When an instance hosts content written by its users, this model is the natural base for
 it. Whether it is enough is a legal question for the operator; the spec does not claim compliance.
 
@@ -214,5 +214,12 @@ Per table: `select`, `insert`, `update` on reports and reasons. `insert` on repo
 4. Whether a report can target a comment's author as well as the comment.
 5. The plan, after the erasure plan's first two steps or alongside them: the two specs share the staff surface.
 6. `HasApprovals` on `Media`, so that a reported media can wait for its deletion.
-7. Domain actions on `/api/v1`: all of them, or an explicit list. Recommended: an explicit list, as for MCP.
+7. Withdrawn 2026-10-13: removal is a force delete, so no domain action needs `/api/v1` for this spec.
 8. The trigger of D5: trusted roles and per-reason thresholds, and the seeded defaults.
+
+## Sources
+
+Read on 2026-10-13. Not legal advice.
+
+- [Regulation (EU) 2022/2065, Digital Services Act](https://eur-lex.europa.eu/eli/reg/2022/2065/oj): article 16, notice and action mechanisms; article 17, statement of reasons.
+- [Regulation (EU) 2016/679, GDPR](https://eur-lex.europa.eu/eli/reg/2016/679/oj): article 17 for a privacy report converted into an erasure request.
