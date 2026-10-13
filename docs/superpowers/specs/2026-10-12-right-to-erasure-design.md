@@ -1,7 +1,7 @@
 # Right to Erasure and Exclusions for Contents and Media: Design
 
 **Status:** Draft (for review)
-**Date:** 2026-10-12, revised three times on 2026-10-13
+**Date:** 2026-10-12, revised four times on 2026-10-13
 **Author:** swolley + Claude
 **Related:**
 - `2026-10-13-content-reports-design.md`: a report is the public entry point; a privacy report opens an erasure request.
@@ -66,6 +66,18 @@ Recorded on 2026-10-12 and 2026-10-13, in order.
 12. **Four cases by purpose** (D1); a removal for privacy goes only through an erasure request, never through a
     force delete (D3); the source identity is a **keyed hash with a dedicated key** (D8); moderation snapshots have
     a **configurable retention and a legal hold** (D12).
+13. **Reaction time is not retention.** The request's due date is the GDPR term with reminders (D5). How long
+    anything is kept follows the existing mechanism of the instance: settings with a default, purges registered
+    in `core_cron_jobs` (D12, D18).
+14. **Snapshot retention selects from the exclusions table**, through `snapshot_version_id`. No new
+    `VersionChangeType`: the snapshot stays a `Deleted` version (D12).
+15. **MCP adds no confirmation of its own.** A caller over MCP can do what its user's permissions and its token's
+    abilities allow, under the model's approval rules. Setting the permissions right is the job of whoever grants
+    them. Supersedes open point 10 of the previous revision.
+16. **The code declares what is possible, the installation decides what is active**, with a default (D18).
+    Approvals do not apply to everyone: a writer holding `approve`, a superadmin and the console act directly.
+17. **`Media` gets `HasApprovals`**, with the operations under approval chosen per installation and **none by
+    default**, so that media behave as today until an installation turns deletions on (D18).
 
 ## Why a delete is not enough
 
@@ -267,8 +279,14 @@ recreated that way has no file if Spatie deleted it (open point 1); restoring me
 
 ### D12. Snapshot retention and legal hold
 
-A moderation snapshot expires after a seeded number of days per case, set in Filament. A scheduled command
-deletes expired snapshots through D7's history primitive and empties `snapshot_version_id`; the exclusion stays.
+Decided by the owner on 2026-10-13. A seeded setting, `exclusions.snapshot_retention_days`, default 180: the
+six months during which the Digital Services Act lets a user complain about a moderation decision (art. 20). The
+purge does not scan `core_versions`: it reads the exclusions whose snapshot expired and that carry no legal hold,
+deletes each version **by `snapshot_version_id`** through D7's history primitive, and empties the column; the
+exclusion stays. Other `Deleted` versions are never touched. No new version change type. The purge is a command
+registered in `core_cron_jobs`, as the other purges of the instance are, so an administrator sees and schedules
+it from the same place.
+
 `legal_hold` suspends expiry and restricts who can read the snapshot to the users with the permission for it.
 Setting and lifting the hold are recorded.
 
@@ -315,6 +333,26 @@ reused only if its meaning fits. The pending modifications of the targets are re
 6. `Redact`, the hardest: it rewrites text, translations and history.
 7. MCP, through its phase 2: the `delete` tool inherits D2; agents open reports.
 
+### D18. Capabilities: declared in code, switched per installation
+
+Decided by the owner on 2026-10-13, as a rule for this spec and the reports spec. The project already works this
+way for soft deletes, locking and versioning: the model declares a capability in code, a per-table setting turns it
+on or off, and the seeder gives it a default. Approvals follow the same rule:
+
+- `approvalOperations()` keeps saying which operations a model **can** put under approval.
+- A per-table setting, seeded like `soft_deletes.enabled.*` and `locking.enabled.*`, says which of them are
+  **active**. Its default is what the model returns today, so nothing changes for existing models.
+- Approvals still apply only to writers who cannot decide alone (`HasApprovals::approvalGate()`): a holder of
+  `approve`, a superadmin and the console act directly. An editor who may approve media changes an article's image
+  without asking anyone.
+
+**Media.** `Media` gets `HasApprovals`, can put `Delete` and `ForceDelete` under approval, and has **none active by
+default**: uploads, edits and Spatie's own saves, such as conversions, never wait. An installation that moderates
+user media turns the deletions on for that table. Its pending deletion strategy is `Hide`, so a reported image does
+not stay visible while it waits; that applies only where the installation turned deletions on.
+
+The approvals spec carries the matching amendment (`2026-09-27-core-approvals-subsystem-design.md`).
+
 ## Permissions
 
 `forceDelete` on the record's table for a moderation exclusion. On erasure requests: `select`, `insert`, `update`
@@ -344,25 +382,43 @@ account.
 
 ## Open points
 
-1. Spatie's file deletion under Core's `SoftDeletes`, on force delete: read the installed package first.
-2. Search document removal per driver, on force delete and soft delete.
-3. Translation rows on delete; whether a content's snapshot covers its translations or a version set does.
-4. How content bodies reference media files.
-5. Whether `revertWithoutSaving()` and `restoreToRevision()` pass through `VersionSetManager`, and how a
-   `Deleted` snapshot recreates a record after revocation.
-6. Version sets: removing one record's membership without breaking the set's restore of the others.
-7. Whether a request may target a user account and call the existing user deletion with its AI purge.
-8. Seeded values: request due date, minimisation period, snapshot retention per case.
-9. Rotation of `CORE_EXCLUSIONS_HMAC_KEY`: keep the old key for matching until every row is rehashed.
-10. MCP: is the model's approval rule for force deletes enough when the caller is an agent, or does MCP add its
-    own confirmation? To decide with the MCP phase 2.
-11. The plan, written after points 1 to 5.
+Verified in the code on 2026-10-13, with a proposed solution. The proposals are not decisions yet.
+
+1. **Media files.** Read in `spatie/laravel-medialibrary` 11.23.9, `MediaObserver::deleted()`: files and
+   conversions are removed when `isForceDeleting()` is true, which the CRUD force delete sets. Nothing to add for
+   erasure. A delete with soft deletes switched off did not set it; fixed in Core `047fa3c` and `1a13e6e`.
+2. **Search.** Scout removes the document on force delete, and on soft delete as well since `scout.soft_delete` is
+   `false` in Core's config. The gap is **content embeddings**: only media drop theirs. Proposed: Core's participant
+   removes every `ModelEmbedding` of the record, all locales.
+3. **Translations.** `cms_contents_translations` cascades at database level (`cascadeOnDelete()`), with no model
+   events: the content's snapshot does not hold them and their own versions remain. Proposed: on excludable models,
+   translations are deleted through Eloquent before the content, inside one version set; the exclusion keeps the
+   **set's id**, so a recreation brings back content and translations together; a privacy purge also removes the
+   translations' versions.
+4. **Media in bodies.** No server-side embedding of media in content text was found; editors may paste URLs.
+   Proposed: the CMS participant searches the translations' text for the media's uuid, file name and URL, and lists
+   the matches in the review.
+5. **Reverts and recreation.** `restoreToRevision()` opens a `Revert` set, so `VersionSetManager` covers it;
+   `revertWithoutSaving()` has no caller other than `revert()` and gets the check anyway. No primitive recreates a
+   record from a `Deleted` snapshot: every revert works on a live record. Proposed: a new `VersioningService`
+   primitive, used only after a revocation.
+6. **Version sets.** `restoreToRevision()` already skips, and reports, a subject that no longer exists when forced.
+   Proposed: a purged member is marked as such in its set, and restoring the others skips it and reports it.
+7. **User accounts.** Proposed: an item type `User`, calling the existing user deletion as a definitive one, with
+   the AI purge it already triggers. Contents the user wrote are not deleted: the author becomes a "removed user".
+8. **Seeded values.** Proposed: request due date one month with reminders at 7 and 2 days; request contact and
+   message deleted 12 months after closure; snapshot retention 180 days (decided, D12). All as settings.
+9. **HMAC key rotation.** Correction of the previous revision: rehashing is impossible, the plain values are not
+   stored. Proposed: a keyring. Each row stores the id of its key, new rows use the current key, matching tries
+   every key, and a key is never dropped while rows use it.
+10. The plan, written once points 2 to 9 are confirmed.
 
 ## Sources
 
 Read on 2026-10-13. Not legal advice; the operator of each instance validates the legal frame.
 
 - [Regulation (EU) 2016/679, GDPR](https://eur-lex.europa.eu/eli/reg/2016/679/oj): article 5(2) accountability, article 12(3) one-month term, article 17 right to erasure and its exceptions, article 19 notification of recipients.
+- [Regulation (EU) 2022/2065, Digital Services Act](https://eur-lex.europa.eu/eli/reg/2022/2065/oj): article 20, internal complaint-handling for at least six months after a decision; basis of the 180-day snapshot retention default.
 - [ICO, Right to erasure](https://ico.org.uk/for-organisations/guide-to-dp/guide-to-the-uk-gdpr/individual-rights/right-to-erasure): backups put beyond use and deleted at rotation. UK GDPR, used as guidance.
 - [EDPB, Guidelines 01/2025 on Pseudonymisation](https://www.edpb.europa.eu/our-work-tools/documents/public-consultations/2025/guidelines-012025-pseudonymisation_es): pseudonymised data remains personal data. Adopted for consultation in January 2025; whether a final version was published was not checked.
 - [Hunton, summary of the EDPB guidelines](https://www.hunton.com/insights/publications/edpb-advises-on-pseudonymisation-for-gdpr-compliance): secondary source.

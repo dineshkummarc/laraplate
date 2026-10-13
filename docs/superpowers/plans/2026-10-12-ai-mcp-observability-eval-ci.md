@@ -54,6 +54,7 @@ created_on: 2026-10-12
 **Files:** `Modules/AI/app/Ai/Agents/ChatAgent.php`, new `Modules/AI/app/Services/Observability/*`, new model, seeder settings, create migration, `Modules/AI/README.md` privacy section, `Modules/AI/docs/rag/MODULE.md`.
 
 - [ ] **Step 1: Decide the record, then read Neuron.** Decisions to write into this step:
+  Decided 2026-10-13 by the owner: the record is built, switched off by default, technical metadata only, as listed below. The Neuron reading is still to do, so the step stays open.
   - **What is stored:** run id, conversation id (nullable), feature, provider, model, input tokens, output tokens, latency in milliseconds, number of tool calls, tool names (names only, never arguments or results), outcome, created at.
   - **What is never stored:** prompts, answers, citations, tool arguments, tool results, user id, IP.
   - **Link to the user:** only through `conversation_id`. The existing purge observers (`PurgeDeletedConversationObserver`, `PurgeAssistantDataOfDeletedUserObserver`) then cover erasure.

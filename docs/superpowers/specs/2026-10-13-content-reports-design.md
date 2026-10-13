@@ -1,7 +1,7 @@
 # Content Reports: Design
 
 **Status:** Draft (for review)
-**Date:** 2026-10-13 (revised the same day)
+**Date:** 2026-10-13 (revised twice the same day)
 **Author:** swolley + Claude
 **Related:**
 - `2026-10-12-right-to-erasure-design.md`: a `privacy` report becomes an erasure request.
@@ -29,6 +29,11 @@ Recorded on 2026-10-13.
    deletion waits is its model's `pendingDeletionStrategy()`, unchanged; the report does not choose it.
 6. **Removing a reported record needs no route of its own.** It is the existing force delete; on contents and
    media it also writes the exclusion (erasure spec D2), with the report's reason category.
+7. **Guests may report by default**, with a rate limit per address. A seeded setting turns it off.
+8. **A reaction depends on the installation.** `RequestDeletion` works only where the installation turned on
+   approvals for deletes on that table (erasure spec D18). Elsewhere the report only opens the case.
+9. **Media are reportable** like contents. Their deletion waits for approval only where the installation turned
+   it on for media; by default it does not.
 
 Everything else below is proposed.
 
@@ -133,8 +138,8 @@ react and editorial contents do not.
 reporter's identity, and can answer on the case.
 
 **Limits found in the code, 2026-10-13.**
-- Only models using `HasApprovals` can wait for a deletion. `Content` does; `Media` does not. A reaction on a media
-  needs `HasApprovals` on `Media` or is not offered for it (open point 6).
+- Only models using `HasApprovals` can wait for a deletion. `Content` does; `Media` gets it, with deletions under
+  approval only where the installation turns them on (erasure spec D18).
 - A record whose model does not require approval for deletes would be deleted at once by the capture path. The
   reaction must refuse to run on such a model rather than delete it.
 
@@ -209,11 +214,11 @@ Per table: `select`, `insert`, `update` on reports and reasons. `insert` on repo
 ## Open points
 
 1. The seeded reason list and its translations.
-2. Whether guests may report by default.
+2. Decided 2026-10-13: guests may report by default, with a rate limit.
 3. Retention days for the reporter's contact and message.
 4. Whether a report can target a comment's author as well as the comment.
 5. The plan, after the erasure plan's first two steps or alongside them: the two specs share the staff surface.
-6. `HasApprovals` on `Media`, so that a reported media can wait for its deletion.
+6. Decided 2026-10-13: `HasApprovals` on `Media`, deletions under approval only where the installation turns them on.
 7. Withdrawn 2026-10-13: removal is a force delete, so no domain action needs `/api/v1` for this spec.
 8. The trigger of D5: trusted roles and per-reason thresholds, and the seeded defaults.
 

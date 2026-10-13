@@ -544,6 +544,16 @@ Read in specs and plans on 2026-10-12, not yet in the code:
   retired; writes go through Core approvals at the model (`2026-10-07-assistant-governed-writes-design.md`).
   The four phase 2 questions still stand.
 
+### Decided on 2026-10-13
+
+6. **`mcp:read` is dropped.** Token abilities are the permission names of the `api` guard, as shipped with API
+   access control. A token holding only `select` abilities is read-only by construction. `mcp:write` stays reserved
+   for phase 2, not minted.
+7. **MCP adds no confirmation of its own for writes.** A caller over MCP can do what its user's permissions and its
+   token's abilities allow, under the model's approval rules, which each installation configures. Setting the
+   permissions right is the job of whoever grants them. This answers phase 2 question 4, "what a token may
+   pre-approve": nothing beyond its abilities.
+
 ### Recommended, not yet decided
 
 - **Guard:** reuse the `api` guard; no `mcp` guard. A new guard would duplicate every permission and every
@@ -553,9 +563,6 @@ Read in specs and plans on 2026-10-12, not yet in the code:
 - **Middleware:** a dedicated MCP middleware, reusing the token resolution of `AuthenticateApiRequest`
   rather than that class: the shipped one answers 403 when `expose_api` is off, which would tie MCP to it,
   and it falls back to the anonymous user without a token, which MCP must refuse (401).
-- **`mcp:read`:** drop it. The read-only property comes from the tools; a token with `select` abilities
-  already cannot write. Keep `mcp:write` reserved, not minted. Reconsider an MCP-only token axis when
-  writes open.
 
 ### Recorded for phase 2, not decided
 
