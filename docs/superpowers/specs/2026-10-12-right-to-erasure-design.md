@@ -44,6 +44,8 @@ Recorded on 2026-10-12 and 2026-10-13.
 9. **`exclude` is governed by the `forceDelete` permission**, not by a permission of its own: whoever may delete
    a record for good obtains the same result. Recorded 2026-10-13, replacing D14's first wording.
 10. **The action is needed in Filament and in the Vue UI, for contents and media** (D16).
+11. **No route of its own.** `exclude` is a domain action on the existing route `POST /{action}/{module}/{entity}`;
+    a report's reason never deletes, it can only request a deletion through approvals (reports spec D5).
 
 Everything else below is proposed and open to review.
 
@@ -252,7 +254,9 @@ Decided by the owner on 2026-10-13. `exclude` is a domain action registered in C
 participant, exposed on:
 
 - `/app`, through the internal domain-action route, for the staff screens and Filament;
-- `/api/v1`, through the same route under `AuthenticateApiRequest`;
+- `/api/v1`, through the same route under `AuthenticateApiRequest`, once domain actions are exposed there: today
+  `POST /{action}/{module}/{entity}` is registered in `Modules/Core/routes/web.php` only (reports spec, open
+  point 7);
 - MCP, as a named tool, once the server opens writes (phase 2).
 
 One action, one implementation: `Purge` of the record and of every copy (D4, D5, D6), then an exclusion row (D7),

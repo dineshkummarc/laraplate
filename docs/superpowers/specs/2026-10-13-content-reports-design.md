@@ -1,7 +1,7 @@
 # Content Reports: Design
 
 **Status:** Draft (for review)
-**Date:** 2026-10-13
+**Date:** 2026-10-13 (revised the same day)
 **Author:** swolley + Claude
 **Related:**
 - `2026-10-12-right-to-erasure-design.md`: a `privacy` report becomes an erasure request.
@@ -23,6 +23,12 @@ Recorded on 2026-10-13.
 1. Reporting is distinct from commenting: a report goes to the staff, not to the public.
 2. A report carries a reason chosen from a list of values.
 3. The model and the route are new: nothing exists today.
+4. **A reason can trigger an action.** Reasons the staff elects as such request the deletion of the reported
+   record through Core approvals, so it waits for a decision (D5).
+5. **The existing `Hide` and `Block` strategies are kept as they are.** What a record looks like while its
+   deletion waits is its model's `pendingDeletionStrategy()`, unchanged; the report does not choose it.
+6. **Excluding needs no route of its own.** It is a domain action (erasure spec D14), reachable from a report's
+   case as one of the staff's outcomes.
 
 Everything else below is proposed.
 
@@ -89,11 +95,47 @@ The staff works on cases, not rows. A case is the open reports on one reportable
 the first and last date. Resolving a case resolves its open reports with one outcome. Reports arriving after a
 case is closed open a new one, and the screen shows the previous outcome.
 
-### D5. No automatic removal by default
+### D5. A reason can request the deletion
 
-A threshold of reports that hides an item automatically is a way to remove inconvenient content by reporting it
-in bulk. It is not built by default. If an instance needs it, it is a seeded setting, off, per category, and it
-hides pending review, never deletes.
+Decided by the owner: a reason can carry a **reaction**, `None` or `RequestDeletion`. With `RequestDeletion`, a
+report that meets the trigger asks Core approvals to delete the reported record: the delete is captured as a
+pending `Modification` with `Operation::Delete`, exactly as a delete by a user without the right to delete alone
+would be. Nothing new is built for the waiting state.
+
+**What the record looks like while it waits is its model's choice, unchanged.** `HasApprovals` already has
+`PendingDeletionStrategy`:
+
+- `Hide`: the record disappears for everyone who cannot decide on the deletion; who holds `approve` still sees it.
+- `Block`: the record stays visible and refuses changes, except the attributes its model declares writable.
+
+`pendingDeletionStrategy()` returns `Block` unless a model overrides it. A blog whose posts must vanish when
+reported overrides it to `Hide` on that model; an editorial content model keeps `Block`. Decided by the owner: the
+strategies stay as they are; a report does not pick one per request.
+
+**The staff decides through the approval.** Approving the deletion deletes the record and resolves the case as
+`Removed`. Rejecting it brings the record back as it was and resolves the case as `NoAction`, or whatever the staff
+chooses. Excluding instead is the domain action of the erasure spec (D14), with `forceDelete`.
+
+**Who requests.** The pending modification is authored by a system actor named for reports, not by the reporter:
+an anonymous reporter cannot be a modifier, and the reporter's identity must not reach the record's history. The
+AI module's `ModerationSystemUser` is a precedent to follow, not to reuse, since Core cannot depend on AI.
+
+**Trigger.** Proposed, to confirm: the reaction fires at once when the reporter holds a role the staff marks as
+trusted, and otherwise only when a seeded number of distinct reporters, set per reason, is reached. A single
+anonymous report never hides anything by itself, which is what keeps reporting from becoming a way to remove
+content someone dislikes.
+
+**Scope of a reaction.** A reason's reaction can be limited to some reportable types, so that user-written posts
+react and editorial contents do not.
+
+**The author is told.** The owner of the reported record, if any, is notified that it is under review, without the
+reporter's identity, and can answer on the case.
+
+**Limits found in the code, 2026-10-13.**
+- Only models using `HasApprovals` can wait for a deletion. `Content` does; `Media` does not. A reaction on a media
+  needs `HasApprovals` on `Media` or is not offered for it (open point 6).
+- A record whose model does not require approval for deletes would be deleted at once by the capture path. The
+  reaction must refuse to run on such a model rather than delete it.
 
 ### D6. Routes
 
@@ -101,6 +143,9 @@ hides pending review, never deletes.
 - `POST` under `/api/v1`, through `AuthenticateApiRequest` with its switch and anonymous user.
 - `GET` of the active reasons for a reportable type, so a client can build its form.
 - The staff works from Filament and the generic CRUD, under the usual permissions.
+- Excluding a reported record is not a report route: it is the `exclude` domain action on the existing route
+  `POST /{action}/{module}/{entity}` (`CrudController::domainAction()`). That route exists on `/app` only today;
+  exposing domain actions on `/api/v1` is open point 7.
 
 Both posts are rate limited per client address and per user. A reporter cannot report the same item twice while
 their earlier report is open; the second attempt answers as accepted and changes nothing, so the limit does not
@@ -151,7 +196,11 @@ Per table: `select`, `insert`, `update` on reports and reasons. `insert` on repo
 - Duplicates by the same reporter on an open report change nothing and answer as accepted.
 - Rate limit per address and per user.
 - Cases group open reports; resolving a case closes them; a later report opens a new case.
-- No automatic hiding with the default settings.
+- A reason with `RequestDeletion`: below the trigger nothing happens; at the trigger a pending delete exists,
+  authored by the system actor; the record follows its model's strategy, hidden with `Hide`, frozen with
+  `Block`; approving deletes it, rejecting brings it back.
+- A single anonymous report never triggers a reaction.
+- The reaction refuses a model without `HasApprovals` or without approval on deletes.
 - A privacy report converts into an erasure request with the link and the contact.
 - The reporter's identity is absent from anything the reported item's owner can read.
 - Retention removes contact and message, keeps category, dates and outcome.
@@ -164,3 +213,6 @@ Per table: `select`, `insert`, `update` on reports and reasons. `insert` on repo
 3. Retention days for the reporter's contact and message.
 4. Whether a report can target a comment's author as well as the comment.
 5. The plan, after the erasure plan's first two steps or alongside them: the two specs share the staff surface.
+6. `HasApprovals` on `Media`, so that a reported media can wait for its deletion.
+7. Domain actions on `/api/v1`: all of them, or an explicit list. Recommended: an explicit list, as for MCP.
+8. The trigger of D5: trusted roles and per-reason thresholds, and the seeded defaults.
