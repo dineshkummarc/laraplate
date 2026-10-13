@@ -226,9 +226,8 @@ imported or created by hand, and must not keep `RecordOrigin`'s label and URL.
 At least one of local id, source identity and content hash. Unique on type plus source identity. No title, slug
 or URL: a title can be the very name that was erased. An exclusion on a whole source is not allowed.
 
-**Keyed hash.** HMAC-SHA256 with a dedicated secret, `CORE_EXCLUSIONS_HMAC_KEY` in the environment, not
-`APP_KEY`: rotating the application key must not lose every match. Rotating the dedicated key is a procedure,
-open point 9. The rows are **pseudonymous personal data kept as a suppression list**, for that purpose only, and
+**Keyed hash.** HMAC-SHA256 with a dedicated keyring, `CORE_EXCLUSIONS_HMAC_KEYS` in the environment, not `APP_KEY`:
+rotating the application key must not lose every match. Each row stores the id of its key (open point 9). The rows are **pseudonymous personal data kept as a suppression list**, for that purpose only, and
 the documentation says so.
 
 **A CRUD entity like the others.** Read for the history, with filters on type, case, reason, channel, author,
@@ -377,12 +376,13 @@ account.
 - Retention: an expired snapshot is deleted and the exclusion stays; a legal hold stops expiry.
 - Reapply after a restored backup removes the excluded records again.
 - History: no exclusion row is ever deleted; a revoked one stays with its revocation.
-- The keyed hash matches with the dedicated key and does not depend on `APP_KEY`.
+- The keyed hash matches under every key of the keyring and does not depend on `APP_KEY`.
 - No erased value in item reports, exclusions, notes or logs.
 
 ## Open points
 
-Verified in the code on 2026-10-13, with a proposed solution. The proposals are not decisions yet.
+Verified in the code on 2026-10-13. The proposed solutions were confirmed by the owner on 2026-10-13 and are
+part of the design; the section keeps its name so earlier references still resolve.
 
 1. **Media files.** Read in `spatie/laravel-medialibrary` 11.23.9, `MediaObserver::deleted()`: files and
    conversions are removed when `isForceDeleting()` is true, which the CRUD force delete sets. Nothing to add for
@@ -411,7 +411,7 @@ Verified in the code on 2026-10-13, with a proposed solution. The proposals are 
 9. **HMAC key rotation.** Correction of the previous revision: rehashing is impossible, the plain values are not
    stored. Proposed: a keyring. Each row stores the id of its key, new rows use the current key, matching tries
    every key, and a key is never dropped while rows use it.
-10. The plan, written once points 2 to 9 are confirmed.
+10. The plan: `docs/superpowers/plans/2026-10-13-right-to-erasure.md`.
 
 ## Sources
 
