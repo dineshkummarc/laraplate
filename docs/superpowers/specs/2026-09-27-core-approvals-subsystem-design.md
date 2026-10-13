@@ -121,3 +121,12 @@ Each phase ends with its tests green and a commit.
 - Mass query updates and deletes (`Model::query()->update()/delete()`): no model events, no approval, as today.
 - A third pending-deletion strategy allowing user edits.
 - Keeping a trace of withdrawn requests.
+
+## Amendment (2026-10-13): operations under approval are switched per installation
+
+Decided by the owner while designing `2026-10-12-right-to-erasure-design.md` (D18). `approvalOperations()` keeps
+declaring which operations a model can put under approval. A per-table setting, seeded like
+`soft_deletes.enabled.*` and `locking.enabled.*`, says which of them are active; its default is what the model
+returns today, so no existing behaviour changes. `Media` gains `HasApprovals`, declares `Delete` and `ForceDelete`,
+and has none active by default; its pending deletion strategy is `Hide`. The rule of `approvalGate()` is
+unchanged: a holder of `approve`, a superadmin and the console act directly.
