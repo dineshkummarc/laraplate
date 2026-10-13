@@ -1,7 +1,7 @@
 # Right to Erasure for Contents and Media: Design
 
 **Status:** Draft (for review)
-**Date:** 2026-10-12 (revised 2026-10-13)
+**Date:** 2026-10-12 (revised 2026-10-13, twice)
 **Author:** swolley + Claude
 **Related:**
 - `2026-10-13-content-reports-design.md`: a report is the entry point that opens an erasure request.
@@ -23,8 +23,8 @@ is recorded, a person in charge decides it, and the decision is carried out on e
 not only on the visible record. An erased or excluded record can neither come back through an import nor be
 restored from history. The result is provable afterwards without keeping the erased data.
 
-An external agent, for example one reading a mailbox, may open a **report** through MCP. It never decides,
-executes or revokes anything.
+Staff exclude a record directly from `/app`, `/api` or an MCP client (D14). An erasure request is the
+workflow for the cases that need a decision on someone else's data; it ends in the same action.
 
 ## Decided by the owner
 
@@ -38,6 +38,9 @@ Recorded on 2026-10-12 and 2026-10-13.
 5. An exclusion is lifted only by an **explicit revocation**.
 6. Reports are a new model and route, with a reason chosen from a list of values (spec
    `2026-10-13-content-reports-design.md`).
+7. **Exclusion is a direct action on every surface.** On `/app`, `/api` and MCP the same action force deletes a
+   record with every copy and adds it to the exclusions table (D14). It does not need an erasure request.
+8. **The exclusions table is also the history of exclusions**, not only the import filter (D15).
 
 Everything else below is proposed and open to review.
 
@@ -232,17 +235,63 @@ period, then reduced to what the exclusion and the item reports need: no name, n
 ### D13. Delivery order
 
 1. The purge primitive and the participants' `copiesOf` and `erase` for Core, CMS and AI (D4, D5, D6).
-2. Import exclusions and the restore block (D7, D8, D9). Usable by hand from Filament before any request exists.
+2. Import exclusions, the restore block and the direct exclusion action on `/app` and `/api` (D7, D8, D9, D14, D15).
+   Usable before any request exists.
 3. The request record, its workflow, notifications and reminders (D3, D11, D12).
 4. `Delist` (D1): a column, the search, listing, sitemap and API filters, the no-index signal.
 5. `Redact` (D1): the hardest, since it rewrites text, translations and history.
-6. MCP: the agent opens reports, reads candidates and statuses. Nothing else.
+6. MCP: the exclusion action as a tool (D14), plus opening reports and reading candidates and statuses. It
+   depends on the MCP server's phase 2, since phase 1 is read-only.
+
+### D14. Exclusion is one action on every surface
+
+Decided by the owner on 2026-10-13. `exclude` is a domain action registered in Core for every model that has a
+participant, exposed on:
+
+- `/app`, through the internal domain-action route, for the staff screens and Filament;
+- `/api/v1`, through the same route under `AuthenticateApiRequest`;
+- MCP, as a named tool, once the server opens writes (phase 2).
+
+One action, one implementation: `Purge` of the record and of every copy (D4, D5, D6), then an exclusion row (D7),
+in one queued job with the guarantees of D11. Its arguments are the record, the reason category and an optional
+note; for a media, whether to include the duplicates sharing its `content_hash`, shown before confirmation. The
+caller gets the exclusion's id and the job's status; the deletion is irreversible and every surface says so before
+the call.
+
+The action needs the `exclude` permission on the record's table, plus, on `/api` and MCP, the token ability for it.
+It is in no default role except the staff role. It is never inferred from `delete` or `force_delete`.
+
+An erasure request ends in this action for its `Purge` items; `Redact` and `Delist` also write an exclusion, but
+do not delete.
+
+**MCP safeguard: open, see the note to the owner in Open points.**
+
+### D15. The exclusions table is the history
+
+Rows are never deleted. A revocation (D9) fills `revoked_at`, `revoked_by` and `revocation_reason` and keeps the
+row, so the table answers what was excluded, when, by whom, from where, why, and whether it still holds. Columns
+added to D7's list for that purpose:
+
+| Column | Use |
+|--------|-----|
+| `remedy` | `Purge`, `Redact`, `Delist` |
+| `channel` | `app`, `api`, `mcp`, `filament`, `erasure_request`, `console` |
+| `token_id` | the API or MCP token used, when there was one |
+| `executed_at`, `execution_status` | the job's outcome |
+
+The rows hold no personal data: hashed source identity, `content_hash`, local id, type, reason category and the
+people who acted. They therefore have no retention limit, unlike the request's evidence (D12). `excludable_id`
+keeps the local id after a purge, as a historical key that points at nothing. No title, slug or URL is stored: a
+title can be the very name that was erased.
+
+The staff screens list exclusions with filters on type, reason, channel, author and status, and the revoked ones.
 
 ## Permissions
 
 Per table as every entity: `select`, `insert`, `update` on requests, items and exclusions. Domain-action
-permissions: `verify_identity`, `decide`, `execute`, and `revoke` on exclusions. A default role for the person in
-charge holds all of them. No default role grants `decide`, `execute` or `revoke` to a service account.
+permissions: `verify_identity`, `decide`, `execute`, `exclude` on every participant's table, and `revoke` on
+exclusions. A default role for the person in
+charge holds all of them. No default role grants `decide`, `execute`, `exclude` or `revoke` to a service account.
 
 ## Testing
 
@@ -258,6 +307,9 @@ charge holds all of them. No default role grants `decide`, `execute` or `revoke`
   data exists.
 - Approvals: execution is not captured; pending modifications and restores of the target are gone.
 - Idempotency: running an item twice changes nothing the second time.
+- `exclude` from `/app` and `/api`: same result as a `Purge` item; refused without the permission or, on `/api`,
+  without the token ability; the exclusion row records channel and token.
+- History: a revoked exclusion stays listed with its revocation; no row is ever deleted.
 - No erased value in item reports, exclusions or logs.
 
 ## Open points
@@ -271,4 +323,9 @@ charge holds all of them. No default role grants `decide`, `execute` or `revoke`
 6. Version sets: removing one record's membership without breaking the set's restore of the others.
 7. Whether a request may target a user account, and then call the existing user deletion with its AI purge.
 8. The seeded retention of closed requests (D12).
-9. The plan, written after points 1 to 5, since they size the participants.
+9. **MCP safeguard for `exclude`, to decide by the owner.** Over MCP the caller is a model reading untrusted
+   text, and the action is irreversible. Options: (a) same as `/api`, permission plus token ability, nothing
+   more; (b) over MCP the call is captured by Core approvals and a person confirms it; (c) (b) by default, with
+   a per-token pre-approval the owner can grant to a trusted integration. Recommended: (c). The MCP spec
+   lists "what a token may pre-approve" among its phase 2 questions; this answers it for one action.
+10. The plan, written after points 1 to 5, since they size the participants.

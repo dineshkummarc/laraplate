@@ -129,8 +129,8 @@ only gets the outcome by whatever channel the instance uses, outside this spec.
 ### D10. MCP
 
 An agent reading a mailbox opens a report, through MCP, with the email text as the message and the channel
-recorded. It reads the status of the reports it opened. It does not handle, resolve or convert them. This is the
-only write the erasure spec allows an agent.
+recorded. It reads the status of the reports it opened. It does not handle, resolve or convert them. Excluding a record
+directly is a separate action, under its own permission (erasure spec D14).
 
 ### D11. Legal note
 
