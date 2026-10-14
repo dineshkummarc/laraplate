@@ -37,10 +37,10 @@ created_on: 2026-10-14
 
 **Files:** `Modules/Core/app/Casts/FiltersGroupCast.php`, `Modules/Core/app/Rules/QueryBuilder.php`, `Modules/Core/app/Rules/AclRelationFilters.php` (or a sibling rule `AclScopeFilters` registered in `Modules/Core/app/Models/ACL.php`).
 
-- [ ] **Step 1: Failing tests.** The cast round-trips a scope node with and without parameters, alone, in groups and inside relation filters; refuses extra keys, a non-list `parameters`, a missing or empty name; a stored group holding only a scope node constrains something. Saving an ACL with an undeclared scope, a bad parameter or an impure scope fails validation with a message naming the scope; a scope inside a relation filter is checked against the related model, and against each morph type.
-- [ ] **Step 2: Cast and shape rule.**
-- [ ] **Step 3: Target rule.**
-- [ ] **Step 4: Run the touched tests, Pint, commit.**
+- [x] **Step 1: Failing tests.** The cast round-trips a scope node with and without parameters, alone, in groups and inside relation filters; refuses extra keys, a non-list `parameters`, a missing or empty name; a stored group holding only a scope node constrains something. Saving an ACL with an undeclared scope, a bad parameter or an impure scope fails validation with a message naming the scope; a scope inside a relation filter is checked against the related model, and against each morph type.
+- [x] **Step 2: Cast and shape rule.**
+- [x] **Step 3: Target rule.**
+- [x] **Step 4: Run the touched tests, Pint, commit.**
 
 ## Task 3: Application (S5, S6, S7)
 
