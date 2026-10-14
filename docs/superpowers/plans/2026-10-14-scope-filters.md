@@ -80,9 +80,9 @@ created_on: 2026-10-14
 
 **Files:** `Modules/Core/app/Filament/Resources/ACLS/Schemas/ACLForm.php`, `Modules/Core/app/Filament/Resources/ACLS/Tables/ACLsTable.php`.
 
-- [ ] **Step 1: Failing tests.** The ACL table describes a scope node with its parameters instead of failing; the form refuses an undeclared scope through the model rules of Task 2. No other Filament change (S10).
-- [ ] **Step 2: Description and helper text.**
-- [ ] **Step 3: Run the touched tests, Pint, commit.**
+- [x] **Step 1: Failing tests.** The ACL table describes a scope node with its parameters instead of failing; the form refuses an undeclared scope through the model rules of Task 2. No other Filament change (S10).
+- [x] **Step 2: Description and helper text.**
+- [x] **Step 3: Run the touched tests, Pint, commit.**
 
 ## Task 8: CMS defaults (S11)
 
