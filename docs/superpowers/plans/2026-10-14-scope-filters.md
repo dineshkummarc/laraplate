@@ -116,10 +116,16 @@ All nine tasks are built. The spec's decisions S1 to S12 hold. Divergences from 
   - A root OR group of a search request leaked past the hits and the ACL at the reload; fixed with the nested residual.
   - The Filament ACL form wires `AclScopeFilters` on the JSON editor (the model's validation errors used a key the form did not show).
   - Task 3 first swept another session's uncommitted hunks into `QueryBuilder.php`; a following Core commit took them out, built from a temp blob without touching the working file.
+  - An abstract model as a morph type in an ACL relation filter gave a `500` at save (pre-existing); `RelationGuard::morphModelClass()` now refuses it with a validation error (Core `a9e3096f`, tested in `AclScopeFiltersTest`).
+  - Final review: `ScopeGuard::apply()` refuses a scope run that adds no condition (a `when()` on a null parameter, an `@user.<attribute>` that does not resolve), which `addNestedWhereQuery()` would have dropped, letting the ACL match every row; refused at save when the default or sample run adds nothing, otherwise the read is denied. A scope applied for a client may hold no subquery (`whereHas`, `has`, `whereExists`, subquery `whereIn` or comparison) and no raw SQL, since the rows it reaches skip the related ACL; ACL scopes keep them. The dead `$client` parameter of the CRUD query builder walkers is gone: the request parser is the only client gate.
 - **Out of the plan, left as follow-ups.**
   - A `RelationFilter` ACL error is not wired to the Filament form either (same key mismatch).
-  - An abstract model as a morph type in an ACL relation filter gives a `500` at save instead of a validation error (pre-existing).
-  - A `client: true` scope with an unsupported signature shows the parameter type to the client.
+  - A `client: true` scope with an unsupported signature answers a `422` that shows the parameter's type, a class name, to the client.
+  - A broken `RelationFilter` ACL answers `400` (CRUD) or `500` (media route) and is not logged with the ACL id.
+  - The `unknownNode()` branches of `AuthorizationService` are unreachable behind `AclScopeCheck` and untested.
+  - Shared tables (`core_taxonomies`: CMS `Category`, ERP `Activity`, ERP `OpportunityStage`) validate a scope at save against the first model `PermissionName::modelClassOf()` finds, while use checks the requested model; a subclass overriding the scope without the attribute passes save and is denied at use (fails closed).
+  - No test pins the root OR fix in the CMS and SAO application content providers; it holds by construction (`applyFilters()` nests) and through the facets and search tests.
+  - The CMS seeder carries stacked docblocks (pre-existing, cosmetic).
   - The AI CRUD tool's `filters` description (`Modules/AI` `CrudToolProvider`) is unchanged: it does not mention scope nodes, so the model does not propose them; only the parser gate (tested in `Modules/AI`) applies to it.
 
 **Documented in:** `Modules/Core/docs/ACL_SYSTEM.md` (Scope Filters), `Modules/Core/docs/CRUD_SYSTEM.md` (Scope Filters in Requests, Filter groups are always nested), `Modules/Core/docs/rag/API_ACCESS_CONTROL.md` (Scope filters in ACLs), `Modules/CMS/README.md` and `Modules/CMS/docs/rag/MODULE.md` (public API access, categories on scopes, contents on columns).
