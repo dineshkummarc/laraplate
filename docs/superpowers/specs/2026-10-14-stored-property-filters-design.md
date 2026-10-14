@@ -22,7 +22,7 @@ Success: `{"property": "title", "operator": "like", "value": "%moon%"}` and `{"p
 
 **D1. Resolution order for a flat property** (no dot, `[A-Za-z_][A-Za-z0-9_]*`): a column of the model's table; a translatable field (`HasTranslations::getTranslatableFields()`); a dynamic field (model uses `HasDynamicContents`). A property that is none of these keeps today's behaviour. Dotted paths are unchanged: the leaf of `content.title` is resolved on the related model by the same rule, because relation filters already re-enter `applyFilter`.
 
-**D2. Translated fields are matched in the locale of the request.** The locale of a request is `LocaleContext::get()` (the user's language through `LocalizationMiddleware`). When the model falls back (`translationFallbackEnabledBySettings()`) a record with no translation in that locale is matched on the default locale. No search across all languages.
+**D2. Translated fields are matched in the locale of the request, with no fallback.** The locale of a request is `LocaleContext::get()` (the user's language through `LocalizationMiddleware`). A record without a translation in that locale is not matched. Laravel stores the application locale in the single `app.locale` setting, which `App::setLocale()` overwrites and `App::getLocale()` reads, so while a request runs the "default locale" of `HasTranslations::translation()` and `LocaleScope` is always the request locale and their fallback branch never applies; the filter does not reproduce a branch that cannot run (found while writing the Task 2 tests, which first assumed a fallback). No search across all languages.
 
 **D3. Dynamic fields by exclusion.** Not a column and not translatable on a model with dynamic contents means "maybe dynamic". The presets are not consulted: one recordset mixes entities with different presets and fields, so no preset describes it. The field is looked for in every record and is simply absent from the others.
 
@@ -39,7 +39,7 @@ Success: `{"property": "title", "operator": "like", "value": "%moon%"}` and `{"p
 | Property | Stored as | Condition applied |
 |---|---|---|
 | `id`, any column | column | as today |
-| `title`, `slug` on `contents` | translation table | `whereHas('translations')` on the request locale (default locale as fallback), then the filter on the translation column |
+| `title`, `slug` on `contents` | translation table | `whereHas('translations')` on the request locale, then the filter on the translation column |
 | `color`, declared dynamic | JSON | `shared_components->color` OR `translations.components->color` (locale-scoped) |
 | `color` on a model with only `components` | JSON | `components->color` |
 | unknown on a model without dynamic contents | none | unchanged |
