@@ -6,7 +6,7 @@ created_on: 2026-10-14
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block. A step dropped on purpose is `- [-]` with its reason on the same line.
 
-**Status:** Open. Task 1 delivered; tasks 2 and 3 open.
+**Status:** Open. Tasks 1 and 2 delivered; Task 3 (documentation) open.
 
 **Goal:** a product serializes the attributes of its merged content at the root, and filters on those attributes resolve through the mounted relation, so clients no longer know the content is a separate record.
 
@@ -35,11 +35,11 @@ created_on: 2026-10-14
 
 **Files:** create `Modules/Core/app/Contracts/IMountsRelatedAttributes.php`; modify `Modules/Core/app/Services/Crud/ModelPropertyResolver.php`, `Modules/Core/app/Services/Crud/QueryBuilder.php`, `Modules/Shop/app/Models/Product.php`; tests in `Modules/Core/tests/Integration/Services/Crud` (stub) and `Modules/Shop/tests/Feature`.
 
-- [ ] **Step 1: Failing tests.** The resolver classifies a plain property of a model implementing the contract as `MOUNTED` unless it is a column, a mutator or a method; a filter `title` on `products` (list endpoint) equals `content.title`, in the request locale; `like`, `in` and an OR group beside a native column work; `product.title` on `product_variants` works; a native key (`kind`) is still a column filter; a model without the contract is unchanged.
-- [ ] **Step 2: Contract and resolver kind.**
-- [ ] **Step 3: `QueryBuilder` rewrite** of a mounted property to `{relation}.{property}`.
-- [ ] **Step 4: `Product` implements the contract** (`content`, `! isNativeKey`).
-- [ ] **Step 5: Run the touched tests and the CRUD suites, Pint, commit.**
+- [x] **Step 1: Failing tests.** The resolver classifies a plain property of a model implementing the contract as `MOUNTED` unless it is a column, a mutator or a method; a filter `title` on `products` (list endpoint) equals `content.title`, in the request locale; `like`, `in` and an OR group beside a native column work; `product.title` on `product_variants` works; a native key (`kind`) is still a column filter; a model without the contract is unchanged.
+- [x] **Step 2: Contract and resolver kind.**
+- [x] **Step 3: `QueryBuilder` rewrite** of a mounted property to `{relation}.{property}`.
+- [x] **Step 4: `Product` implements the contract** (`content`, `! isNativeKey`).
+- [x] **Step 5: Run the touched tests and the CRUD suites, Pint, commit.**
 
 ## Task 3: Documentation and close
 
