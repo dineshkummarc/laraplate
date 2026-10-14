@@ -391,7 +391,7 @@ Never automatic. It requires an explicit impact preview because changing a share
 
 ### Authorization and side effects (D26)
 
-A revert needs the new `revert` permission, which implies `history`, and follows the approvals of the model like an update, with the actor attributed. It is refused if the record is locked by another user. Model events fire so search and embeddings realign after commit; automatic translation does not run during a revert (a scoped revert context, not a global `withoutEvents()`), and the approvals subsystem does not create a modification for the writes the revert performs internally.
+A revert needs the new `revert` permission, which implies `history`, and follows the approvals of the model like an update, with the actor attributed. It is refused if the record is locked by another user. Model events fire so search and embeddings realign after commit; automatic translation does not run during a revert: the revert context is the active version set of kind `Revert`, `TranslatedModelSaved` carries a `fromRevert` field set at emission, and the AI listener ignores such an event (D36); there is no global `withoutEvents()`. The approvals subsystem does not create a modification for the writes the revert performs internally.
 
 ## User-facing semantics
 
@@ -474,8 +474,8 @@ No existing migration or commit is reverted until this draft is approved and a r
 2. The callers that write several locales in a loop (importers, the generic CRUD update) adopt `withinRevision` (D28).
 3. Check the cost of a large purge and the order with the cascading observers of `Content` (D29, D35).
 4. Check the real cost of reading the schema per class and the clearing of the static caches when workers restart after a deploy (D33).
-5. The scoped revert context that suppresses automatic translation.
-6. Implement the same touch of the owner's `updated_at` for relation-only changes in the version-aware pivot adapters (confirmed with D30).
+5. Implement the revert context of D36 (`ActiveVersionSet::isRevert()`, the `fromRevert` field of `TranslatedModelSaved`, the check in the AI listener) with the tests listed there.
+6. Implement the touch of the owner's `updated_at` for relation changes with the events of the pivot models and the shared helper `OwnerTimestamp::touch()` (D37); `related()` is not touched.
 
 Designed and no longer open: the hook for translation changes, the grouping of the writes of one operation and the representation of the translations (D28); the hard-delete coordinator, its callers and the recovery (D29); the schema epoch (D33).
 
@@ -508,11 +508,12 @@ Designed and no longer open: the hook for translation changes, the grouping of t
 - a cascade from a parent that is not versioned leaves no snapshot and is documented as `best_effort`;
 - `lock_version` increments on a translation write and not on a relation change;
 - a translation created, updated or deleted moves the owner's `updated_at` without events and without a version row, also with versioning off;
+- `attach`, `detach` and `sync` of categories, locations, contributors and tags move the `updated_at` of the content and not its `lock_version`, also from the inverse side, with one `UPDATE` for a `sync` of several records and no model event of `Content`; a change of `related()` does not move it (D37);
 - a save with nothing to write opens no transaction; a nested save of another root inside a scope does not throw; a translation written alone opens its own scope; an error inside the `saved` handlers rolls back the version rows too; a stale save fails also inside a scope; the relations loaded on the model survive the scope;
 - a root saved with its pending translations gives one set and one transaction, and a translation-only change gives a set of translation rows only;
 - a machine translation of several locales in `TranslateModelJob` is one revision with a system actor, separate from the user's;
 - translation models have no version setting and write no version row of their own;
-- a revert does not trigger automatic translation and does fire indexing and re-embedding;
+- with automatic translation on, a revert queues no `TranslateModelJob` while a normal save does; `fromRevert` is true only inside a set of kind `Revert`; after a revert, also a failed one, a normal save queues the job again; the table action of Filament still requests a translation; a revert does fire indexing and the recomputation of the embeddings;
 - `history` and `revert` are checked, and the history is not reachable without the root's ACL;
 - the sequence-gap check works without `withTrashed()`;
 - retention cannot delete a version set a retained `Revert` set points to without repointing it;
