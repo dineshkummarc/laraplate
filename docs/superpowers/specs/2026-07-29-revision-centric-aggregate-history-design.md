@@ -329,7 +329,7 @@ The paths that lack the scope today are the Filament saves, `CrudService::insert
 - **Where they arrive.** `setTranslation()` writes at once with `update()` or `create()`; the attribute setters go to `pending_translations` and `savePendingTranslations()` writes them on the root's `saved` event with the same calls. Both end in events of the translation model.
 - **Representation.** One version row per changed locale, on the owner, with `relation_path = 'translations'` and `subject_key = {locale}`, in the same set as the owner's own row. `change_type` is the event of the translation; `contents` is the difference of the fields, or the complete image for a snapshot. Reconstruction (C08) and compaction run per `(relation_path, subject_key)`; a locale whose last row up to R is `deleted` does not exist in R.
 - **The hook.** An observer on the translation models (`ITranslated`, owner found with `parentRelation()`) writes the row on the owner when a translation is created, updated or deleted, and raises the owner's `lock_version` once per revision. Translation models are not versioned on their own: `getVersionStrategy()` returns `false` for them and the seeder creates no setting for them.
-- **The scope.** `save()` and `delete()` of the base model open the revision scope before `saving` and close it after every `saved` handler, only for versioned roots that have a translation or a registered relation. The root, its pending translations and their rows are one set and one transaction. Without it, `VersionWriter` would open a set per row.
+- **The scope.** `save()` and `delete()`, defined inside `HasVersions`, open the revision scope before `saving` and close it after every `saved` handler, only for versioned roots that own translations or have registered relations and only when there is something to write. The root, its pending translations and their rows are one set and one transaction. Without it, `VersionWriter` would open a set per row. If a scope is already active, for the same instance the save proceeds inside it; for another root or another instance it proceeds without calling `run()`, since a nested `run()` throws and the rows join the active set through the writer (D34).
 - **Explicit grouping.** `withinRevision(fn)` groups several writes in one revision (importers, any loop over locales).
 - **Async translation.** `TranslateModelJob` is a revision of its own, with a system actor and `reason = "ai-translation"`.
 - **Cases.** The root and its initial translations share the creation set, so the creation anchor is complete. A hard delete snapshots every locale from the live table before the cascade. A translation-only change gives a set made only of translation rows, and the observer of the translation models touches the owner's `updated_at` with a direct update of that column and no events (D30), because the incremental search sync and the freshness fingerprint of the list read it; a deletion is covered too, it does not rise `lock_version`, and it works with versioning off.
@@ -439,7 +439,7 @@ The history of a live record is never aged on its own. History disappears only t
 
 Retention must preserve every revision still exposed, the anchor of each, the version sets used as revert targets, and, for compaction and purge, the `reverted_from_set_id` self foreign key, which is `RESTRICT` today: a `Revert` set that is retained must be repointed (for example to the cut-off set) or the key changed to `SET NULL`. `core_versions.version_set_id` cascades on delete, so removing a set removes its rows.
 
-To define: the name and default of the config key of the second retention period, the purge command and its schedule, and the metadata kept in a snapshot (who deleted, when).
+The second retention period is the runtime setting `hard_deletes.expiration_days` (group `hard_deletes`, seeded at 30, 0 = never), in the style of `soft_deletes.expiration_days`. The command `versions:purge-deleted` removes the snapshot sets older than that, in chunks, whatever the versioning setting of the table. Both it and `model:clear-expired` are scheduled only through seeded rows of `core_cron_jobs`, run daily in that order (D35). The snapshot needs no extra metadata: the actor and the time are on its `deleted` row, the cause is the `reason` of the set (`expired` or `manual`).
 
 ## Effect on the current implementation
 
@@ -470,9 +470,9 @@ No existing migration or commit is reverted until this draft is approved and a r
 
 ## Design still to produce
 
-1. Verify with a targeted test that wrapping `save()` and `delete()` of the base model is acceptable for performance and regressions, before adopting it (D28).
+1. Change `lockExistingRoot()` so that it compares the version carried by the instance with the one of the locked row, throws `StaleModelLockingException` on a difference, and neither overwrites `lock_version` nor drops the loaded relations (D34); then implement the wrapper of `save()` and `delete()` with the conditions and join rules of D34.
 2. The callers that write several locales in a loop (importers, the generic CRUD update) adopt `withinRevision` (D28).
-3. The name and default of the config key of the second retention period, the purge command of expired snapshots and its schedule, the metadata kept in a snapshot (who deleted, when), and the cost of a large purge and the order with the cascading observers of `Content` (D29).
+3. Check the cost of a large purge and the order with the cascading observers of `Content` (D29, D35).
 4. Check the real cost of reading the schema per class and the clearing of the static caches when workers restart after a deploy (D33).
 5. The scoped revert context that suppresses automatic translation.
 6. Implement the same touch of the owner's `updated_at` for relation-only changes in the version-aware pivot adapters (confirmed with D30).
@@ -502,11 +502,13 @@ Designed and no longer open: the hook for translation changes, the grouping of t
 - the anchor check reports a record whose earliest retained row is not an anchor;
 - switching versioning off deletes the history and keeps the hard-delete snapshots; the first save afterwards writes a complete snapshot and `currentRevision()` is `null` before it;
 - a hard delete writes the snapshot, removes the history and the root atomically, leaves no orphan `RecordOrigin` row, and a recovery recreates the aggregate;
+- `versions:purge-deleted` removes the snapshot sets older than `hard_deletes.expiration_days` with their rows per locale, membership and origin, keeps the newer ones, and does nothing when the setting is 0; `defaultCrons()` seeds the two rows once and leaves an administrator's edits alone;
 - every hard-delete path that passes through Core (`forceDelete()`, `delete()` with the bin off, `delete()` without a bin, `ClearExpiredModels`) goes through the coordinator and writes the snapshot, with the history removed only after it is written;
 - recovery recreates the root with the same primary key, consumes the snapshot and skips a vanished reference reporting it;
 - a cascade from a parent that is not versioned leaves no snapshot and is documented as `best_effort`;
 - `lock_version` increments on a translation write and not on a relation change;
 - a translation created, updated or deleted moves the owner's `updated_at` without events and without a version row, also with versioning off;
+- a save with nothing to write opens no transaction; a nested save of another root inside a scope does not throw; a translation written alone opens its own scope; an error inside the `saved` handlers rolls back the version rows too; a stale save fails also inside a scope; the relations loaded on the model survive the scope;
 - a root saved with its pending translations gives one set and one transaction, and a translation-only change gives a set of translation rows only;
 - a machine translation of several locales in `TranslateModelJob` is one revision with a system actor, separate from the user's;
 - translation models have no version setting and write no version row of their own;
