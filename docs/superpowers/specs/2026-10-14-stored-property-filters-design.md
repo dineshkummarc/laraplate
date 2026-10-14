@@ -1,6 +1,6 @@
 # Stored property filters in the CRUD API: design
 
-**Status:** Approved (2026-10-14). Task 1 built, not committed. Plan: `docs/superpowers/plans/2026-10-14-stored-property-filters.md`.
+**Status:** Implemented (2026-10-14). Plan: `docs/superpowers/plans/2026-10-14-stored-property-filters.md`.
 
 **Date:** 2026-10-14
 

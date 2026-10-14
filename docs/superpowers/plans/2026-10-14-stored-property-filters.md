@@ -1,12 +1,12 @@
 ---
-status: open
+status: closed
 created_on: 2026-10-14
 ---
 # Stored property filters in the CRUD API. Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block. A step dropped on purpose is `- [-]` with its reason on the same line.
 
-**Status:** Open. Tasks 1 to 3 delivered and committed; Task 4 documentation written, plan closing pending.
+**Status:** Delivered (2026-10-14). See the delivery status below.
 
 **Goal:** a flat filter property resolves to a column, a translated field of the request locale, or a dynamic field in either JSON container, with no client knowledge of the storage.
 
@@ -15,6 +15,18 @@ created_on: 2026-10-14
 **Tech Stack:** PHP 8.5, Laravel 12, Pest 4. No new dependency.
 
 **Spec:** `docs/superpowers/specs/2026-10-14-stored-property-filters-design.md`, decisions D1 to D7.
+
+## Delivery status (2026-10-14): delivered
+
+All four tasks shipped in `Modules/Core` (`ModelPropertyResolver`, `QueryBuilder::applyFilter`) with tests in `Modules/CMS` (contents), `Modules/Core` (a model with only a `components` column) and `Modules/Shop` (products and variants through the extended content).
+
+**Documented in:** `Modules/Core/docs/CRUD_SYSTEM.md` (section "Translated and Dynamic Fields") and `Modules/Core/docs/rag/GLOSSARY.md`.
+
+Divergences:
+
+- D2 changed during Task 2: no fallback to a default locale. `App::getLocale()` reads the same `app.locale` setting `App::setLocale()` writes, so while a request runs the request locale and the "default" are one value and the fallback of `HasTranslations::translation()` and `LocaleScope` never applies; the filter does not carry a branch that cannot run. Step 3 of Task 2 is cancelled for that reason.
+- No production model uses `HasDynamicContents` without translations, so Task 3 uses a stub with a `components` table.
+- Not built (spec D6): 422 for undeclared dynamic names, sorting, facets and numeric comparisons on dynamic fields, and making more entities `Searchable`.
 
 ## Global Constraints
 
@@ -31,7 +43,7 @@ created_on: 2026-10-14
 - [x] **Step 1: Failing tests.** A translated field by its plain name in the request locale; shared and translated dynamic fields in either container; a real column stays a column.
 - [x] **Step 2: `ModelPropertyResolver`** (column, translatable, dynamic; main and translation containers from the schema).
 - [x] **Step 3: `applyStoredPropertyFilter` and `whereTranslation`** in `QueryBuilder`.
-- [ ] **Step 4: Run the touched tests and the CRUD suites** (`Modules/Core/tests/Integration/Services`, `Modules/CMS/tests/Feature/Controllers`), Pint on explicit files, commit with `git add -p`.
+- [x] **Step 4: Run the touched tests and the CRUD suites** (`Modules/Core/tests/Integration/Services`, `Modules/CMS/tests/Feature/Controllers`), Pint on explicit files, commit with `git add -p`.
 
 ## Task 2: Locale and edge cases (D2, D5)
 
@@ -55,7 +67,7 @@ created_on: 2026-10-14
 **Files:** `Modules/Core/docs/CRUD_SYSTEM.md`, `Modules/Core/docs/rag/GLOSSARY.md`.
 
 - [x] **Step 1: Document** the resolution order, the locale rule, the both-containers rule, the limits and the pointer to the search endpoint for full text (`CRUD_SYSTEM.md`, section "Translated and Dynamic Fields"; glossary row).
-- [ ] **Step 2: Close the plan:** `## Delivery status` section and a `**Documented in:**` line, `status: closed`, update both INDEX files. Done when the UI plan's Task 5 has confirmed the filters against the real apps.
+- [x] **Step 2: Close the plan:** delivery status section, `**Documented in:**` line, `status: closed`, both INDEX files updated. The UI plan's Task 5 confirmed the filters against the CMS and Shop entities.
 
 ## Out of scope
 
