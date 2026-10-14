@@ -28,10 +28,10 @@ created_on: 2026-10-14
 
 **Files:** create `Modules/Core/app/Casts/ScopeFilter.php`, `Modules/Core/app/Attributes/FilterScope.php`, `Modules/Core/app/Support/ScopeGuard.php`; stubs in `Modules/Core/tests/Stubs/`.
 
-- [ ] **Step 1: Failing tests.** `ScopeGuard` finds a `#[FilterScope]` scope declared on a model and on a trait the model uses; ignores an undeclared `#[Scope]`; reports the client flag; coerces parameters (scalars, ISO date to `CarbonInterface`, optional with default) and refuses wrong types, missing required, extra, arrays and objects; applies a pure scope inside a nested `where` (its `orWhere` stays inside the group in an OR context); refuses a declared scope that joins, orders, selects, groups, limits or unions.
-- [ ] **Step 2: DTO and attribute.**
-- [ ] **Step 3: Guard**, declarations memoized per class.
-- [ ] **Step 4: Run the touched tests, Pint, commit.**
+- [x] **Step 1: Failing tests.** `ScopeGuard` finds a `#[FilterScope]` scope declared on a model and on a trait the model uses; ignores an undeclared `#[Scope]`; reports the client flag; coerces parameters (scalars, ISO date to `CarbonInterface`, optional with default) and refuses wrong types, missing required, extra, arrays and objects; applies a pure scope inside a nested `where` (its `orWhere` stays inside the group in an OR context); refuses a declared scope that joins, orders, selects, groups, limits or unions.
+- [x] **Step 2: DTO and attribute.**
+- [x] **Step 3: Guard**, declarations memoized per class.
+- [x] **Step 4: Run the touched tests, Pint, commit.**
 
 ## Task 2: Storage and validation (S1, S7)
 
