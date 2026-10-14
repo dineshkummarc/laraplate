@@ -71,9 +71,9 @@ created_on: 2026-10-14
 
 **Files:** `Modules/Core/app/Models/Concerns/HasValidity.php`, `Modules/Core/app/Models/Concerns/HasActivation.php`.
 
-- [ ] **Step 1: Failing tests.** The scopes listed in S9 are declared with the stated client flag; `validityOrdered` and `withValidityFilter` are not; every declared scope passes the purity check on a real model.
-- [ ] **Step 2: Attributes.**
-- [ ] **Step 3: Run the touched tests, Pint, commit.**
+- [x] **Step 1: Failing tests.** The scopes listed in S9 are declared with the stated client flag; `validityOrdered` and `withValidityFilter` are not; every declared scope passes the purity check on a real model.
+- [x] **Step 2: Attributes.**
+- [x] **Step 3: Run the touched tests, Pint, commit.**
 
 ## Task 7: Filament (S10)
 
