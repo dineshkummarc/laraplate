@@ -1,6 +1,6 @@
 # Scope filters in ACLs and CRUD queries: design
 
-**Status:** Approved (2026-10-14). Not built. Plan: `docs/superpowers/plans/2026-10-14-scope-filters.md`.
+**Status:** Delivered (2026-10-14) with its plan, `docs/superpowers/plans/2026-10-14-scope-filters.md`; the sections below are the decision as approved, and the plan's delivery status lists what execution changed (contents ACL kept on columns, the database search engine enforcing scopes at reload, the facets ACL fix). Current behaviour is described in `Modules/Core/docs/ACL_SYSTEM.md` (Scope Filters), `Modules/Core/docs/CRUD_SYSTEM.md` and `Modules/Core/docs/rag/API_ACCESS_CONTROL.md`.
 
 **Date:** 2026-10-14
 

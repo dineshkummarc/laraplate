@@ -1,12 +1,12 @@
 ---
-status: open
+status: closed
 created_on: 2026-10-14
 ---
 # Scope filters in ACLs and CRUD queries. Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block. A step dropped on purpose is `- [-]` with its reason on the same line.
 
-**Status:** Open. No task started.
+**Status:** Delivered (2026-10-14). See the delivery status below.
 
 **Goal:** a filter tree (ACL or CRUD request) can name a model scope with parameters, `{"scope": "valid"}`, applied wherever the tree applies, refused when undeclared, impure or badly parameterised.
 
@@ -97,5 +97,29 @@ created_on: 2026-10-14
 
 **Files:** `Modules/Core/docs/ACL_SYSTEM.md` (Filter Format), `Modules/Core/docs/CRUD_SYSTEM.md` (request filters), `Modules/Core/docs/rag/API_ACCESS_CONTROL.md`, `Modules/CMS/README.md`, `Modules/CMS/docs/rag/MODULE.md`, plan and spec indexes.
 
-- [ ] **Step 1: Docs.** The node, the attribute and its client flag, parameters and placeholders, purity, errors, search behaviour, the declared scopes, how a module declares its own.
-- [ ] **Step 2: Close.** Delivery status, `**Documented in:**`, spec status, indexes; run `tests/Unit/ClosedPlansPointToDocumentationTest.php`; ask the user to run the full suite.
+- [x] **Step 1: Docs.** The node, the attribute and its client flag, parameters and placeholders, purity, errors, search behaviour, the declared scopes, how a module declares its own.
+- [x] **Step 2: Close.** Delivery status, `**Documented in:**`, spec status, indexes; run `tests/Unit/ClosedPlansPointToDocumentationTest.php`; ask the user to run the full suite.
+
+## Delivery status (2026-10-14): shipped
+
+All nine tasks are built. The spec's decisions S1 to S12 hold. Divergences from the plan and the spec, each with its reason:
+
+- **Task order.** Run as 1, 6, 2, 3, 4, 5, 7, 8, 9. Task 6 (declarations on `HasValidity` and `HasActivation`) is small and the tests and seeds of Tasks 2 to 5 and 8 name real scopes.
+- **S11, contents stay on columns.** The anonymous contents ACL, and the references and media relation filters on their owner content, keep column conditions (`publishedContentFilters()`). Search engines never receive a scope node (S8), so a scope there would be enforced only when the hits are reloaded and would skew the totals and page sizes of every anonymous content search, the main public surface. Only the categories ACL moved to scopes: `valid`, `active` and the CMS entity relation filter. Switching contents is one seeder change if the totals ever stop mattering.
+- **S8, the database engine takes no scope.** The plan said the database engine applies a scope directly; it does not run it in its own SQL. It takes no scope node either, and the scope is enforced when the hits are reloaded (tested with a real `DatabaseEngine`). The reload also re-applies the request filters no engine took (`CrudService::searchHitsQuery()`), nested, so a dropped request scope never widens a result.
+- **S7, status of a denial.** A broken scope ACL denies with an `AuthorizationException` (`403`, `401` for the anonymous user) logged with the ACL id; a broken relation filter ACL keeps its earlier answer (`400` in CRUD, `500` in the media route, not logged with the ACL id).
+- **Client gate in the parser.** `ListRequestData::conformScopeNode()` asserts the client rule for every scope node it builds, because the AI CRUD tool builds `ListRequestData` without a `ListRequest`; `ClientScopeFilters` on `ListRequest` (and so on facets and search) gives the same refusal as a `422` naming the path.
+- **Guard hardening.** `Support\ScopeGuard` also refuses eager loads, query callbacks, a global scope added on the nested builder and a returned foreign builder; its refusals are a dedicated `ScopeFilterException`; a string parameter is strict (an integer is refused); dates are `Illuminate\Support\Carbon` compatible only (`CarbonImmutable` and `DateTime` typed parameters are unsupported); save-time purity runs with the parameter default or a sample of its type when a parameter is a placeholder.
+- **Extra fixes made along the way.**
+  - Two fail-open comparisons of a raw `@now` string closed: the media owner lookup (`MediaController`) and the application content retrieval of the assistant now resolve ACL placeholders before applying the filters (scheduled rows answered `200`).
+  - `QueryBuilder::applyFilters()` always nests the group it is given, which closes an ACL bypass on the facets endpoint (counts, values and relation facets applied a request root OR group next to the ACL, so hidden rows were counted and their keys returned) and the same shape in the CMS and SAO application content providers.
+  - A root OR group of a search request leaked past the hits and the ACL at the reload; fixed with the nested residual.
+  - The Filament ACL form wires `AclScopeFilters` on the JSON editor (the model's validation errors used a key the form did not show).
+  - Task 3 first swept another session's uncommitted hunks into `QueryBuilder.php`; a following Core commit took them out, built from a temp blob without touching the working file.
+- **Out of the plan, left as follow-ups.**
+  - A `RelationFilter` ACL error is not wired to the Filament form either (same key mismatch).
+  - An abstract model as a morph type in an ACL relation filter gives a `500` at save instead of a validation error (pre-existing).
+  - A `client: true` scope with an unsupported signature shows the parameter type to the client.
+  - The AI CRUD tool's `filters` description (`Modules/AI` `CrudToolProvider`) is unchanged: it does not mention scope nodes, so the model does not propose them; only the parser gate (tested in `Modules/AI`) applies to it.
+
+**Documented in:** `Modules/Core/docs/ACL_SYSTEM.md` (Scope Filters), `Modules/Core/docs/CRUD_SYSTEM.md` (Scope Filters in Requests, Filter groups are always nested), `Modules/Core/docs/rag/API_ACCESS_CONTROL.md` (Scope filters in ACLs), `Modules/CMS/README.md` and `Modules/CMS/docs/rag/MODULE.md` (public API access, categories on scopes, contents on columns).
