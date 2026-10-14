@@ -313,3 +313,4 @@ Statements of this spec that execution changed. The text above stays as decided;
 - **6 Default roles.** The publisher role gained `core_settings.select` (public settings, by ACL) and `core_entities.select` (CMS entity types, by ACL), extra `web` grants that related-record visibility made necessary; the contributors' `shared_components` is hidden from anonymous callers together with `user_id`.
 - **A10 Media through ACLs.** Media are readable through select by ACL, including the owner condition as a relation filter, as designed; the `guest` (`api`) ACL is the published-content window on the owner, with the morph type `Content`.
 - **9.1 Abilities.** An ability may be any `api` permission the user holds, direct grants included.
+- **6 Public list (2026-10-14).** CMS categories joined the `guest` (`api`) list by default, under an ACL: CMS rows of the shared taxonomies table only, active, inside the published window.
