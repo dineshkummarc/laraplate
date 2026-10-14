@@ -55,9 +55,9 @@ created_on: 2026-10-14
 
 **Files:** `Modules/Core/app/Casts/ListRequestData.php` (`conformFilterNode`), request validation of filters.
 
-- [ ] **Step 1: Failing tests.** A request filter `{"scope": "valid"}` on a model declaring `valid` with `client: true` narrows the list; an ACL-only scope (`active`) gets `422`; an undeclared scope and a bad parameter get `422`; a request placeholder is not resolved; the scope combines with the caller's ACL (AND), never widening it.
-- [ ] **Step 2: Parsing and validation.**
-- [ ] **Step 3: Run the touched tests, Pint, commit.**
+- [x] **Step 1: Failing tests.** A request filter `{"scope": "valid"}` on a model declaring `valid` with `client: true` narrows the list; an ACL-only scope (`active`) gets `422`; an undeclared scope and a bad parameter get `422`; a request placeholder is not resolved; the scope combines with the caller's ACL (AND), never widening it.
+- [x] **Step 2: Parsing and validation.**
+- [x] **Step 3: Run the touched tests, Pint, commit.**
 
 ## Task 5: Search (S8)
 
