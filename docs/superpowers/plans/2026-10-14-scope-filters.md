@@ -63,9 +63,9 @@ created_on: 2026-10-14
 
 **Files:** `Modules/Core/app/Search/Services/ScoutSearchConstraintApplier.php`.
 
-- [ ] **Step 1: Failing tests.** A scope node is never pushed to the engine; in an AND group it is dropped from the engine filters and enforced at rehydration; an OR group holding a scope is left out whole and still enforced; the database engine applies it directly.
-- [ ] **Step 2: Applier.**
-- [ ] **Step 3: Run the touched tests, Pint, commit.**
+- [x] **Step 1: Failing tests.** A scope node is never pushed to the engine; in an AND group it is dropped from the engine filters and enforced at rehydration; an OR group holding a scope is left out whole and still enforced; the database engine applies it directly.
+- [x] **Step 2: Applier.**
+- [x] **Step 3: Run the touched tests, Pint, commit.**
 
 ## Task 6: Declarations (S9)
 
