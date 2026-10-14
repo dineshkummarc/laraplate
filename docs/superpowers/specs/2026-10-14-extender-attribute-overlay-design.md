@@ -1,6 +1,6 @@
 # Extender attribute overlay in the CRUD API: design
 
-**Status:** Approved (2026-10-14). Not built. Plan: `docs/superpowers/plans/2026-10-14-extender-attribute-overlay.md`.
+**Status:** Implemented (2026-10-14). Plan: `docs/superpowers/plans/2026-10-14-extender-attribute-overlay.md`.
 
 **Date:** 2026-10-14
 

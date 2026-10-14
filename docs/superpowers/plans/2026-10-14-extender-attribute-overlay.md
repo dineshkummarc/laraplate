@@ -1,12 +1,12 @@
 ---
-status: open
+status: closed
 created_on: 2026-10-14
 ---
 # Extender attribute overlay in the CRUD API. Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block. A step dropped on purpose is `- [-]` with its reason on the same line.
 
-**Status:** Open. Tasks 1 and 2 delivered; Task 3 (documentation) open.
+**Status:** Delivered (2026-10-14). See the delivery status below.
 
 **Goal:** a product serializes the attributes of its merged content at the root, and filters on those attributes resolve through the mounted relation, so clients no longer know the content is a separate record.
 
@@ -15,6 +15,17 @@ created_on: 2026-10-14
 **Tech Stack:** PHP 8.5, Laravel 12, Pest 4. No new dependency.
 
 **Spec:** `docs/superpowers/specs/2026-10-14-extender-attribute-overlay-design.md`, decisions M1 to M8.
+
+## Delivery status (2026-10-14): delivered
+
+All three tasks shipped: `Product::toArray()` and the `IMountsRelatedAttributes` implementation in `Modules/Shop`, the contract, the `MOUNTED` kind and the query builder rewrite in `Modules/Core`. Tests: `ProductOverlaySerializationTest` and `ProductStoredPropertyFilterTest` (Shop), `QueryBuilderStoredPropertyTest` (Core, stub models).
+
+**Documented in:** `Modules/CMS/docs/CONTENT_EXTENSION.md` (section "The extender in the CRUD API"), `Modules/Core/docs/CRUD_SYSTEM.md` (section "Translated and Dynamic Fields") and `Modules/Core/docs/rag/GLOSSARY.md`.
+
+Divergences:
+
+- The merge code stays in `Product` (spec M7) instead of moving to `ExtendsContentTrait`: the first design proposed the trait, but `isNativeKey()` and `mergedContent()` are private to `Product`, so the overlay sits with them until a second extender exists.
+- A dynamic field at the root is not tested in the Shop suite: the overlay takes the content's own `toArray()`, whose dynamic fields the CMS suite covers.
 
 ## Global Constraints
 
@@ -45,8 +56,8 @@ created_on: 2026-10-14
 
 **Files:** `Modules/CMS/docs/CONTENT_EXTENSION.md`, `Modules/Core/docs/CRUD_SYSTEM.md`, `Modules/Core/docs/rag/GLOSSARY.md`.
 
-- [ ] **Step 1: Document** the overlay (what, native keys, hiding, columns), the mounted filters and the contract.
-- [ ] **Step 2: Close the plan:** delivery status, `**Documented in:**`, `status: closed`, both INDEX files.
+- [x] **Step 1: Document** the overlay (what, native keys, hiding, columns), the mounted filters and the contract.
+- [x] **Step 2: Close the plan:** delivery status, `**Documented in:**`, `status: closed`, both INDEX files.
 
 ## Out of scope
 
