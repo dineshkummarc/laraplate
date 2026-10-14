@@ -64,6 +64,7 @@ created_on: 2026-10-14
 **Files:** `Modules/Core/app/Search/Services/ScoutSearchConstraintApplier.php`.
 
 - [x] **Step 1: Failing tests.** A scope node is never pushed to the engine; in an AND group it is dropped from the engine filters and enforced at rehydration; an OR group holding a scope is left out whole and still enforced; the database engine applies it directly.
+  - Divergence (2026-10-14): the database engine does not apply the scope in its own SQL; per S8 it takes no scope either, and the scope is enforced when the hits are reloaded (tested with a real `DatabaseEngine`).
 - [x] **Step 2: Applier.**
 - [x] **Step 3: Run the touched tests, Pint, commit.**
 
