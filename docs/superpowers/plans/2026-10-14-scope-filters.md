@@ -46,10 +46,10 @@ created_on: 2026-10-14
 
 **Files:** `Modules/Core/app/Services/Crud/QueryBuilder.php` (`recursivelyApplyFilters`, relation filters), `Modules/Core/app/Services/Authorization/AuthorizationService.php` (`applyFiltersRecursively`, `applyRelationFilter`, `resolvePlaceholders`).
 
-- [ ] **Step 1: Failing tests.** An ACL `{"scope": "valid"}` limits a CRUD list, a detail and an ACL-checked read to valid rows; in an OR group beside a column filter the scope's own conditions stay grouped; inside a relation filter and a morph relation filter it narrows the related records; a placeholder parameter (`@now`, `@user.<attribute>`) is resolved; an ACL whose scope no longer resolves denies the read and logs the ACL id without parameter values; every walker throws on an unknown node kind.
-- [ ] **Step 2: CRUD query builder.**
-- [ ] **Step 3: Authorization service and placeholder resolution.**
-- [ ] **Step 4: Run the touched tests, Pint, commit.**
+- [x] **Step 1: Failing tests.** An ACL `{"scope": "valid"}` limits a CRUD list, a detail and an ACL-checked read to valid rows; in an OR group beside a column filter the scope's own conditions stay grouped; inside a relation filter and a morph relation filter it narrows the related records; a placeholder parameter (`@now`, `@user.<attribute>`) is resolved; an ACL whose scope no longer resolves denies the read and logs the ACL id without parameter values; every walker throws on an unknown node kind.
+- [x] **Step 2: CRUD query builder.**
+- [x] **Step 3: Authorization service and placeholder resolution.**
+- [x] **Step 4: Run the touched tests, Pint, commit.**
 
 ## Task 4: Client requests (S3, S7, S12)
 
