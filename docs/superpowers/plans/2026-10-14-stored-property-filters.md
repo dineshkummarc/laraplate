@@ -6,7 +6,7 @@ created_on: 2026-10-14
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block. A step dropped on purpose is `- [-]` with its reason on the same line.
 
-**Status:** Open. Tasks 1 and 2 built; Task 1 committed, Task 2 in the working tree.
+**Status:** Open. Tasks 1 to 3 delivered and committed; Task 4 documentation written, plan closing pending.
 
 **Goal:** a flat filter property resolves to a column, a translated field of the request locale, or a dynamic field in either JSON container, with no client knowledge of the storage.
 
@@ -40,22 +40,22 @@ created_on: 2026-10-14
 - [x] **Step 1: Failing tests.** `in`, `not like` and `eq` on a translated field; a dynamic filter inside an OR group beside a translated one; a relation path leaf (`categories.name`) resolved on the related model; only plain names are classified as stored properties (`translations.title`, `components->x`, columns are not).
 - [x] **Step 2: Fix what fails.** The fallback tests written first failed for a reason that changed the design: `App::getLocale()` reads `config('app.locale')`, so request locale and default locale are the same value and no fallback can run. `whereTranslation` lost its fallback branch; D2 rewritten.
 - [-] **Step 3: Fallback to the default locale** dropped: unreachable (see Step 2), recorded in D2.
-- [ ] **Step 4: Run the touched tests and the CRUD suites, Pint, commit.**
+- [x] **Step 4: Run the touched tests and the CRUD suites, Pint, commit.**
 
 ## Task 3: A second model shape (D1, D4)
 
-**Files:** a model with `HasDynamicContents` only (a `components` column and no translations); test in its module.
+**Files:** `Modules/Core/tests/Stubs/Crud/DynamicOnlyStubModel.php`, `Modules/Core/tests/Integration/Services/Crud/QueryBuilderStoredPropertyTest.php`.
 
-- [ ] **Step 1: Pick the model** (Core `Taxonomy` is translated; look for one with `HasDynamicContents` alone in `Modules/*/app/Models`; if none exists, cover `mainContainers()` with a unit test on a stub in `tests/Stubs`).
-- [ ] **Step 2: Failing test and fix.**
-- [ ] **Step 3: Run the touched tests, Pint, commit.**
+- [x] **Step 1: Pick the model.** No production model uses `HasDynamicContents` without translations (`Content`, `Contributor`, `Taxonomy` all use `HasTranslatedDynamicContents`); a stub with a `components` table covers the shape.
+- [x] **Step 2: Tests.** Classification, equals, `in` and `like` on the `components` column, a field no record has, columns still filtered, the condition kept inside an OR group. They passed on the first run, no fix needed.
+- [x] **Step 3: Run the touched tests, Pint, commit.**
 
 ## Task 4: Documentation
 
-**Files:** `Modules/Core/docs/CRUD_SYSTEM.md`, `docs/rag/` page for the CRUD filters.
+**Files:** `Modules/Core/docs/CRUD_SYSTEM.md`, `Modules/Core/docs/rag/GLOSSARY.md`.
 
-- [ ] **Step 1: Document** the resolution order, the locale rule, the both-containers rule, the limits (D5, D6) and the pointer to the search endpoint for full text (D7).
-- [ ] **Step 2: Close the plan:** `## Delivery status` section and a `**Documented in:**` line, `status: closed`, update both INDEX files.
+- [x] **Step 1: Document** the resolution order, the locale rule, the both-containers rule, the limits and the pointer to the search endpoint for full text (`CRUD_SYSTEM.md`, section "Translated and Dynamic Fields"; glossary row).
+- [ ] **Step 2: Close the plan:** `## Delivery status` section and a `**Documented in:**` line, `status: closed`, update both INDEX files. Done when the UI plan's Task 5 has confirmed the filters against the real apps.
 
 ## Out of scope
 
