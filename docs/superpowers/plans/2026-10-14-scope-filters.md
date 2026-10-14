@@ -88,9 +88,10 @@ created_on: 2026-10-14
 
 **Files:** `Modules/CMS/database/seeders/CMSDatabaseSeeder.php`, `Modules/CMS/tests/Feature/Seeders/CMSDatabaseSeederTest.php`.
 
-- [ ] **Step 1: Failing tests.** A fresh seed gives the anonymous api reader a contents ACL `valid` and a categories ACL `valid`, `active` and the CMS entity relation filter; references and media keep their relation filters on the owner content, now expressed with `valid`; the existing visibility tests (`ContentGuestVisibilityAclTest`, `CategoryGuestVisibilityAclTest`, search and media) stay green; a re-seed leaves a stored column ACL untouched.
-- [ ] **Step 2: Seeder.**
-- [ ] **Step 3: Run the CMS seeder and visibility tests, Pint, commit.**
+- [x] **Step 1: Failing tests.** A fresh seed gives the anonymous api reader a contents ACL `valid` and a categories ACL `valid`, `active` and the CMS entity relation filter; references and media keep their relation filters on the owner content, now expressed with `valid`; the existing visibility tests (`ContentGuestVisibilityAclTest`, `CategoryGuestVisibilityAclTest`, search and media) stay green; a re-seed leaves a stored column ACL untouched.
+  - Divergence (2026-10-14): contents, references and media stay on columns (`publishedContentFilters()`), because search engines never receive scope nodes (S8) and a scope in the anonymous contents ACL would skew the totals and page sizes of every anonymous content search (hits dropped at reload). Only categories move to scopes: `valid`, `active` and the CMS entity relation filter.
+- [x] **Step 2: Seeder.**
+- [x] **Step 3: Run the CMS seeder and visibility tests, Pint, commit.**
 
 ## Task 9: Documentation and closing
 
