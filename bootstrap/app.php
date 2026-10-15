@@ -29,8 +29,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Named limiters count in Redis, except under the test runner: there they count in the cache store of the
-        // test environment, so no test reads or writes the developer's Redis. The environment is known here: this
-        // runs when the HTTP kernel is resolved, after the configuration (and the environment) is loaded.
+        // test environment, so no test reads or writes the developer's Redis. This callback runs when the HTTP
+        // kernel is resolved; under the test runner that happens after the application is bootstrapped, so
+        // runningUnitTests() is true there. Everywhere else it stays false, so production keeps the Redis limiter.
         if (! app()->runningUnitTests()) {
             $middleware->throttleWithRedis();
         }
