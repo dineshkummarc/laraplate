@@ -6,7 +6,7 @@ created_on: 2026-10-15
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block. A step dropped on purpose is `- [-]` with its reason on the same line.
 
-**Status:** Open. Task 1 done.
+**Status:** Open. Tasks 1 and 2 done.
 
 **Goal:** the MES backend speaks to the `laraplate-edge` agent as the edge agent spec fixes it: machine sources authenticate through service accounts and `api` permissions, the ingest route follows the CRUD nomenclature, each source receives a versioned configuration document and records the agent's apply reports, and data the agent dropped becomes a visible incident.
 
@@ -74,10 +74,10 @@ created_on: 2026-10-15
 - Consumes: `MachineSourceResolver::forUser()` (Task 1); Core `AuthorizationService::ensurePermissionForClass(Request, class-string, string): string`; Core `Controller::authorizationFailureStatus(Request): int`.
 - Produces: middleware `ResolveMachineSource` with parameter `model,operation` (e.g. `ResolveMachineSource::class . ':' . MachineMessage::class . ',insert'`), which checks the permission (`401`/`403` by `authorizationFailureStatus`), resolves the source (`403` when none), refuses an inactive source (`403`, `auth_failure` incident with reason `inactive_source`, once per five minutes per source as today), and sets the request attribute `ResolveMachineSource::REQUEST_ATTRIBUTE = 'machine_source'`. Task 4 reuses it.
 
-- [ ] **Step 1: Failing tests.** With the API switch on: a service account token with the `mes-machine-agent` role ingests through `POST /api/v1/insert/mes/machine-messages` (`202`, then `200` duplicate); no token `401`; an invalid token `401`; a token without the ability `403`; a token outside `allowed_cidrs` `403`; the role without the permission `403`; a regular user's token with the permission `403` and nothing stored; an inactive source `403` and one `auth_failure` incident for two refused calls; `POST /api/v1/mes/machine-data` is `404`; the route name is `mes.api.machine-messages.insert` and the route wins over Core's generic `insert/{module}/{entity}` (assert the matched action); with the switch off the route is refused as Core refuses every `/api` route. The existing `413`, `422`, transport and normaliser cases keep passing. The seeded role `mes-machine-agent` on guard `api` holds exactly the three permissions of the Global Constraints.
-- [ ] **Step 2: Middleware, route, controller.** The route drops `SelfAuthenticatedApiRoute`; the limiter keys by the authenticated user's id.
-- [ ] **Step 3: Seeder role (D5).**
-- [ ] **Step 4: Run `Modules/MES/tests/Feature/Machine`, Pint, PHPStan, commit.**
+- [x] **Step 1: Failing tests.** With the API switch on: a service account token with the `mes-machine-agent` role ingests through `POST /api/v1/insert/mes/machine-messages` (`202`, then `200` duplicate); no token `401`; an invalid token `401`; a token without the ability `403`; a token outside `allowed_cidrs` `403`; the role without the permission `403`; a regular user's token with the permission `403` and nothing stored; an inactive source `403` and one `auth_failure` incident for two refused calls; `POST /api/v1/mes/machine-data` is `404`; the route name is `mes.api.machine-messages.insert` and the route wins over Core's generic `insert/{module}/{entity}` (assert the matched action); with the switch off the route is refused as Core refuses every `/api` route. The existing `413`, `422`, transport and normaliser cases keep passing. The seeded role `mes-machine-agent` on guard `api` holds exactly the three permissions of the Global Constraints. Delivered with the ingest permission only: the two configuration permissions belong to tables Task 4 creates, so Task 4 adds them to the role and its test asserts all three.
+- [x] **Step 2: Middleware, route, controller.** The route drops `SelfAuthenticatedApiRoute`; the limiter keys by the authenticated user's id.
+- [x] **Step 3: Seeder role (D5).**
+- [x] **Step 4: Run `Modules/MES/tests/Feature/Machine`, Pint, PHPStan, commit.**
 
 ### Task 3: Losses and the new incident types
 
