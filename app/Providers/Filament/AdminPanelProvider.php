@@ -30,6 +30,7 @@ use Modules\Core\Filament\Pages\PhpInfo;
 use Modules\Core\Filament\Pages\Swagger;
 use Modules\Core\Filament\Pages\Welcome;
 use Modules\Core\Filament\Plugins\EnvironmentIndicatorPlugin;
+use Modules\Core\Filament\Plugins\LanguageSwitchPlugin;
 use Modules\Core\Http\Middleware\AddContext;
 use Modules\Core\Http\Middleware\ApplyDatabaseSettingsOverlay;
 use Modules\Core\Http\Middleware\LocalizationMiddleware;
@@ -111,6 +112,7 @@ final class AdminPanelProvider extends PanelProvider
             ->plugins([
                 ModulesPlugin::make(),
                 EnvironmentIndicatorPlugin::make(),
+                LanguageSwitchPlugin::make(),
             ])
             // AUTHENTICATION
             ->login()
