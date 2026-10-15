@@ -96,6 +96,13 @@ return [
 
     'locale' => env('APP_LOCALE', 'en'),
 
+    /*
+    | The default locale is the language translated content falls back to. It never changes during a
+    | request, while 'locale' is the language of the request: App::setLocale() rewrites it to the
+    | language of the current user. Read it through LocaleContext::getDefault().
+    */
+    'default_locale' => env('APP_LOCALE', 'en'),
+
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
