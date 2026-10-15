@@ -10,7 +10,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Bootstrap\RegisterProviders;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\AuthenticateSession;
@@ -29,7 +28,12 @@ $app = Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->throttleWithRedis();
+        // Named limiters count in Redis, except under the test runner: there they count in the cache store of the
+        // test environment, so no test reads or writes the developer's Redis. The environment is known here: this
+        // runs when the HTTP kernel is resolved, after the configuration (and the environment) is loaded.
+        if (! app()->runningUnitTests()) {
+            $middleware->throttleWithRedis();
+        }
 
         // $middleware->alias([
         //     // 'auth' => \App\Http\Middleware\Authenticate::class,
