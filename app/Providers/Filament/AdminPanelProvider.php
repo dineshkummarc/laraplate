@@ -97,14 +97,14 @@ final class AdminPanelProvider extends PanelProvider
             // ones registered later, which keeps the modules in plugin discovery order
             // behind these three.
             ->navigationGroups([
-                NavigationGroup::make()
-                    ->label('Health')
+                'app.navigation.health' => NavigationGroup::make()
+                    ->label(static fn (): string => (string) __('app.navigation.health'))
                     ->icon(Heroicon::OutlinedHeart),
-                NavigationGroup::make()
-                    ->label('Documentation')
+                'app.navigation.documentation' => NavigationGroup::make()
+                    ->label(static fn (): string => (string) __('app.navigation.documentation'))
                     ->icon(Heroicon::OutlinedDocumentText),
-                NavigationGroup::make()
-                    ->label('Core')
+                'app.navigation.core' => NavigationGroup::make()
+                    ->label(static fn (): string => (string) __('app.navigation.core'))
                     ->icon(Heroicon::OutlinedBolt),
             ])
             ->widgets([

@@ -6,14 +6,18 @@ use Filament\Facades\Filament;
 use Filament\Navigation\NavigationGroup;
 
 /**
+ * Navigation groups are registered under a lang key (`erp.navigation.sales`) and labelled in the request
+ * locale. Resources and pages name their group by that key: Filament matches a group by key before label,
+ * so an item whose key is not registered would show the raw key as its group.
+ *
  * @return array<int, string>
  */
 function declaredAdminNavigationGroups(): array
 {
-    return array_values(array_filter(array_map(
-        static fn (NavigationGroup $group): ?string => $group->getLabel(),
-        Filament::getPanel('admin')->getNavigationGroups(),
-    )));
+    return array_values(array_filter(
+        array_keys(Filament::getPanel('admin')->getNavigationGroups()),
+        static fn (int|string $key): bool => is_string($key),
+    ));
 }
 
 /**
@@ -43,16 +47,20 @@ it('declares every navigation group used by the panel', function (): void {
 });
 
 /**
- * The module a group belongs to: the part of its label before " - " ("ERP - Sales" is ERP), or the
- * whole label for a module's own group ("MES").
+ * The module a group belongs to: the lang group of its key (`erp.navigation.sales` is erp).
  */
-function navigationGroupModule(string $label): string
+function navigationGroupModule(string $key): string
 {
-    return explode(' - ', $label, 2)[0];
+    return explode('.', $key, 2)[0];
 }
 
+it('registers every navigation group under a key', function (): void {
+    expect(count(declaredAdminNavigationGroups()))->toBe(count(Filament::getPanel('admin')->getNavigationGroups()));
+});
+
 it('puts Health, Documentation and Core first', function (): void {
-    expect(array_slice(declaredAdminNavigationGroups(), 0, 3))->toBe(['Health', 'Documentation', 'Core']);
+    expect(array_slice(declaredAdminNavigationGroups(), 0, 3))
+        ->toBe(['app.navigation.health', 'app.navigation.documentation', 'app.navigation.core']);
 });
 
 it('orders the modules alphabetically and keeps the groups of a module together', function (): void {
@@ -69,4 +77,15 @@ it('orders the modules alphabetically and keeps the groups of a module together'
 
     // Within a module the order is the module's own: its process, not the alphabet.
     expect($sequence)->toBe($sorted);
+});
+
+it('labels navigation groups in the request locale', function (): void {
+    /** @var NavigationGroup $documentation */
+    $documentation = Filament::getPanel('admin')->getNavigationGroups()['app.navigation.documentation'];
+
+    app()->setLocale('it');
+    expect($documentation->getLabel())->toBe('Documentazione');
+
+    app()->setLocale('en');
+    expect($documentation->getLabel())->toBe('Documentation');
 });
