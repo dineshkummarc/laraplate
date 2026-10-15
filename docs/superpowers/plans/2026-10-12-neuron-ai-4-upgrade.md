@@ -6,7 +6,7 @@ created_on: 2026-10-12
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `Modules/AI` runs on `neuron-core/neuron-ai` `^4.1` with the same behaviour it has on 3.17.1, proven against a baseline taken before the upgrade.
+**Goal:** `Modules/AI` runs on `neuron-core/neuron-ai` `^4.1` with the same behaviour it has on 3.17.2, proven against a baseline taken before the upgrade.
 
 **Architecture:** The vendor's upgrade guides (`vendor/neuron-core/neuron-ai/upgrade/NN-*.md`, after Task 2) are applied one at a time in numeric order, only the fifteen that apply, each with its own tests and commit. Each task below names its guide: the guide carries the how (patterns, before/after, checklist), this plan carries what we decided where the guide leaves a choice.
 
@@ -18,8 +18,8 @@ created_on: 2026-10-12
 
 - Work on a branch named `neuron-4` in `Modules/AI` and in `laraplate` (lock and submodule pointer). Merge both only in Task 13, when the suite matches the baseline.
 - Apply the guides in numeric order, one per task; never two at once. A symbol another guide migrates is left alone until that guide's task (the guide lists them).
-- Behaviour does not change: tool names and descriptions, stored ids and index mappings, prompts, citations and refusals stay as they are on 3.17.1.
-- No new dependencies beyond those the spec names (Decision 7). No new base folders: the skills go in the tracked `.agents/skills/`.
+- Behaviour does not change: tool names and descriptions, stored ids and index mappings, prompts, citations and refusals stay as they are on 3.17.2.
+- No new dependencies and no `composer.json` change outside `Modules/AI` (spec Decision 7); the root `composer.lock` follows. No new base folders: the skills go in the tracked `.agents/skills/`.
 - Never declare a class inside a test file: stubs go in `Modules/AI/tests/Stubs/` (PSR-4 `Modules\AI\Tests\Stubs\`).
 - Every PHP file `declare(strict_types=1);`, `#[Override]` where overriding, `final`/`readonly` where siblings use them.
 - Tests from the `laraplate` root, never with a cached config: `php artisan test --compact <paths>`; the whole module with `vendor/bin/pest Modules/AI/tests --parallel --compact`. The single-process full suite runs out of memory: use `vendor/bin/pest --parallel --compact`.
@@ -37,12 +37,12 @@ created_on: 2026-10-12
 
 ---
 
-### Task 0: Baseline on 3.17.1
+### Task 0: Baseline on 3.17.2
 
 **Files:**
 - Modify: this plan (the *Baseline* section at the end)
 
-- [ ] **Step 1:** Record `composer show neuron-core/neuron-ai | grep versions` (expected `3.17.1`).
+- [ ] **Step 1:** Record `composer show neuron-core/neuron-ai | grep versions` (expected `3.17.2`).
 - [ ] **Step 2:** Run `vendor/bin/pest --parallel --compact` and record the totals (passed, skipped, failed) and the name of any failing test, in *Baseline*.
 - [ ] **Step 3:** Run `vendor/bin/phpstan analyse Modules/AI --no-progress --error-format=json` and record the error total in *Baseline*.
 - [ ] **Step 4:** Run the evaluation gates and record their result: `php artisan test --compact Modules/AI/tests/Feature/DocumentationBaselineGateTest.php Modules/AI/tests/Feature/DeveloperDocumentationBaselineGateTest.php Modules/AI/tests/Feature/Assistance/AssistantBaselineGateTest.php tests/Integration/ApplicationContent`. The committed reports under `Modules/AI/docs/rag/evaluations` and `docs/rag/evaluations` are the reference: Task 13 checks none changed.
@@ -57,13 +57,12 @@ created_on: 2026-10-12
 ### Task 2: Composer (guide 1)
 
 **Files:**
-- Modify: `Modules/AI/composer.json`, `Modules/Core/composer.json`, the `composer.json` of each module whose tests import the PSR packages (`Modules/AI`, `Modules/Core`, `Modules/SAO`), `composer.lock`
+- Modify: `Modules/AI/composer.json`, `composer.lock`
 
-- [ ] **Step 1:** In `Modules/AI/composer.json`: `"neuron-core/neuron-ai": "^4.1"`, and add to `require` `"guzzlehttp/guzzle": "^7.15"` and `"psr/http-client": "^1.0"`. In `Modules/Core/composer.json` add the same two to `require` (`SearchEngineAvailability` imports both).
-- [ ] **Step 2:** Add to `require-dev` of the module whose tests import them: `guzzlehttp/psr7` `^2.0`, `guzzlehttp/promises` `^2.0`, `psr/http-message` `^2.0`. Run guide 1's searches to list the exact modules; check each constraint against the installed version in `composer.lock` before writing it.
-- [ ] **Step 3:** From the root: `composer update neuron-core/neuron-ai -W`. Expected: `neuron-core/neuron-ai` 4.1.x installed, `inspector-apm/inspector-php` removed (nothing else requires it), nothing else downgraded. Record the package diff of `composer.lock` in the commit message.
-- [ ] **Step 4:** Run Task 1 Step 2.
-- [ ] **Step 5:** Commit in `Modules/AI`, `Modules/Core`, the other touched modules and the root lock: `chore(ai): require neuron-ai 4.1 and the HTTP packages it no longer brings`.
+- [ ] **Step 1:** In `Modules/AI/composer.json`: `"neuron-core/neuron-ai": "^4.1"`. No other `composer.json` changes (spec Decision 7).
+- [ ] **Step 2:** From the root: `composer update neuron-core/neuron-ai -W`. Expected: `neuron-core/neuron-ai` 4.1.x installed, `inspector-apm/inspector-php` removed (nothing else requires it), `guzzlehttp/guzzle` still installed (required by `laravel/framework`), nothing else downgraded. Record the package diff of `composer.lock` in the commit message.
+- [ ] **Step 3:** Run Task 1 Step 2.
+- [ ] **Step 4:** Commit in `Modules/AI` and the root lock: `chore(ai): require neuron-ai 4.1`.
 
 ### Task 3: HTTP client layer (guide 2)
 
