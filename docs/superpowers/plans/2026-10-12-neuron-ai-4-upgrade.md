@@ -42,11 +42,11 @@ created_on: 2026-10-12
 **Files:**
 - Modify: this plan (the *Baseline* section at the end)
 
-- [ ] **Step 1:** Record `composer show neuron-core/neuron-ai | grep versions` (expected `3.17.2`).
-- [ ] **Step 2:** Run `vendor/bin/pest --parallel --compact` and record the totals (passed, skipped, failed) and the name of any failing test, in *Baseline*.
-- [ ] **Step 3:** Run `vendor/bin/phpstan analyse Modules/AI --no-progress --error-format=json` and record the error total in *Baseline*.
-- [ ] **Step 4:** Run the evaluation gates and record their result: `php artisan test --compact Modules/AI/tests/Feature/DocumentationBaselineGateTest.php Modules/AI/tests/Feature/DeveloperDocumentationBaselineGateTest.php Modules/AI/tests/Feature/Assistance/AssistantBaselineGateTest.php tests/Integration/ApplicationContent`. The committed reports under `Modules/AI/docs/rag/evaluations` and `docs/rag/evaluations` are the reference: Task 13 checks none changed.
-- [ ] **Step 5:** Commit the plan: `docs: neuron 4 upgrade baseline`.
+- [x] **Step 1:** Record `composer show neuron-core/neuron-ai | grep versions` (expected `3.17.2`). Done: 3.17.2.
+- [x] **Step 2:** Run `vendor/bin/pest --parallel --compact` and record the totals (passed, skipped, failed) and the name of any failing test, in *Baseline*. Done, see *Baseline*.
+- [x] **Step 3:** Run `vendor/bin/phpstan analyse Modules/AI --no-progress --error-format=json` and record the error total in *Baseline*. Done, see *Baseline*.
+- [x] **Step 4:** Run the evaluation gates and record their result: `php artisan test --compact Modules/AI/tests/Feature/DocumentationBaselineGateTest.php Modules/AI/tests/Feature/DeveloperDocumentationBaselineGateTest.php Modules/AI/tests/Feature/Assistance/AssistantBaselineGateTest.php tests/Integration/ApplicationContent`. The committed reports under `Modules/AI/docs/rag/evaluations` and `docs/rag/evaluations` are the reference: Task 13 checks none changed. Done: they ran inside the Step 2 suite and passed (no AI or root test failed).
+- [x] **Step 5:** Commit the plan: `docs: neuron 4 upgrade baseline`.
 
 ### Task 1: Branch and agent skills (guide 0)
 
@@ -177,4 +177,23 @@ created_on: 2026-10-12
 
 ## Baseline
 
-(Filled by Task 0.)
+Taken on 2026-10-15 on `neuron-core/neuron-ai` 3.17.2. Repository state: root `51849f8`, `Modules/AI` `def9115` (clean). Other modules had another session's uncommitted work in their trees (Core `cabdd064` +9 files, CMS `a29a0f1` +17, SAO `93fc4ce` +5, ERP `782f3be` +5, MES `306a658` +5; Shop `0b2fd35` clean), so compare their tests by name, not by totals.
+
+**Suite** (`vendor/bin/pest --parallel --compact`, 14 processes, 1101 s): 8953 passed, 35 skipped, 1 risky, 2 failed.
+
+| Module | Passed | Skipped | Failed |
+|---|---|---|---|
+| AI | 1674 | 7 | 0 |
+| Core | 4032 | 24 | 0 |
+| CMS | 919 | 0 | 2 |
+| ERP | 721 | 1 | 0 |
+| MES | 799 | 2 | 0 |
+| SAO | 690 | 1 | 0 |
+| Shop | 66 | 0 | 0 |
+| root `tests/` | 53 | 0 | 0 |
+
+The two failures are both CMS and belong to the uncommitted work above, not to this plan: `tests/Feature/Filament/TranslatedRecordFormsTest.php` (an untracked file at the time) and `tests/Feature/Models/ContentTest.php` "it leaves out the…".
+
+**PHPStan** (`vendor/bin/phpstan analyse Modules/AI --no-progress --error-format=json --memory-limit=4G`): 182 errors. By identifier: `argument.type` 72, `cast.string` 20, `cast.int` 12, `return.type` 10, `method.notFound` 9, `staticMethod.notFound` 6, `arrayValues.list` 5, `ignore.count` 5, `property.nonObject` 5, `argument.unknown` 5, `function.alreadyNarrowedType` 4, `offsetAccess.nonOffsetAccessible` 4, `encapsedStringPart.nonString` 3, `assign.overwritten` 3, `binaryOp.invalid` 2, `offsetAccess.invalidOffset` 2, `missingType.generics` 2, and 13 identifiers with one error each. Task 13 runs the same command: no total above 182, and no identifier above its count here.
+
+**Evaluation gates:** passed inside the suite; the committed reports under `Modules/AI/docs/rag/evaluations` and `docs/rag/evaluations` are the reference (Task 13 checks with `git status` that none changed).
