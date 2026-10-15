@@ -6,7 +6,7 @@ created_on: 2026-10-15
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block. A step dropped on purpose is `- [-]` with its reason on the same line.
 
-**Status:** Open. No task started.
+**Status:** Open. Task 1 done.
 
 **Goal:** the MES backend speaks to the `laraplate-edge` agent as the edge agent spec fixes it: machine sources authenticate through service accounts and `api` permissions, the ingest route follows the CRUD nomenclature, each source receives a versioned configuration document and records the agent's apply reports, and data the agent dropped becomes a visible incident.
 
@@ -56,10 +56,10 @@ created_on: 2026-10-15
 **Interfaces:**
 - Produces: `MachineSource::serviceAccount(): BelongsTo` (to `Modules\Core\Models\User`); `MachineSourceResolver::forUser(?Authenticatable $user): ?MachineSource` (the source whose `user_id` is the user's id, only when the user is a service account; soft-deleted sources excluded; active or not is the caller's concern).
 
-- [ ] **Step 1: Failing tests.** `forUser()` returns the linked source for a service account; `null` for a regular user linked by a forged `user_id`, for `null`, for a user with no source. Linking a second source to the same service account fails (unique). Linking a non service account user through the form fails validation. The source edit page has no `issue_token` / `revoke_token` actions and the form offers only service accounts. `MachineSource` has no `tokens()` relation.
-- [ ] **Step 2: Migration, model, resolver.**
-- [ ] **Step 3: Remove the token service, its domain actions, policy methods and Filament actions; add the select.** Grep `MachineSourceTokenService` and `mes:machine-ingest` across `Modules/` and fix every remaining reference except the ingest route (Task 2).
-- [ ] **Step 4: Run the touched tests and `Modules/MES/tests/Feature/Machine`, Pint, PHPStan, commit.**
+- [x] **Step 1: Failing tests.** `forUser()` returns the linked source for a service account; `null` for a regular user linked by a forged `user_id`, for `null`, for a user with no source. Linking a second source to the same service account fails (unique). Linking a non service account user through the form fails validation. The source edit page has no `issue_token` / `revoke_token` actions and the form offers only service accounts. `MachineSource` has no `tokens()` relation.
+- [x] **Step 2: Migration, model, resolver.**
+- [x] **Step 3: Remove the token service, its domain actions, policy methods and Filament actions; add the select.** Grep `MachineSourceTokenService` and `mes:machine-ingest` across `Modules/` and fix every remaining reference except the ingest route (Task 2).
+- [x] **Step 4: Run the touched tests and `Modules/MES/tests/Feature/Machine`, Pint, PHPStan, commit.**
 
 ### Task 2: Ingest on the CRUD route through the service account
 
