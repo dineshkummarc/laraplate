@@ -1,12 +1,12 @@
 ---
-status: open
+status: closed
 created_on: 2026-10-15
 ---
 # MES backend for the edge agent. Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block. A step dropped on purpose is `- [-]` with its reason on the same line.
 
-**Status:** Open. Tasks 1 to 5 done; Task 6 open.
+**Status:** Delivered (2026-10-16). See the delivery status below.
 
 **Goal:** the MES backend speaks to the `laraplate-edge` agent as the edge agent spec fixes it: machine sources authenticate through service accounts and `api` permissions, the ingest route follows the CRUD nomenclature, each source receives a versioned configuration document and records the agent's apply reports, and data the agent dropped becomes a visible incident.
 
@@ -128,5 +128,40 @@ created_on: 2026-10-15
 
 **Files:** `Modules/MES/README.md`, `Modules/MES/docs/MACHINE_CONNECTIVITY.md` (The HTTP endpoint, The envelope, Incidents and health, a new "Edge agent configuration" section), `Modules/MES/docs/rag/MODULE.md`, `Modules/MES/tests/Feature/Machine/MachineDocumentationTest.php`; this plan; `docs/superpowers/plans/INDEX.md`; at the stack root, the edge agent spec status line and the mother spec Amendments (one line each: delivered by this plan).
 
-- [ ] **Step 1: Docs.** Service accounts and the `mes-machine-agent` role; the three routes, their permissions and status codes; issuing the token from the user resource with `allowed_cidrs`; configuration versions, activation (D2), structural validation (D3), reports and `config_rejected` (D4); `losses[]` and `data_dropped`; the old route and token actions are gone. `MachineDocumentationTest` asserts the new route names.
-- [ ] **Step 2: Close.** Delivery status with divergences, `**Documented in:**`, ticks, front matter `status: closed`, plans index; the two stack-root spec lines (commit in the stack); run `tests/Unit/ClosedPlansPointToDocumentationTest.php`; ask the user to run the full suite.
+- [x] **Step 1: Docs.** Service accounts and the `mes-machine-agent` role; the three routes, their permissions and status codes; issuing the token from the user resource with `allowed_cidrs`; configuration versions, activation (D2), structural validation (D3), reports and `config_rejected` (D4); `losses[]` and `data_dropped`; the old route and token actions are gone. `MachineDocumentationTest` asserts the new route names.
+- [x] **Step 2: Close.** Delivery status with divergences, `**Documented in:**`, ticks, front matter `status: closed`, plans index; the two stack-root spec lines (commit in the stack); run `tests/Unit/ClosedPlansPointToDocumentationTest.php`; ask the user to run the full suite.
+
+## Delivery status (2026-10-16): shipped
+
+All six tasks are built. Decisions D1 to D5 hold. Divergences from the plan, each with its reason:
+
+- **The role in two steps (D5).** Task 2 seeded `mes-machine-agent` with the ingest permission only, because the two configuration permissions belong to tables Task 4 creates; Task 4 completed the role and its test asserts all three.
+- **`document` is a JSON tree, not an array.** `MachineAgentConfigService::publish()` takes `stdClass|string` (a JSON text or the decoded tree) instead of `array $document`, and the column casts to an object. An array round trip served a valid `{}` as `[]`, which a schema-validating agent would reject; the document is stored and served as published (spec 5.5), plus its `version`. `activate()` and the editor follow.
+- **Generic CRUD writes refused (not in the plan).** `MachineMessage`, `MachineAgentConfig` and `MachineAgentConfigReport` implement `RestrictsCrudWrites`: the `insert` permission of the agent role would otherwise also open Core's `insert/{module}/{entity}` under case or underscore spellings of the path. The `select` on the configurations opens Core's generic reads, so the seeder adds an ACL for the agent role that narrows them to the caller's own source (`RelationFilter` on `source`, `user_id = @user.id`).
+- **`active_config_id` foreign key in the configurations migration.** The column is in the sources create migration, but its foreign key is added by `Schema::table` in the configurations create migration: the referenced table does not exist when the sources migration runs.
+- **`last_config_version` counter.** The source keeps the last number it gave out and publish increments it under the lock of the source row, so a number is never reused (the plan said `max + 1`, which repeats after a delete and is unsafe under an outer transaction).
+- **Delete overrides on `MachineSource`.** `delete()` runs in one transaction, and a hard delete clears `active_config_id` first (the source and its versions reference each other and InnoDB refuses the cascade back onto the row being deleted).
+- **Rate limit on the configuration routes.** The two configuration routes share a per-service-account limiter, `mes.machine.config_rate_limit_per_minute` (`MES_MACHINE_CONFIG_RATE_LIMIT_PER_MINUTE`, default 60); the plan limited only the ingest route.
+- **Incidents index.** `mes_machine_incidents` has an index on `(source_id, type, occurred_at)`, folded into its create migration, for the `data_dropped` dedupe lookup; the validator also enforces `list` for `losses` and `devices`.
+- **Incident reasons.** `auth_failure` carries `missing_permission` (a source whose role or token lacks the route's permission) or `inactive_source`.
+- **`bootstrap/app.php` throttles with Redis only outside the test runner.** Named limiters wrote to the developer's real Redis during tests; under the runner they now count in the test cache store.
+- **`MESDatabaseSeeder::dependsOn(PermissionRefreshSeeder)`.** The role grants `api` permissions that exist only after `permission:refresh`; the dependency is declared so a fresh install cannot create the role without them.
+- **Token-feature tests deleted with the feature.** Two tests of the removed token feature (Sanctum token issue on a source; Filament issue and revoke) were deleted in Task 1 and replaced by a test that the feature is gone.
+- **Documentation list.** `MES_GUIDA_SEMPLICE.md` (the Italian operator guide) was added to the documents of Task 6, and the interim wording of Tasks 1 and 2 was removed from every guide.
+- **Core touched.** Task 2 changed a Core test and `API_ACCESS_CONTROL.md` for the deleted route.
+
+**Follow-ups left open (deferred minors of the reviews):**
+
+- A `@property bool $is_service_account` on Core's `User` would replace the Larastan workaround in the source form; the service account rule is written both in the model and in the form.
+- The `ensureAcl()` helper of the MES seeder is duplicated in the CMS seeder: extract it into Core.
+- A deployment running with `APP_ENV=testing` would get cache throttling (misconfiguration only).
+- `ResolveMachineSource` reaches `authorizationFailureStatus()` through an anonymous `Controller` subclass and queries the source before the permission check (it needs the source for the incident).
+- Timestamps in the `data_dropped` detail are truncated to milliseconds; no test with a non-UTC application time zone.
+- The labels of the incident types are translated in the five locales but Filament still shows the raw values; no label for the report outcomes.
+- `MachineAgentConfigFactory` ignores `last_config_version`.
+- A raw or query-builder delete of sources bypasses the model's delete override, and the circular foreign key is verified on SQLite only (run the hard-delete test on MySQL or MariaDB before relying on it).
+- The Filament "Activate" action catches no `ValidationException` (a tightened D3 schema would throw from the modal); a redundant `isReadOnly()` override; an untested race branch; the reports table does not truncate long error lists.
+- No policy covers the configuration tables: the relation managers follow Filament's default (visible to panel users), acceptable because the panel is superadmin-only and documents hold references only.
+- The agent's full `laraplate-edge-config/1` schema replaces the module's structural copy when `laraplate-edge` publishes it (spec section 11 test).
+
+**Documented in:** `Modules/MES/docs/MACHINE_CONNECTIVITY.md` (The HTTP endpoint, The envelope, Incidents and health, Edge agent configuration), `Modules/MES/README.md` (summary, environment variables), `Modules/MES/docs/rag/MODULE.md` (Machine connectivity: ingress, agent role, edge agent backend), `Modules/MES/docs/MES_GUIDA_SEMPLICE.md` (Collegare le macchine).
