@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Filament\Facades\Filament;
 use Livewire\Mechanisms\PersistentMiddleware\PersistentMiddleware;
 use Modules\Core\Http\Middleware\AddContext;
+use Modules\Core\Http\Middleware\ApplyBackofficeContentLocale;
 use Modules\Core\Http\Middleware\ApplyDatabaseSettingsOverlay;
 use Modules\Core\Http\Middleware\LocalizationMiddleware;
 use Modules\Core\Http\Middleware\PreviewMiddleware;
@@ -43,4 +44,11 @@ it('keeps the admin log scope on livewire updates', function (): void {
 it('keeps the session-backed preview flag on livewire updates', function (): void {
     expect(app(PersistentMiddleware::class)->getPersistentMiddleware())
         ->toContain(PreviewMiddleware::class . ':session');
+});
+
+it('applies the content language of the backoffice on livewire updates too', function (): void {
+    // Saving a form is a Livewire update: without persistence it would write the translation in the
+    // language of the interface instead of the content language picked for the panel.
+    expect(app(PersistentMiddleware::class)->getPersistentMiddleware())
+        ->toContain(ApplyBackofficeContentLocale::class);
 });

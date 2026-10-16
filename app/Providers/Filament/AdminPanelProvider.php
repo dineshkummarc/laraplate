@@ -29,9 +29,11 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Modules\Core\Filament\Pages\PhpInfo;
 use Modules\Core\Filament\Pages\Swagger;
 use Modules\Core\Filament\Pages\Welcome;
+use Modules\Core\Filament\Plugins\ContentLanguageSwitchPlugin;
 use Modules\Core\Filament\Plugins\EnvironmentIndicatorPlugin;
 use Modules\Core\Filament\Plugins\LanguageSwitchPlugin;
 use Modules\Core\Http\Middleware\AddContext;
+use Modules\Core\Http\Middleware\ApplyBackofficeContentLocale;
 use Modules\Core\Http\Middleware\ApplyDatabaseSettingsOverlay;
 use Modules\Core\Http\Middleware\LocalizationMiddleware;
 use Modules\Core\Http\Middleware\PreviewMiddleware;
@@ -113,6 +115,7 @@ final class AdminPanelProvider extends PanelProvider
                 ModulesPlugin::make(),
                 EnvironmentIndicatorPlugin::make(),
                 LanguageSwitchPlugin::make(),
+                ContentLanguageSwitchPlugin::make(),
             ])
             // AUTHENTICATION
             ->login()
@@ -155,6 +158,9 @@ final class AdminPanelProvider extends PanelProvider
             ->middleware([
                 AddContext::class . ':admin',
                 PreviewMiddleware::class . ':session',
+                // The content language of the backoffice, apart from the interface language: a form save is a
+                // Livewire update and must write the same translation the page was opened in.
+                ApplyBackofficeContentLocale::class,
             ], isPersistent: true)
             ->authMiddleware([
                 Authenticate::class,
