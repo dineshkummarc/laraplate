@@ -105,11 +105,11 @@ created_on: 2026-10-15
 - Consumes: `ResolveMachineSource` (Task 2), `MachineIncidentType::ConfigRejected` (Task 3), `MachineIncidentRecorder::record()`.
 - Produces: `MachineAgentConfigService::publish(MachineSource $source, array $document, ?User $author = null): MachineAgentConfig` (validates D3, numbers `max + 1`, writes the number into `document.version`, activates it); `MachineAgentConfigService::activate(MachineAgentConfig $config, ?User $author = null): MachineAgentConfig` (D2: republishes the document as a new version and activates that); `MachineAgentConfigService::validate(array $document): list<string>` (errors). `MachineSource::activeConfig(): BelongsTo`, `MachineSource::agentConfigs(): HasMany`, `MachineSource::agentConfigReports(): HasMany`.
 
-- [ ] **Step 1: Failing tests.** `publish()` gives versions 1, 2, 3 and writes them into the document; a document with `schema` not `laraplate-edge-config/1`, a non-list `inputs`, an input without a string `id` is refused with errors; `activate()` on version 1 while 3 is active creates version 4 holding version 1's content and makes it active. `GET /api/v1/detail/mes/machine-agent-configs` as the agent: `200` with `{version, document}` of the active config; `?version=` equal to it `304` with no body; `?version=` lower `200`; no active config `404`; permission and source refusals as Task 2. `POST /api/v1/insert/mes/machine-agent-config-reports` with `{version, outcome, errors, agent_version}`: `201` and one stored row; `rejected` and `rolled_back` open one `config_rejected` incident each with `{version, outcome, errors}` (D4), `applied` none; an unknown outcome, a missing `agent_version`, a version not published for the caller's source `422` and no incident. Route names as in the Global Constraints.
-- [ ] **Step 2: Migrations, enums, models, factories.**
-- [ ] **Step 3: Schema file and service.**
-- [ ] **Step 4: Controllers and routes.**
-- [ ] **Step 5: Run the touched tests and `Modules/MES/tests/Feature/Machine`, Pint, PHPStan, commit.**
+- [x] **Step 1: Failing tests.** `publish()` gives versions 1, 2, 3 and writes them into the document; a document with `schema` not `laraplate-edge-config/1`, a non-list `inputs`, an input without a string `id` is refused with errors; `activate()` on version 1 while 3 is active creates version 4 holding version 1's content and makes it active. `GET /api/v1/detail/mes/machine-agent-configs` as the agent: `200` with `{version, document}` of the active config; `?version=` equal to it `304` with no body; `?version=` lower `200`; no active config `404`; permission and source refusals as Task 2. `POST /api/v1/insert/mes/machine-agent-config-reports` with `{version, outcome, errors, agent_version}`: `201` and one stored row; `rejected` and `rolled_back` open one `config_rejected` incident each with `{version, outcome, errors}` (D4), `applied` none; an unknown outcome, a missing `agent_version`, a version not published for the caller's source `422` and no incident. Route names as in the Global Constraints.
+- [x] **Step 2: Migrations, enums, models, factories.**
+- [x] **Step 3: Schema file and service.**
+- [x] **Step 4: Controllers and routes.**
+- [x] **Step 5: Run the touched tests and `Modules/MES/tests/Feature/Machine`, Pint, PHPStan, commit.**
 
 ### Task 5: Filament section on the source page
 
