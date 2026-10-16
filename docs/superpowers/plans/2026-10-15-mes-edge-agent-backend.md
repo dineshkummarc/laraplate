@@ -6,7 +6,7 @@ created_on: 2026-10-15
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block. A step dropped on purpose is `- [-]` with its reason on the same line.
 
-**Status:** Open. Tasks 1 to 4 done; Tasks 5 and 6 open.
+**Status:** Open. Tasks 1 to 5 done; Task 6 open.
 
 **Goal:** the MES backend speaks to the `laraplate-edge` agent as the edge agent spec fixes it: machine sources authenticate through service accounts and `api` permissions, the ingest route follows the CRUD nomenclature, each source receives a versioned configuration document and records the agent's apply reports, and data the agent dropped becomes a visible incident.
 
@@ -120,9 +120,9 @@ created_on: 2026-10-15
 **Interfaces:**
 - Consumes: `MachineAgentConfigService::publish()`, `activate()`, `validate()` (Task 4).
 
-- [ ] **Step 1: Failing tests.** On a source's edit page: publishing a JSON document creates the next version and shows it active; an invalid document shows the service's errors on the field and stores nothing; the versions list shows version, author and date, and "Activate" on an older one creates a new version (D2); the reports list is read-only and shows version, outcome, errors and agent version, newest first.
-- [ ] **Step 2: Section, actions, lists.**
-- [ ] **Step 3: Run the touched tests, Pint, PHPStan, commit.**
+- [x] **Step 1: Failing tests.** On a source's edit page: publishing a JSON document creates the next version and shows it active; an invalid document shows the service's errors on the field and stores nothing; the versions list shows version, author and date, and "Activate" on an older one creates a new version (D2); the reports list is read-only and shows version, outcome, errors and agent version, newest first.
+- [x] **Step 2: Section, actions, lists.**
+- [x] **Step 3: Run the touched tests, Pint, PHPStan, commit.**
 
 ### Task 6: Documentation and closing
 
