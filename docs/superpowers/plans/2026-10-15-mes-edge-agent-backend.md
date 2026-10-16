@@ -88,9 +88,9 @@ created_on: 2026-10-15
 **Interfaces:**
 - Produces: `MachineIncidentType::DataDropped`, `MachineIncidentType::ConfigRejected` (Task 4 uses the latter). A `data_dropped` incident's `detail` is `{message_id, priority, from_ts, to_ts, samples, reason}`.
 
-- [ ] **Step 1: Failing tests.** The schema accepts an envelope with `losses: [{priority: "bulk", from_ts, to_ts, samples: 120, reason: "buffer_full"}]` and without `losses`; refuses a loss with `priority` other than `critical`/`bulk`, `samples < 1`, a non date-time `from_ts`, a missing key or an extra key. Processing an accepted message with two losses records two `data_dropped` incidents with the detail above; reprocessing it (the existing reprocess action) records none; a duplicate message (same `message_id`) records none; the same envelope through the MQTT bridge records them too.
-- [ ] **Step 2: Schema, enum, processor** (first processing only; follow how the processor distinguishes a first run from a reprocess, or record by `message_id` so a second run finds them).
-- [ ] **Step 3: Run the touched tests and `Modules/MES/tests/Feature/Machine`, Pint, PHPStan, commit.**
+- [x] **Step 1: Failing tests.** The schema accepts an envelope with `losses: [{priority: "bulk", from_ts, to_ts, samples: 120, reason: "buffer_full"}]` and without `losses`; refuses a loss with `priority` other than `critical`/`bulk`, `samples < 1`, a non date-time `from_ts`, a missing key or an extra key. Processing an accepted message with two losses records two `data_dropped` incidents with the detail above; reprocessing it (the existing reprocess action) records none; a duplicate message (same `message_id`) records none; the same envelope through the MQTT bridge records them too.
+- [x] **Step 2: Schema, enum, processor** (first processing only; follow how the processor distinguishes a first run from a reprocess, or record by `message_id` so a second run finds them).
+- [x] **Step 3: Run the touched tests and `Modules/MES/tests/Feature/Machine`, Pint, PHPStan, commit.**
 
 ### Task 4: Configuration delivery
 
