@@ -160,8 +160,11 @@ All six tasks are built. Decisions D1 to D5 hold. Divergences from the plan, eac
 - The labels of the incident types are translated in the five locales but Filament still shows the raw values; no label for the report outcomes.
 - `MachineAgentConfigFactory` ignores `last_config_version`.
 - A raw or query-builder delete of sources bypasses the model's delete override, and the circular foreign key is verified on SQLite only (run the hard-delete test on MySQL or MariaDB before relying on it).
-- The Filament "Activate" action catches no `ValidationException` (a tightened D3 schema would throw from the modal); a redundant `isReadOnly()` override; an untested race branch; the reports table does not truncate long error lists.
+- A redundant `isReadOnly()` override; an untested race branch; the reports table does not truncate long error lists.
+- `config_rejected` incidents are never deduplicated, and a force-deleted and recreated source restarts its version numbering at 1: an agent holding a higher applied version rejects every poll and writes one incident per poll (bounded by the 60 a minute limiter, notifications stay throttled). Open the incident once per open (source, version, outcome), and document that a recreated source starts at 1 (an agent holding a higher version must be reset, or the source published past it).
 - No policy covers the configuration tables: the relation managers follow Filament's default (visible to panel users), acceptable because the panel is superadmin-only and documents hold references only.
 - The agent's full `laraplate-edge-config/1` schema replaces the module's structural copy when `laraplate-edge` publishes it (spec section 11 test).
+
+**Fixed after closing (2026-10-16, final review):** the agent role's ACL on the configurations now also requires an active source (M1), and the Filament "Activate" action shows the validation errors instead of throwing (M3).
 
 **Documented in:** `Modules/MES/docs/MACHINE_CONNECTIVITY.md` (The HTTP endpoint, The envelope, Incidents and health, Edge agent configuration), `Modules/MES/README.md` (summary, environment variables), `Modules/MES/docs/rag/MODULE.md` (Machine connectivity: ingress, agent role, edge agent backend), `Modules/MES/docs/MES_GUIDA_SEMPLICE.md` (Collegare le macchine).
