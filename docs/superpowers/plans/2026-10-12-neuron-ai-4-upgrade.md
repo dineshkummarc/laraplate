@@ -155,9 +155,9 @@ created_on: 2026-10-12
 
 ### Task 11: System messages and configured setters (guides 24 and 25)
 
-- [ ] **Step 1:** Guide 24: tests that read `RequestRecord::$systemPrompt` as a string read `?->getContent()` (`HandleAiTextGenerationListenerTest.php:48`, `AgentEndpointTest.php:227,237`, `ConversationTitleTest.php:180`); `DocumentationServiceTest.php:445,457` read the RAG context from the first user message's content instead of the system prompt. Any agent `instructions()` returning a string returns a `SystemMessage` with the same text.
-- [ ] **Step 2:** Guide 25: `DocumentationAgent::postProcessors()` stops spreading `parent::postProcessors()`.
-- [ ] **Step 3:** Run the four test files and `DocumentationServiceTest.php`; pass. Commit: `refactor(ai): instructions are system messages (Neuron 4)`.
+- [x] **Step 1:** Guide 24: tests that read `RequestRecord::$systemPrompt` as a string read `?->getContent()` (`HandleAiTextGenerationListenerTest.php:48`, `AgentEndpointTest.php:227,237`, `ConversationTitleTest.php:180`); `DocumentationServiceTest.php:445,457` read the RAG context from the first user message's content instead of the system prompt. Any agent `instructions()` returning a string returns a `SystemMessage` with the same text. Done: the tests read `?->getContent()` and the RAG context from the first user message (they were red on the string comparisons); `ChatAgent` and `DocumentationAgent` return a `SystemMessage` from `instructions()`, and `ChatAgentTest` and `DocumentationAgentTest` read its text. The guide leaves a string return valid: this follows the plan. The prompt wording is untouched: its "provided context documents" still fits, the documents now follow the question.
+- [x] **Step 2:** Guide 25: `DocumentationAgent::postProcessors()` stops spreading `parent::postProcessors()`. Done. No `setPostProcessors()` is called on any instance.
+- [x] **Step 3:** Run the four test files and `DocumentationServiceTest.php`; pass. Commit: `refactor(ai): instructions are system messages (Neuron 4)`. Done: all pass.
 
 ### Task 12: Provider responses and testing fakes (guides 41 and 56)
 
