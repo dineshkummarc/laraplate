@@ -1,6 +1,6 @@
 # CRM Module: Extraction from ERP and the Counterparty / Party Split
 
-**Status:** Draft, decisions taken in conversation with the user on 2026-10-15. Nothing is implemented beyond an empty module skeleton (`Modules/CRM`, local git only, not registered as a submodule).
+**Status:** Draft, decisions taken in conversation with the user on 2026-10-15. Nothing is implemented beyond an empty module skeleton: `Modules/CRM` is a submodule of `laraplate` (repository `swolley/laraplate-crm`, initial commit `64f1ca8`), not yet listed in `modules_statuses.json`.
 
 **Scope:** backend only (`laraplate`). Touches the new `CRM` module, `ERP` (M3.1 extraction, `Party` split), `Core` (nothing new in phase 1) and, for the dependency check, `Shop`, `MES`, `SAO`.
 

@@ -33,3 +33,8 @@
 	url = https://github.com/swolley/laraplate-shop.git
 	pushurl = git@github.com:swolley/laraplate-shop.git
 	branch = master
+[submodule "Modules/CRM"]
+	path = Modules/CRM
+	url = https://github.com/swolley/laraplate-crm.git
+	branch = master
+	pushurl = git@github.com:swolley/laraplate-crm.git
