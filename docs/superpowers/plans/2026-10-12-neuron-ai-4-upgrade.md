@@ -84,10 +84,10 @@ created_on: 2026-10-12
 **Interfaces:**
 - Produces: `final class CallbackTool extends NeuronAI\Tools\Tool`, constructed with `(string $name, string $description, Closure $handler)`; `public function __invoke(mixed ...$arguments): mixed` calls the handler with the arguments by name. `ToolRegistry::buildNeuronTool(ToolDefinition): Tool` returns a `CallbackTool`, with the same `setMaxRuns()` and `addProperty()` calls as today.
 
-- [ ] **Step 1:** Add to `ToolRegistryTest`: `it('builds every tool as a callable class with the definition name, description and properties')` — for a `ToolDefinition` with two parameters, the built tool is a `CallbackTool`, `getName()`/`getDescription()` equal the definition's, its properties are the two, and executing it with both arguments returns the handler's result.
-- [ ] **Step 2:** Run it: fails (`CallbackTool` missing, or `Cannot instantiate abstract class`).
-- [ ] **Step 3:** Implement `CallbackTool` and switch `ToolRegistry` to it (guide 3 Case 2). Leave `ChatAgentTest.php:86` to Task 5.
-- [ ] **Step 4:** Run `ToolRegistryTest.php` and the guide's checklist; pass. Commit: `refactor(ai): tools are built as a CallbackTool class (Neuron 4)`.
+- [x] **Step 1:** Add to `ToolRegistryTest`: `it('builds every tool as a callable class with the definition name, description and properties')` — for a `ToolDefinition` with two parameters, the built tool is a `CallbackTool`, `getName()`/`getDescription()` equal the definition's, its properties are the two, and executing it with both arguments returns the handler's result.
+- [x] **Step 2:** Run it: fails (`CallbackTool` missing, or `Cannot instantiate abstract class`). Done: failed with `Cannot instantiate abstract class NeuronAI\Tools\Tool`.
+- [x] **Step 3:** Implement `CallbackTool` and switch `ToolRegistry` to it (guide 3 Case 2). Leave `ChatAgentTest.php:86` to Task 5. Done. `buildNeuronToolStructure()` was folded into `buildNeuronTool()` (nothing else called it). `SchemaToolProperty` got `isNullable()` (false) and an identity `cast()` so it loads against the 4.x `ToolPropertyInterface`; Task 6 turns `cast()` into the lenient conversion.
+- [x] **Step 4:** Run `ToolRegistryTest.php` and the guide's checklist; pass. Commit: `refactor(ai): tools are built as a CallbackTool class (Neuron 4)`. Done: 9 passed; the only `Tool::make` left is `ChatAgentTest.php:86` (Task 5).
 
 ### Task 5: The ToolCall value object (guide 4)
 
