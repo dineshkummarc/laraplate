@@ -161,9 +161,9 @@ created_on: 2026-10-12
 
 ### Task 12: Provider responses and testing fakes (guides 41 and 56)
 
-- [ ] **Step 1:** Guide 41: `ToolCallingFakeProvider::chat()` returns `ProviderResponse` (done in Task 5); `AiTextGenerationModelBindingTest.php:24` reads `->message()->getContent()`.
-- [ ] **Step 2:** Guide 56: check that `DocumentationServiceTest`'s `FakeVectorStore` canned hits (around lines 410 and 463) still come back unchanged; adjust to the 4.x constructor if they do not.
-- [ ] **Step 3:** Run `AgentEndpointTest.php`, `AiTextGenerationModelBindingTest.php`, `DocumentationServiceTest.php`; pass. Commit: `test(ai): fakes and provider calls follow Neuron 4`.
+- [x] **Step 1:** Guide 41: `ToolCallingFakeProvider::chat()` returns `ProviderResponse` (done in Task 5); `AiTextGenerationModelBindingTest.php:24` reads `->message()->getContent()`. Done: the `ToolCallingFakeProvider` part was Task 5; `AiTextGenerationModelBindingTest` reads `->message()->getContent()` (red: `ProviderResponse::getContent()` undefined, which hid the absolute-URL assertion of Task 3; both hold now). No application code calls a provider directly.
+- [x] **Step 2:** Guide 56: check that `DocumentationServiceTest`'s `FakeVectorStore` canned hits (around lines 410 and 463) still come back unchanged; adjust to the 4.x constructor if they do not. Done: they come back unchanged (the answer, citation and source-isolation tests pass with the canned hits and `setSearchResults()`); nothing to adjust.
+- [x] **Step 3:** Run `AgentEndpointTest.php`, `AiTextGenerationModelBindingTest.php`, `DocumentationServiceTest.php`; pass. Commit: `test(ai): fakes and provider calls follow Neuron 4`. Done: 58 passed.
 
 ### Task 13: Verify against the baseline, document, merge
 
