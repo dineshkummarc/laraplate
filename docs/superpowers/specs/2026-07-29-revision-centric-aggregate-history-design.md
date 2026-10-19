@@ -2,13 +2,13 @@
 
 ## Status
 
-- Date: 2026-07-29, revised 2026-07-30, 2026-08-04, 2026-10-09, 2026-10-12, 2026-10-14 and 2026-10-19
-- Status: draft aligned with the decisions D1 to D51 of the review log, including the answers to the independent recheck of 2026-10-19 (D42 to D51); the Critical findings are resolved by decision, closure pending a short second recheck and the user's approval of this text. Of the design only D38 (`versions:compact` refuses) and D39 (the lock check of `revertToVersion()`) are implemented; everything else described as a rule here is still to be written
+- Date: 2026-07-29, revised 2026-07-30, 2026-08-04, 2026-10-09, 2026-10-12, 2026-10-14, 2026-10-19 and 2026-10-20
+- Status: approved by the user on 2026-10-20, aligned with the decisions D1 to D59 of the review log, including the answers to the independent recheck of 2026-10-19 (D42 to D51) and to the second recheck of 2026-10-20 (D52 to D59). Implementation plan: `docs/superpowers/plans/2026-10-20-core-versioning-rebuild.md`. Implemented so far: D38 (`versions:compact` refuses), D39 (the lock check of `revertToVersion()`), D49 (children without a foreign key removed at a hard delete) and D50 (`Version` outside the generated permissions); everything else described as a rule here is still to be written
 - Scope: generic Core versioning architecture; no module pilot is authorized by this draft
-- Relationship to the current design: proposed successor to `2026-07-21-aggregate-version-sets-design.md`; the version-set and transaction machinery of that design stays as the carrier of atomic capture (D16)
+- Relationship to the current design: successor to `2026-07-21-aggregate-version-sets-design.md`; the version-set and transaction machinery of that design stays as the carrier of atomic capture (D16)
 - Implementation gate: see "Review and approval gate"
 
-This document exists so multiple reviewers can challenge the same concrete proposal. It does not supersede the approved operation-centric design yet, and it must not be used as authorization to continue the CMS pilot or relation implementation.
+This document was written so multiple reviewers could challenge the same concrete proposal. Approved on 2026-10-20, it supersedes the operation-centric design of 2026-07-21. It is not authorization for the CMS pilot, which waits for the first slices of the new Core plan.
 
 The durable finding ledger is `2026-08-04-revision-centric-aggregate-history-review.md`. Reviewers update finding states there rather than referring to findings that are not preserved in the repository.
 
@@ -254,18 +254,18 @@ The hard-delete snapshot, the compaction rewrite and the forced snapshot at the 
 
 **Reconstruction (C08).** To rebuild the state as of revision R, walk back from R to the nearest anchor, then apply the following rows forward in revision order, last write wins per column, and write the result once. Nothing older than that anchor is read or merged. Example, newest first: `diff, diff, SNAPSHOT, diff, diff, diff, diff, SNAPSHOT, diff`. Reverting to the farthest row starts from the second `SNAPSHOT` and applies one row; reverting to the newest starts from the first `SNAPSHOT` and applies two. The walk is driven by each row's own `version_strategy`, because a history mixes `DIFF` and `SNAPSHOT` rows. If no anchor exists at or before R, the revision cannot be rebuilt and the revert is refused. `revertToVersion()` and `revertToRevision()` use this one function; the `DIFF` replay of the library, which merged each earlier row over the live row, is not used (D14).
 
-**Anchor invariant.** The earliest retained row of every versioned record is an anchor. It holds at creation, when versioning is switched on again (a forced snapshot at the record's first save, taken after that save, D22), at the first write after a schema epoch change (lazy baseline, D13), and after compaction (D18). A check reports every record whose earliest retained row is not an anchor. A stream with no row at or before a revision R is absent at R only when R is at or after a complete anchor set of the root in R's epoch (the creation set or a baseline); otherwise a revert to R is refused (D45). The first row of a locale is always a `SNAPSHOT` read back, whatever the owner's strategy.
+**Anchor invariant.** The earliest retained row of every versioned record is an anchor. It holds at creation, when versioning is switched on again (a forced snapshot at the record's first save, taken after that save, D22), at the first write after a schema epoch change (lazy baseline, D13), and after compaction (D18). A check reports every record whose earliest retained row is not an anchor. A stream with no row at or before a revision R is absent at R only when R is at or after a complete anchor set of the root in R's epoch, a set of kind `baseline` (the creation set is one, D53); otherwise a revert to R is refused (D45). The first row of a locale is always a `SNAPSHOT` read back, whatever the owner's strategy.
 
 **Relation-only changes.** They advance the revision and write membership rows. When no scalar column changed, no fabricated scalar change is written.
 
-A restore targets the revision, never the internal id of a row.
+A revert targets the revision, never the internal id of a row. `revertToRevision()` is the one implementation; `revertToVersion($versionId, $expectedRevision)` is a shorthand for a scalar revert to the revision of a row of the root's own columns, and refuses a translation or membership row (D56).
 
 ## Schema epochs
 
 A change of what is versioned must not make a history look complete when it is not (D13, D33).
 
 - **Table.** `core_versions_epochs`: `id`, `root_type`, `fingerprint`, `definition` (JSON), `first_seen_at`, unique on `(root_type, fingerprint)`. Every version row has an `epoch_id`.
-- **Fingerprint.** Per root type: the versionable columns of the root (name, type, nullable), the versionable columns of its translation model, and the registered relation descriptors (path, ownership, key columns). Defaults, non-versionable columns and the inner shape of JSON columns are left out; a change inside a JSON is a process rule, not an automatic check.
+- **Fingerprint.** Per root type: the versionable columns of the root (name, type, nullable), the versionable columns of its translation model, and the registered relation descriptors (path, ownership, key columns, coverage, D57). Defaults, non-versionable columns and the inner shape of JSON columns are left out; a change inside a JSON is a process rule, not an automatic check.
 - **Detection.** At the first write per process and per class the fingerprint is computed from the schema and the code and compared with the latest epoch of the class; a new epoch is created with `firstOrCreate` guarded by the unique key. A deploy that changes the code without a migration is seen too. Static caches are cleared when the workers restart.
 - **Lazy baseline.** Only a class with more than one epoch checks whether the last row of a record belongs to another epoch. If so, the first write of that record, to any of its streams, writes a baseline of the whole aggregate in the same set: a complete `SNAPSHOT` of the root and of every locale present, and a `created` row per current membership entry, so that every stream has an anchor in the new epoch (D45). No record is rewritten by the migration.
 - **At revert.** Equal epoch: compatible. Different: the definitions are compared and the columns classified (D13): compatible ones applied, vanished ones skipped and reported, a recreation that would miss a required value refused; the revision carries `schema-mismatch` or `definition-mismatch`.
@@ -284,7 +284,7 @@ Every registered relation declares:
 - how membership is captured;
 - how membership and state are restored;
 - known bypass paths;
-- coverage evidence.
+- coverage, `complete` or `partial` (default), declared by the module: `complete` only when the relation's mutation and revert paths are covered by tests. The root's coverage is `complete` when every descriptor is; a complete revert needs it (D57).
 
 Automatic Eloquent relation discovery is forbidden.
 
@@ -320,9 +320,11 @@ A recovery of a hard-deleted record does not bring back comments, ratings or med
 
 The resulting revision is `atomic`. A change to a translation alone also creates a version of the owner, and increments the owner's `lock_version` (D10, D23).
 
+**Capture quality (D47, D52).** A set is `atomic` when a database transaction on the root's connection was open before the statement that produced its rows; the manager records it when it opens the set, whether the transaction is its own or an outer one it joins. Otherwise it is `best_effort`. The translation models and both sides of the Core relation subclasses open the transaction before their SQL, so a translation written alone or a `sync()` from the inverse side is `atomic`. A versioned model with no translations and no registered relations has only a scalar revert, which does not depend on capture quality, and gets no extra transaction. `incomplete` stays in the enum but is not written in milestone 1.
+
 ### Writes outside the scope
 
-An observer may still record scalar audit history after an unwrapped Eloquent write for compatibility. That revision is labelled `best_effort`: it does not allocate an advertised aggregate revision and never offers "restore everything". A process crash can still leave a business mutation without its audit row; this limitation is visible and is not described as solved by optimistic validation. A write that bypasses Core entirely (query builder, raw SQL, database cascade) cannot be detected in general and is `best_effort` by definition (D6).
+An observer may still record scalar audit history after an unwrapped Eloquent write for compatibility. That revision is labelled `best_effort`: it does not allocate an advertised aggregate revision and never offers "restore everything". A process crash can still leave a business mutation without its audit row; this limitation is visible and is not described as solved by optimistic validation. A write that bypasses Core entirely (query builder, raw SQL, database cascade) cannot be detected in general and is `best_effort` by definition (D6). After a `best_effort` set, the next atomic write of the same root writes a whole-aggregate baseline, so the complete revert comes back from that point (D52).
 
 The paths that lack the scope today are the Filament saves, `CrudService::insert`, and the save of a root together with its translations (`savePendingTranslations` runs on `saved`, after the root).
 
@@ -356,7 +358,7 @@ The entire public relation mutation is the boundary. A `sync()` creates at most 
 
 ## Revert modes
 
-For target revision `R`, Core may offer:
+For target revision `R`, Core may offer the modes below. The first four are the cases of `RevertMode` passed to `revertToRevision()` (D56); the last two are separate operations.
 
 ### Scalar revert
 
@@ -434,13 +436,13 @@ Deferred (D25, I01): milestone 1 uses local ids on one connection, and existing 
 
 The history of a live record is never aged on its own. History disappears only through three sanctioned operations (invariant 12).
 
-**Hard delete (D17, D29).** One `HardDeleteCoordinator` performs every hard delete that passes through Core. It wraps the delete, it is not called from a hook (D44). In one transaction, with the root row locked, it refuses a record locked by somebody else (D39), reads the aggregate before the deletion (complete root image, translations per locale, membership, `RecordOrigin` data), performs the delete (events, guard and cascading observers run, and the foreign-key cascades remove their rows), and only when the row is gone writes the snapshot set (the root's `deleted` row with the complete image, and `SNAPSHOT` rows per locale, per membership entry and for the origin) and removes the edit history of the root. Any failure rolls all of it back, so a refused delete loses no history. In the same transaction it removes the children without a foreign key that no trait removes: the record's embeddings, and for a user the access tokens and notifications; the record's modifications stay as the approval record, the pending ones closed; every polymorphic column of the schema is classified by an architecture test as a child, a kept reference or a transient log (D49). `recover()` refuses on a primary key taken by a live row and applies a snapshot of an older epoch with the column classification of D13. The snapshot is the safety net for an accidental deletion and is itself purged after a second retention period; after that the data cannot be recovered.
+**Hard delete (D17, D29).** One `HardDeleteCoordinator` performs every hard delete that passes through Core. It wraps the delete, it is not called from a hook (D44). In one transaction, with the root row locked, it refuses a record locked by somebody else (D39), reads the aggregate before the deletion (complete root image, translations per locale, membership, `RecordOrigin` data), performs the delete (events, guard and cascading observers run, and the foreign-key cascades remove their rows), and only when the row is gone writes the snapshot set and removes the edit history of the root. Every row of the snapshot set is `SNAPSHOT` with `change_type = deleted`, the image in `original_contents` and `contents` empty: the root row without `relation_path`, one row per locale (`translations`, `{locale}`), one per membership entry (the relation, `{id}`, the authoritative pivot columns if any) and one for the origin (`origin`), which is outside reconstruction and the fingerprint; the set is read only by `recover()` and the purge (D55). While the coordinator deletes the root, a flag on its set makes the fallback hooks and the pivot capture skip it, so the detaches and events fired by the delete add nothing to the snapshot (D54). Any failure rolls all of it back, so a refused delete loses no history. In the same transaction it removes the children without a foreign key that no trait removes: the record's embeddings, and for a user the access tokens and notifications; the record's modifications stay as the approval record, the pending ones closed; every polymorphic column of the schema is classified by an architecture test as a child, a kept reference or a transient log (D49). `recover()` refuses on a primary key taken by a live row and applies a snapshot of an older epoch with the column classification of D13. The snapshot is the safety net for an accidental deletion and is itself purged after a second retention period; after that the data cannot be recovered.
 
-**Compaction (D18).** Manual, off by default, not scheduled. Choose a cut-off revision R by age or by number of revisions and find the anchor at or before it. By default the `DIFF` rows between the anchor and R are merged into one `DIFF` row written in place at R, the anchor is kept, and everything before the anchor is deleted. As an option, the row at R is rewritten in place as a full `SNAPSHOT` of the state as of R and everything before R is deleted, for whoever wants to forget the original values. In both cases the row at R keeps its revision coordinate and its unique `(version_set_id, sequence)`, the removal is a real `DELETE`, and the merge never crosses an epoch. It is refused when no anchor exists at or before R. After a compaction the states before the cut-off are no longer reachable, by design: no revision of that root before R is a revert target, in either variant, because each stream keeps its own anchor and the earlier sets survive only in pieces. The cut-off is the highest `version_set_id` among the root's rows with `compacted_at`; the earlier sets that still hold an anchor are shown as one compacted entry, not as revisions (D46). `versions:compact` is redefined this way; until then it refuses to run and writes nothing (D38), because its old body added a snapshot of the live state to every history and its purge flag was never read.
+**Compaction (D18).** Manual, off by default, not scheduled. Choose a cut-off revision R by age or by number of revisions and find the anchor at or before it. By default the `DIFF` rows between the anchor and R are merged into one `DIFF` row written in place at R, the anchor is kept, and everything before the anchor is deleted. As an option, the row at R is rewritten in place as a full `SNAPSHOT` of the state as of R and everything before R is deleted, for whoever wants to forget the original values. In both cases the row at R keeps its revision coordinate and its unique `(version_set_id, sequence)`, the removal is a real `DELETE`, and the merge never crosses an epoch. It is refused when no anchor exists at or before R, and when the stretch up to R holds a set that is not `atomic`, which the merged row would otherwise hide (D59). After a compaction the states before the cut-off are no longer reachable, by design: no revision of that root before R is a revert target, in either variant, because each stream keeps its own anchor and the earlier sets survive only in pieces. The cut-off is the highest `version_set_id` among the root's rows with `compacted_at`; the earlier sets that still hold an anchor are shown as one compacted entry, not as revisions (D46). `versions:compact` is redefined this way; until then it refuses to run and writes nothing (D38), because its old body added a snapshot of the live state to every history and its purge flag was never read.
 
 **Switching versioning off (D22).** Deletes the history of the table after a user confirmation; the hard-delete snapshots of that table are kept until their own expiry and the purge command keeps running for them.
 
-Retention must preserve every revision still exposed, the anchor of each, the version sets used as revert targets, and, for compaction and purge, the `reverted_from_set_id` self foreign key, which is `RESTRICT` today: a `Revert` set that is retained must be repointed (for example to the cut-off set) or the key changed to `SET NULL`. `core_versions.version_set_id` cascades on delete, so removing a set removes its rows.
+Retention must preserve every revision still exposed, the anchor of each, the version sets used as revert targets, and the `Revert` sets: the `reverted_from_set_id` self foreign key is `SET NULL` on delete, so a `Revert` set whose target was purged or compacted keeps its place and shows that its target is gone (D58). `core_versions.version_set_id` cascades on delete, so removing a set removes its rows.
 
 The second retention period is the runtime setting `hard_deletes.expiration_days` (group `hard_deletes`, seeded at 30, 0 = never), in the style of `soft_deletes.expiration_days`. The command `versions:purge-deleted` removes the snapshot sets older than that, in chunks, whatever the versioning setting of the table. Both it and `model:clear-expired` are scheduled only through seeded rows of `core_cron_jobs`, run daily in that order (D35). The snapshot needs no extra metadata: the actor and the time are on its `deleted` row, the cause is the `reason` of the set (`expired` or `manual`).
 
@@ -455,12 +457,13 @@ Potentially reusable:
 - connection-aware contracts;
 - append-only revert history (`Revert` sets, `reverted_from_set_id`).
 
-To change, from the decisions (not done, except D38 and D39, implemented on 2026-10-19):
+To change, from the decisions (not done, except D38, D39, D49 and D50, implemented on 2026-10-19; the order and the commits kept, changed or reverted are in the plan `2026-10-20-core-versioning-rebuild.md`):
 
 - detach from `overtrue/laravel-versionable` (D14): absorb the `VersionStrategy` enum and the base `Version` model with the MIT attribution, move the config keys `versionable.version_model` and `versionable.user_foreign_key` to a Core configuration, remove the requirement (with the user's approval), check whether `Diff` is used;
 - rename the tables to `core_versions` and `core_versions_sets` (D15) and drop `deleted_at`, `is_deleted`, `updated_at`, add `compacted_at` (D19); adjust the readers `CompactVersions` and the sequence-gap check of `ActiveVersionSet`;
 - `change_type` values (D20): the two writes of `HasVersions` that emit `updated` for a soft delete and a restore, and `trashingVersions()`;
-- the reconstruction of C08 in Core's own `Version`, replacing the `DIFF` loop of `revertWithoutSaving()`, shared by `revertToVersion()` and `restoreScalarState()`, and the rename of `restoreToRevision()` to `revertToRevision()`;
+- the reconstruction of C08 in Core's own `Version`, replacing the `DIFF` loop of `revertWithoutSaving()`, shared by `revertToVersion()` and `restoreScalarState()`, and the rename of `restoreToRevision()` to `revertToRevision()`, with `revertToVersion()` reduced to its scalar shorthand (D56);
+- the set kind `baseline` (D53), the `capture` rule of D52, the coverage of the descriptors (D57), the `SET NULL` of `reverted_from_set_id` (D58);
 - `createInitialVersion()` reads the row back after the insert (C09);
 - exclude the lock columns from the versionable columns of models with `HasLocks`; force versioning off on the comment and rating models; translation models are not versioned (D8, D10, D21);
 - the epoch (D13, D33), the whole-aggregate baseline (D22, D45), the compaction and its cut-off (D18, D46) and the hard-delete coordinator wrapping the delete, with the reworked `ClearExpiredModels` and the children without a foreign key (D17, D29, D44, D49);
@@ -472,7 +475,7 @@ Separate defect found on the way, not part of this design, fixed since: a soft d
 
 No existing migration or commit is reverted until this draft is approved and a replacement implementation plan identifies the exact compatibility path.
 
-## Design still to produce
+## Still to implement or verify
 
 1. Change `lockExistingRoot()` so that it compares the version carried by the instance with the one of the locked row, throws `StaleModelLockingException` on a difference, and neither overwrites `lock_version` nor drops the loaded relations (D34); then implement the wrapper of `save()` and `delete()` with the conditions and join rules of D34.
 2. The callers that write several locales in a loop (importers, the generic CRUD update) adopt `withinRevision` (D28).
@@ -522,17 +525,18 @@ Designed and no longer open: the hook for translation changes, the grouping of t
 - the sequence-gap check works without `withTrashed()`;
 - retention cannot delete a version set a retained `Revert` set points to without repointing it;
 - local ids from different connections cannot collide (while multi-connection is deferred, this guards against enabling it by accident);
-- cycles remain bounded to registered one-hop paths.
+- cycles remain bounded to registered one-hop paths;
+- the tests listed under D42 to D59 in the review log, in particular: one set per root in the same transaction (D43), no revert before a compaction's cut-off (D46), the capture of D47 and D52, the checks under the lock (D48), the baseline kind (D53), the snapshot set without delete-triggered rows and with its row format (D54, D55), the two entry points (D56), coverage (D57), `SET NULL` (D58) and the refused compaction (D59).
 
 ## Decisions
 
-The decisions recorded on 2026-07-29/30 and reopened by the findings are now settled; the full list (D1 to D51) is in the review log.
+The decisions recorded on 2026-07-29/30 and reopened by the findings are now settled; the full list (D1 to D59) is in the review log.
 
 **1. `lock_version` is not the aggregate revision.** Two separate logical values. `lock_version` keeps its current job, the user-facing conflict token of what a form edits (the root and its translations, D23); the aggregate revision is the restore coordinate. Reusing one column would make any relation change invalidate an open editing form: attaching a tag would fail Anna's save on a field Marco never touched. It would also leave the restore coordinate reachable from `request('lock_version')`.
 
 **2. Atomic capture (C01, C04, C05).** Resolved by D6: writes that go through Core's supported mutation paths run inside a revision scope that opens a local transaction before the first query, and every other write is labelled `best_effort`.
 
-**3. Hard delete and missing subjects (C03, C07, I02).** Resolved by D17 and D25: a coordinator owns every hard delete and writes a full snapshot first; a missing reference refuses a complete revert, or is skipped and reported with `$force` and labelled `partial`.
+**3. Hard delete and missing subjects (C03, C07, I02).** Resolved by D17, D44 and D25: a coordinator owns every hard delete, reads the aggregate, performs the delete and then writes the full snapshot, in one transaction; a missing reference refuses a complete revert, or is skipped and reported with `$force` and labelled `partial`.
 
 **4. Multi-root relations (C06).** Resolved by D24: only descriptors with exactly one authoritative root are registered.
 
@@ -562,7 +566,7 @@ The user confirmed a CMS-grade, minimal, forward-compatible bundle. It resolves 
 
 Preceding delivery (implemented and tested on 2026-08-05): the revert marker (`revertToVersion()` opens a `Revert` set with `reverted_from_set_id`) and the delete semantics in `Modules/Core/app/Models/Concerns/HasVersions.php`. The soft delete is to be recorded as `trashed` and the hard delete as the full snapshot of D17 instead of the `Updated` / tombstone of that delivery (D20).
 
-Next: an implementation plan identifying the concrete slices, then TDD delivery.
+Superseded as a plan by `docs/superpowers/plans/2026-10-20-core-versioning-rebuild.md`; the milestone-1 plan `2026-08-06-core-versioned-relation-membership.md` is closed as superseded.
 
 ## Review and approval gate
 
@@ -572,15 +576,15 @@ Done so far:
 2. its description of the existing code has been replaced with verified behaviour;
 3. four defects found while checking those premises have been fixed and covered by tests;
 4. on 2026-10-09 the findings were discussed with the user and decided (D1 to D27), and this text was aligned with them;
-5. on 2026-10-12, 2026-10-14 and 2026-10-19 the open points were decided (D28 to D41), an independent recheck found eight design gaps and they were answered (D42 to D51), and this text was aligned again.
+5. on 2026-10-12, 2026-10-14 and 2026-10-19 the open points were decided (D28 to D41), an independent recheck found eight design gaps and they were answered (D42 to D51), and this text was aligned again;
+6. on 2026-10-20 a second independent recheck found one critical and seven important gaps, answered by D52 to D59; the user approved them and this text, which was aligned again;
+7. the milestone-1 Core plan `2026-08-06-core-versioned-relation-membership.md` is closed as superseded, and the new plan `2026-10-20-core-versioning-rebuild.md` identifies which existing commits remain, change or are reverted.
 
-Before implementation resumes:
+Still required:
 
-5. the user approves the revised semantics in this text, and the items under "Design still to produce" are designed;
-6. the nine Critical findings and the accepted Important findings are closed in the review log, which needs this text aligned and the evidence rechecked once implemented;
-7. the previous Core and CMS plans are replaced or explicitly amended (the Core plan's checkboxes no longer match the repository, which is further ahead);
-8. a new implementation plan identifies which existing commits remain, change or are reverted;
-9. no CMS pilot work starts before the new Core plan passes review.
+8. the nine Critical findings and the accepted Important findings are closed in the review log once implemented and the evidence rechecked;
+9. the earlier Core and CMS plans of 2026-07-21 are replaced by the new plan or explicitly amended;
+10. no CMS pilot work starts before the new Core plan's first slices pass review.
 
 Outside this document, the locking work depends on the translation write raising `lock_version` (see "Concurrency"); the Filament page guard exists since 2026-10-12.
 

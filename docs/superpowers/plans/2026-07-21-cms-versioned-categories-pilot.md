@@ -29,7 +29,7 @@
 - Modify: `Modules/CMS/tests/Integration/Models/ContentCategoriesPivotKeysTest.php`
 - Create: `Modules/CMS/tests/Integration/Versioning/ContentCategoriesDescriptorTest.php`
 
-- [ ] **Step 1: Write failing descriptor and model tests**
+- [-] **Step 1: Write failing descriptor and model tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Assert the aggregate root is `Content`, coverage is partial, the only covered path is `categories`, the pivot class is `Categorizable`, identity columns are exactly `content_id, taxonomy_id` in that order, and registration occurs only while CMS is enabled.
 
@@ -46,7 +46,7 @@ it('uses the existing natural key as historical category identity', function ():
 
 Also assert the database table and Eloquent relation do not require an `id`, and `Categorizable` remains a Core Pivot with composite identity.
 
-- [ ] **Step 2: Run and confirm failure**
+- [-] **Step 2: Run and confirm failure** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentCategoriesDescriptorTest.php Modules/CMS/tests/Integration/Models/ContentCategoriesPivotKeysTest.php
@@ -54,13 +54,13 @@ rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentC
 
 Expected: FAIL because CMS has not registered versioning descriptors or added pivot capture.
 
-- [ ] **Step 3: Implement the CMS descriptors**
+- [-] **Step 3: Implement the CMS descriptors** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Implement immutable descriptor classes with no Core dependency on CMS types. Add Core's versioned-pivot concern to `Categorizable`. Register the aggregate definition before its relation descriptor in `CMSServiceProvider::boot()`. The relation restore implementation locates rows by both natural-key columns and never inserts a historical surrogate ID.
 
 The descriptor resolves the root from `content_id` before a mutation and pre-enlists the Content connection. It rejects a category pivot whose root uses a different connection from the active set.
 
-- [ ] **Step 4: Run descriptor tests**
+- [-] **Step 4: Run descriptor tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentCategoriesDescriptorTest.php Modules/CMS/tests/Integration/Models/ContentCategoriesPivotKeysTest.php
@@ -68,7 +68,7 @@ rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentC
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit CMS registration**
+- [-] **Step 5: Commit CMS registration** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/CMS add app/Versioning/ContentVersionedAggregate.php app/Versioning/ContentCategoriesVersionedRelation.php app/Providers/CMSServiceProvider.php app/Models/Pivot/Categorizable.php tests/Integration/Versioning/ContentCategoriesDescriptorTest.php tests/Integration/Models/ContentCategoriesPivotKeysTest.php
@@ -82,7 +82,7 @@ rtk git -C Modules/CMS commit -m "feat(cms): describe versioned content categori
 - Create: `Modules/CMS/app/Versioning/ContentAggregateMutationService.php`
 - Create: `Modules/CMS/tests/Integration/Versioning/ContentAggregateMutationServiceTest.php`
 
-- [ ] **Step 1: Write failing atomic lifecycle tests**
+- [-] **Step 1: Write failing atomic lifecycle tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Cover existing and new Content roots, scalar-only update, category-only sync, combined scalar/category update, attach, explicit pivot update, detach, sync replacement, rollback, no-op, non-default Content connection, and second connection rejection before mutation.
 
@@ -103,7 +103,7 @@ it('groups scalar and category changes in one set', function (): void {
 
 Add an explicit assertion that category `sync()` uses the Core relation mutation adapter and does not issue a raw delete that bypasses `Categorizable::deleting`.
 
-- [ ] **Step 2: Run and confirm failure**
+- [-] **Step 2: Run and confirm failure** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentAggregateMutationServiceTest.php
@@ -111,13 +111,13 @@ rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentA
 
 Expected: FAIL because the CMS mutation boundary does not exist and standard sync deletion may bypass pivot events.
 
-- [ ] **Step 3: Implement the service and supported relation mutation path**
+- [-] **Step 3: Implement the service and supported relation mutation path** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 `run(Content $content, Closure $operation)` creates `VersionSetRoot::forModel($content)`, pre-enlists the resolved connection, and delegates to `VersionSetManagerInterface`. For a new Content, persist the root before the manager finalizes the set identity. All supported category synchronization goes through the Core adapter that loads and saves/deletes custom pivot instances.
 
 Do not silently fall back to `BelongsToMany::detach()` for a registered versioned relation. Reject a different active root and let exceptions roll back root, pivot, set, and version rows.
 
-- [ ] **Step 4: Run lifecycle and existing category regressions**
+- [-] **Step 4: Run lifecycle and existing category regressions** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentAggregateMutationServiceTest.php Modules/CMS/tests/Integration/Models/ContentCategoriesPivotKeysTest.php
@@ -125,7 +125,7 @@ rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentA
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the CMS mutation boundary**
+- [-] **Step 5: Commit the CMS mutation boundary** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/CMS add app/Versioning/ContentAggregateMutationService.php tests/Integration/Versioning/ContentAggregateMutationServiceTest.php
@@ -140,7 +140,7 @@ rtk git -C Modules/CMS commit -m "feat(cms): version content category mutations 
 - Modify: `Modules/CMS/tests/Feature/Import/ImportPipelineTest.php`
 - Create: `Modules/CMS/tests/Feature/Import/ContentImportVersionSetTest.php`
 
-- [ ] **Step 1: Write failing import integration tests**
+- [-] **Step 1: Write failing import integration tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Cover a single imported Content with scalar and category changes, a two-Content batch producing two root sets, failure rolling back the outer import and every contained set, an import no-op producing no new set, and an import that also supplies contributors/tags/locations being marked partial rather than advertised as completely restorable.
 
@@ -155,7 +155,7 @@ it('creates one version set per content in a batch', function (): void {
 });
 ```
 
-- [ ] **Step 2: Run and confirm failure**
+- [-] **Step 2: Run and confirm failure** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/CMS/tests/Feature/Import/ContentImportVersionSetTest.php Modules/CMS/tests/Feature/Import/ImportPipelineTest.php
@@ -163,13 +163,13 @@ rtk php artisan test --compact Modules/CMS/tests/Feature/Import/ContentImportVer
 
 Expected: FAIL because `ContentUpserter` does not open one managed set per root.
 
-- [ ] **Step 3: Wrap each upsert, not the whole batch, in the CMS service**
+- [-] **Step 3: Wrap each upsert, not the whole batch, in the CMS service** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Inject `ContentAggregateMutationService` into `ContentUpserter`. Put both Content saves and all relation operations inside one root scope, while only registered categories produce pivot versions in this pilot. The existing outer import transaction remains responsible for all-or-nothing batch import; nested database transactions use the same connection, while active version-set state opens and closes separately for each Content.
 
 Do not claim the unregistered contributor, tag, location, related-content, translation/dynamic-content, media, origin, or reference changes are restorable. Preserve current import behavior and progress logging after successful persistence.
 
-- [ ] **Step 4: Run import and versioning tests**
+- [-] **Step 4: Run import and versioning tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/CMS/tests/Feature/Import/ContentImportVersionSetTest.php Modules/CMS/tests/Feature/Import/ImportPipelineTest.php Modules/CMS/tests/Integration/Versioning/ContentAggregateMutationServiceTest.php
@@ -177,7 +177,7 @@ rtk php artisan test --compact Modules/CMS/tests/Feature/Import/ContentImportVer
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit import integration**
+- [-] **Step 5: Commit import integration** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/CMS add app/Import/Upserters/ContentUpserter.php tests/Feature/Import/ContentImportVersionSetTest.php tests/Feature/Import/ImportPipelineTest.php
@@ -191,7 +191,7 @@ rtk git -C Modules/CMS commit -m "feat(cms): group imported content version chan
 - Create: `Modules/CMS/tests/Integration/Versioning/ContentCategoriesRestoreTest.php`
 - Modify: `Modules/CMS/app/Versioning/ContentCategoriesVersionedRelation.php`
 
-- [ ] **Step 1: Write failing relation restore tests**
+- [-] **Step 1: Write failing relation restore tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Cover state after a target set, category recreation after detach, removal of a later attach, restoration of pivot timestamps/attributes that are explicitly versionable, repeated restore, restore of a restore, stale expected revision, and failure rollback. Assert the public complete aggregate restorer rejects the partial Content definition.
 
@@ -204,7 +204,7 @@ it('refuses to advertise a complete Content restore', function (): void {
 
 Use Core's internal relation-scoped test seam to exercise the descriptor restore algorithm; do not add a CMS route or action.
 
-- [ ] **Step 2: Run and confirm failure**
+- [-] **Step 2: Run and confirm failure** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentCategoriesRestoreTest.php
@@ -212,11 +212,11 @@ rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentC
 
 Expected: FAIL until the CMS descriptor implements the complete category lifecycle.
 
-- [ ] **Step 3: Complete category restore behavior**
+- [-] **Step 3: Complete category restore behavior** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Resolve historical subjects by `content_id, taxonomy_id`, use the supported pivot mutation adapter, keep Core version capture active, and let the new revert set record actual relation changes. Never recreate an old generated key. Derived CMS reconciliation listens to the Core after-commit event only for covered category state.
 
-- [ ] **Step 4: Run restore and lifecycle tests**
+- [-] **Step 4: Run restore and lifecycle tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentCategoriesRestoreTest.php Modules/CMS/tests/Integration/Versioning/ContentAggregateMutationServiceTest.php
@@ -224,7 +224,7 @@ rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning/ContentC
 
 Expected: PASS, including explicit complete-restore refusal.
 
-- [ ] **Step 5: Commit restore coverage**
+- [-] **Step 5: Commit restore coverage** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/CMS add app/Versioning/ContentCategoriesVersionedRelation.php tests/Integration/Versioning/ContentCategoriesRestoreTest.php
@@ -238,11 +238,11 @@ rtk git -C Modules/CMS commit -m "test(cms): prove versioned category restoratio
 - Modify: `Modules/CMS/docs/rag/MODULE.md`
 - Modify: `Modules/CMS/README.md`
 
-- [ ] **Step 1: Document exact pilot coverage**
+- [-] **Step 1: Document exact pilot coverage** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Document Core ownership, the CMS descriptor and mutation boundary, composite natural identity, import grouping, category restore behavior, and the `partial` coverage status. List the unregistered Content children and state that complete Content restore stays disabled until they are implemented.
 
-- [ ] **Step 2: Run the CMS pilot suite**
+- [-] **Step 2: Run the CMS pilot suite** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/CMS/tests/Integration/Versioning Modules/CMS/tests/Integration/Models/ContentCategoriesPivotKeysTest.php Modules/CMS/tests/Feature/Import/ContentImportVersionSetTest.php Modules/CMS/tests/Feature/Import/ImportPipelineTest.php
@@ -252,7 +252,7 @@ rtk composer phpstan -- --memory-limit=2G Modules/CMS/app/Versioning Modules/CMS
 
 Expected: all tests pass, Pint reports no remaining changes after its final run, and PHPStan reports no errors in the changed CMS surface.
 
-- [ ] **Step 3: Audit bypass paths and coverage claims**
+- [-] **Step 3: Audit bypass paths and coverage claims** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rg -n "categories\(\).*->(attach|detach|sync|syncWithoutDetaching|updateExistingPivot)|categorizables" Modules/CMS/app
@@ -261,12 +261,18 @@ rg -n "complete.*restore|aggregate.*restore" Modules/CMS/app Modules/CMS/docs
 
 Inspect every match. Expected: supported category mutations enter through the CMS/Core adapter, raw table operations are absent from the supported path, and no route or action advertises complete Content restore.
 
-- [ ] **Step 4: Commit CMS documentation**
+- [-] **Step 4: Commit CMS documentation** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/CMS add docs/rag/MODULE.md README.md
 rtk git -C Modules/CMS commit -m "docs(cms): document versioned categories pilot"
 ```
+
+## Delivery status (2026-10-20): not started, superseded
+
+Nothing of this pilot was built. The approved revision-centric design (D1–D59) replaces composite-pivot versioning with capture from pivot events (D42) and registers `categories`, `tags`, `locations` and `contributors` together (D31); the pilot is Slice 10 of `2026-10-20-core-versioning-rebuild.md`. Every step is marked `- [-]`.
+
+**Documented in:** `Modules/Core/docs/rag/MODULE.md` (the versioning that exists today).
 
 ## Completion gate and next work
 

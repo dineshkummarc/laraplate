@@ -204,11 +204,11 @@ rtk git -C Modules/Core commit -m "feat(core): manage single connection version 
 - Modify: `Modules/Core/tests/Integration/Helpers/HasVersionsTest.php`
 - Modify: tests that reference `CreateVersionJob` or `ModelVersioningRequested`, discovered with `rg -n "CreateVersionJob|ModelVersioningRequested" Modules/Core/tests`
 
-- [ ] **Step 1: Extend the red tests for sequence and implicit sets**
+- [-] **Step 1: Extend the red tests for sequence and implicit sets** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Assert that two changes inside an explicit scope share `version_set_id`, receive sequences `1, 2`, and contain the same set UUID. Assert an unwrapped model save creates one implicit singleton set synchronously but is reported as a non-atomic compatibility path. Assert canonical payloads: create uses an empty original and full after-image; update uses changed before/after images captured around the query; delete uses the full before-image and empty contents; force delete retains prior history.
 
-- [ ] **Step 2: Run focused tests and confirm failure**
+- [-] **Step 2: Run focused tests and confirm failure** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/VersionWriterCharacterizationTest.php Modules/Core/tests/Integration/Helpers/HasVersionsTest.php
@@ -216,7 +216,7 @@ rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/Version
 
 Expected: FAIL because there is no sole writer or sequence allocation.
 
-- [ ] **Step 3: Implement the writer and neutralize duplicate callbacks**
+- [-] **Step 3: Implement the writer and neutralize duplicate callbacks** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 `VersionWriter::write(VersionChange $change)` must require or create an active set, verify the pre-enlisted model connection, allocate the next sequence from scoped state, and create `Version` synchronously. `HasVersions` must capture pending dirty keys and before-images in `updating`/`deleting`, then give those snapshots to the writer in `updated`/`deleted`. It must own the lifecycle callbacks and reuse only the vendor helper methods and relationships; it must prevent `Versionable::bootVersionable()` from registering its direct writer and force-delete purge callbacks.
 
@@ -224,7 +224,7 @@ Once every production persistence path delegates to the writer, edit the base ve
 
 Delegate `Version::createForModel()` and `VersioningService::createVersion()` to `VersionWriterInterface` as compatibility boundaries. Remove after-commit history dispatch and the event once `rg` shows no production or test caller. Keep version-strategy resolution and encryption behavior in the typed change builder.
 
-- [ ] **Step 4: Run writer and existing model-version tests**
+- [-] **Step 4: Run writer and existing model-version tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/VersionWriterCharacterizationTest.php Modules/Core/tests/Integration/Helpers/HasVersionsTest.php Modules/Core/tests/Integration/Models/VersionModelTest.php Modules/Core/tests/Integration/Services/VersioningServiceTest.php
@@ -232,7 +232,7 @@ rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/Version
 
 Expected: PASS with no queued essential history.
 
-- [ ] **Step 5: Commit the sole-writer change**
+- [-] **Step 5: Commit the sole-writer change** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/Core add app/Versioning app/Models/Concerns/HasVersions.php app/Models/Version.php app/Services/VersioningService.php app/Providers/CoreServiceProvider.php database/migrations/2019_05_31_042934_create_versions_table.php tests/Integration/Versioning tests/Integration/Helpers/HasVersionsTest.php tests/Integration/Models/VersionModelTest.php tests/Integration/Services/VersioningServiceTest.php
@@ -249,7 +249,7 @@ rtk git -C Modules/Core commit -m "refactor(core): centralize synchronous versio
 - Modify: `Modules/Core/tests/Integration/Services/CrudServiceRequestScenariosTest.php`
 - Create: `Modules/Core/tests/Integration/Versioning/ApprovedVersionSetTest.php`
 
-- [ ] **Step 1: Write failing approval lifecycle tests**
+- [-] **Step 1: Write failing approval lifecycle tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Use the existing approval factories and service entry point. Assert that proposal capture and rejection create no version set, final approval applies the business change and its version rows in one transaction, the set actor is the approver, `reason` is `approval:<approval-key>`, and an approved no-op creates no set.
 
@@ -267,7 +267,7 @@ it('opens the set only when final approval applies the change', function (): voi
 });
 ```
 
-- [ ] **Step 2: Run and confirm failure**
+- [-] **Step 2: Run and confirm failure** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/ApprovedVersionSetTest.php Modules/Core/tests/Integration/Helpers/HasApprovalsTest.php Modules/Core/tests/Integration/Services/CrudServiceRequestScenariosTest.php
@@ -275,11 +275,11 @@ rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/Approve
 
 Expected: FAIL because approval application is not version-set-aware.
 
-- [ ] **Step 3: Wrap only the persisted approval application**
+- [-] **Step 3: Wrap only the persisted approval application** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Resolve the approved model/root and connection before its save, then call `VersionSetManagerInterface::run()` around the final application. Do not open a set while `saving` merely captures a proposal. Use the authenticated approver as actor and the canonical approval reason; the approval record remains the source for proposer and decision history. Roll back the applied model change if version writing fails.
 
-- [ ] **Step 4: Run approval and transaction regressions**
+- [-] **Step 4: Run approval and transaction regressions** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/ApprovedVersionSetTest.php Modules/Core/tests/Integration/Helpers/HasApprovalsTest.php Modules/Core/tests/Integration/Services/CrudServiceRequestScenariosTest.php
@@ -287,7 +287,7 @@ rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/Approve
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit approval integration**
+- [-] **Step 5: Commit approval integration** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/Core add app/Services/Crud/CrudService.php tests/Integration/Versioning/ApprovedVersionSetTest.php tests/Integration/Helpers/HasApprovalsTest.php tests/Integration/Services/CrudServiceRequestScenariosTest.php
@@ -310,7 +310,7 @@ rtk git -C Modules/Core commit -m "feat(core): version final approved changes at
 - Create: `Modules/Core/tests/Stubs/Versioning/ArticleLabelDescriptor.php`
 - Create: `Modules/Core/tests/Integration/Versioning/VersionedPivotLifecycleTest.php`
 
-- [ ] **Step 1: Write failing descriptor and pivot lifecycle tests**
+- [-] **Step 1: Write failing descriptor and pivot lifecycle tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Cover duplicate descriptors, relation paths absent from the aggregate definition, partial/complete coverage, empty/nullable/mutable identity declarations, canonical key order, attach, pivot update, explicit detach, sync replacement, pre-delete snapshot, rollback, and a pivot-only set with no synthetic root version.
 
@@ -329,7 +329,7 @@ it('captures a hard deleted composite pivot before it disappears', function (): 
 });
 ```
 
-- [ ] **Step 2: Run and confirm failure**
+- [-] **Step 2: Run and confirm failure** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/VersionedPivotLifecycleTest.php
@@ -337,13 +337,13 @@ rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/Version
 
 Expected: FAIL because descriptors and pivot capture do not exist.
 
-- [ ] **Step 3: Implement explicit registration and model-event capture**
+- [-] **Step 3: Implement explicit registration and model-event capture** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Bind the registry as a singleton and reject collisions by normalized `root morph class + relation path`. Require a module-owned aggregate definition that enumerates registered paths and declares `partial` or `complete` coverage. `HasVersionedPivot` resolves its descriptor, writes creates/updates normally, and writes deletions from `deleting` before a hard delete. It serializes only descriptor identity columns in declared order.
 
 Do not add an `id` to composite test pivots. Do not use raw query deletion in the supported relation adapter. Where standard `detach()` bypasses custom pivot events, provide a Core mutation adapter that loads and deletes pivot models explicitly, then require registered relations to use that adapter.
 
-- [ ] **Step 4: Run pivot and base Pivot regressions**
+- [-] **Step 4: Run pivot and base Pivot regressions** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/VersionedPivotLifecycleTest.php Modules/Core/tests/Feature/Models/FieldPivotBehaviorTest.php
@@ -351,7 +351,7 @@ rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/Version
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit relation infrastructure**
+- [-] **Step 5: Commit relation infrastructure** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/Core add app/Versioning app/Providers/CoreServiceProvider.php tests/Stubs/Versioning tests/Integration/Versioning/VersionedPivotLifecycleTest.php
@@ -373,7 +373,7 @@ rtk git -C Modules/Core commit -m "feat(core): capture explicitly described pivo
 - Create: `Modules/Core/tests/Integration/Versioning/AggregateVersionRestorerTest.php`
 - Create: `Modules/Core/tests/Integration/Versioning/VersionSetConcurrencyTest.php`
 
-- [ ] **Step 1: Write failing restoration tests**
+- [-] **Step 1: Write failing restoration tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Cover refusal of complete restore for a partial aggregate definition, scalar rollback, subject recreation/removal/update, restoration to the state after a target set, repeated restore after intervening changes, no-op restore leaving no set, `reverted_from_set_id`, expected-revision conflict, existing-root lock, hard-deleted-root history lock and key collision, version capture remaining active, business observer suppression via `RestorationMode`, after-commit event dispatch, and rollback when one descriptor fails.
 
@@ -390,7 +390,7 @@ it('records a restore as a new forward version set', function (): void {
 });
 ```
 
-- [ ] **Step 2: Run and confirm failure**
+- [-] **Step 2: Run and confirm failure** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/AggregateVersionRestorerTest.php
@@ -398,7 +398,7 @@ rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/Aggrega
 
 Expected: FAIL because aggregate restore does not exist.
 
-- [ ] **Step 3: Implement deterministic reconstruction and forward restore**
+- [-] **Step 3: Implement deterministic reconstruction and forward restore** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Reconstruct state from complete sets ordered by local set `id` and row `sequence`. Resolve relation rows only through the registered `relation_path` and canonical `subject_key`. Run restore inside a new managed transaction with `kind = revert`, lock the root, compare the expected current set, keep `VersionWriter` enabled, and scope only non-idempotent business observers through `RestorationMode`.
 
@@ -406,7 +406,7 @@ Dispatch `AggregateVersionRestored` after commit with root identity, new set UUI
 
 Run `VersionSetConcurrencyTest` against the project's real MySQL/PostgreSQL CI service, not SQLite, and prove that a concurrent stale writer cannot pass the root lock/revision check. The test may be isolated from the default SQLite suite by the existing integration-test environment mechanism, but the release gate requires evidence from a database with real row locks.
 
-- [ ] **Step 4: Run restore and existing version replay regressions**
+- [-] **Step 4: Run restore and existing version replay regressions** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/AggregateVersionRestorerTest.php Modules/Core/tests/Integration/Versioning/VersionSetConcurrencyTest.php Modules/Core/tests/Integration/Models/VersionModelTest.php
@@ -414,7 +414,7 @@ rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/Aggrega
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit aggregate restore**
+- [-] **Step 5: Commit aggregate restore** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/Core add app/Versioning app/Models/Version.php app/Providers/CoreServiceProvider.php tests/Integration/Versioning/AggregateVersionRestorerTest.php tests/Integration/Versioning/VersionSetConcurrencyTest.php tests/Integration/Models/VersionModelTest.php
@@ -432,11 +432,11 @@ rtk git -C Modules/Core commit -m "feat(core): restore aggregate version sets fo
 - Create: `Modules/Core/tests/Integration/Versioning/VersionSetRetentionServiceTest.php`
 - Modify: `Modules/Core/tests/Integration/Services/VersioningServiceTest.php`
 
-- [ ] **Step 1: Write failing retention tests**
+- [-] **Step 1: Write failing retention tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Assert that retention removes whole unreferenced sets, preserves the reconstruction checkpoint, preserves revert targets, refuses partial history, serializes maintenance with a root lock, and leaves set-managed rows untouched when reconstructability cannot be proven.
 
-- [ ] **Step 2: Run and confirm failure**
+- [-] **Step 2: Run and confirm failure** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/VersionSetRetentionServiceTest.php Modules/Core/tests/Integration/Services/VersioningServiceTest.php
@@ -444,11 +444,11 @@ rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/Version
 
 Expected: FAIL because retention still deletes individual model rows.
 
-- [ ] **Step 3: Implement safe set-level retention**
+- [-] **Step 3: Implement safe set-level retention** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Remove per-model `skip(...)->each->delete()` and snapshot purge for set-managed rows. Route compaction through `VersionSetRetentionService`, delete only complete sets in one root-scoped transaction, and leave history intact if the service cannot prove a retained reconstruction base. Keep legacy behavior only behind an explicit check for pre-set rows during the compatibility window.
 
-- [ ] **Step 4: Run retention and command tests**
+- [-] **Step 4: Run retention and command tests** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/VersionSetRetentionServiceTest.php Modules/Core/tests/Integration/Services/VersioningServiceTest.php Modules/Core/tests/Feature/Console/CompactVersionsTest.php
@@ -456,7 +456,7 @@ rtk php artisan test --compact Modules/Core/tests/Integration/Versioning/Version
 
 If the command test has a different existing path, locate it with `rg -l "CompactVersions" Modules/Core/tests` and run that exact file.
 
-- [ ] **Step 5: Commit retention safety**
+- [-] **Step 5: Commit retention safety** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/Core add app/Versioning/VersionSetRetentionService.php app/Services/VersioningService.php app/Console/CompactVersions.php app/Models/Concerns/HasVersions.php tests/Integration/Versioning/VersionSetRetentionServiceTest.php tests/Integration/Services/VersioningServiceTest.php
@@ -475,11 +475,11 @@ rtk git -C Modules/Core commit -m "refactor(core): retain complete version sets"
 - Modify: public PHPDoc in `Modules/Core/app/Models/Concerns/HasVersions.php`
 - Modify: relevant setting descriptions located by `rg -n "keep_versions|async.*version|version strategy" Modules/Core`
 
-- [ ] **Step 1: Update shipped-behavior documentation**
+- [-] **Step 1: Update shipped-behavior documentation** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 Document synchronous essential history, pre-query before-image capture, explicit aggregate transaction entry points, non-atomic implicit singleton limitations, set-level retention, force-delete history preservation, approval application, single-connection rejection, relation descriptor ownership, forward restore, and the pending multi-connection recovery milestone. Remove claims that normal history is created after commit by a job and qualify history as append-only until whole-set retention.
 
-- [ ] **Step 2: Run the complete Core versioning suite**
+- [-] **Step 2: Run the complete Core versioning suite** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers/HasVersionsTest.php Modules/Core/tests/Integration/Models/VersionModelTest.php Modules/Core/tests/Integration/Services/VersioningServiceTest.php Modules/Core/tests/Feature/Models/FieldPivotBehaviorTest.php
@@ -489,7 +489,7 @@ rtk composer phpstan -- --memory-limit=2G Modules/Core/app/Versioning Modules/Co
 
 Expected: all tests pass, Pint reports no remaining changes after its final run, and PHPStan reports no errors in the changed Core surface.
 
-- [ ] **Step 3: Verify sole-writer and queue invariants**
+- [-] **Step 3: Verify sole-writer and queue invariants** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rg -n "CreateVersionJob|ModelVersioningRequested" Modules/Core
@@ -498,12 +498,18 @@ rg -n "Version::createForModel|versionModel.*::create|new Version" Modules/Core/
 
 Expected: the removed job/event have no matches; every remaining compatibility caller delegates to `VersionWriterInterface`, and no independent production persistence path remains.
 
-- [ ] **Step 4: Commit documentation and configuration**
+- [-] **Step 4: Commit documentation and configuration** (superseded 2026-10-20 by `2026-10-20-core-versioning-rebuild.md`)
 
 ```bash
 rtk git -C Modules/Core add docs/rag/MODULE.md README.md docs/rag/GLOSSARY.md docs/GLOSSARY.md config/versionable.php app/Models/Concerns/HasVersions.php
 rtk git -C Modules/Core commit -m "docs(core): document aggregate version sets"
 ```
+
+## Delivery status (2026-10-20): partially delivered, superseded
+
+The sole writer, the synchronous single-connection version sets and the `Revert` sets were delivered (14 of 43 steps); they are kept as the carrier of atomic capture (D16). The remaining steps (pivot descriptors, forward restore, approval integration, set-level retention) are not built here: the approved revision-centric design (D1–D59, `../specs/2026-07-29-revision-centric-aggregate-history-design.md`) redesigns them, and `2026-10-20-core-versioning-rebuild.md` implements them. Those steps are marked `- [-]`.
+
+**Documented in:** `Modules/Core/docs/rag/MODULE.md`.
 
 ## Completion gate
 
