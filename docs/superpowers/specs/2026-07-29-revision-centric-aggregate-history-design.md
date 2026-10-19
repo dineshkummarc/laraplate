@@ -2,8 +2,8 @@
 
 ## Status
 
-- Date: 2026-07-29, revised 2026-07-30, 2026-08-04 and 2026-10-09
-- Status: draft aligned with the decisions of 2026-10-09 (D1 to D27 in the review log); the Critical findings are resolved by decision, closure pending approval of this text
+- Date: 2026-07-29, revised 2026-07-30, 2026-08-04, 2026-10-09, 2026-10-12, 2026-10-14 and 2026-10-19
+- Status: draft aligned with the decisions D1 to D51 of the review log, including the answers to the independent recheck of 2026-10-19 (D42 to D51); the Critical findings are resolved by decision, closure pending a short second recheck and the user's approval of this text. Of the design only D38 (`versions:compact` refuses) and D39 (the lock check of `revertToVersion()`) are implemented; everything else described as a rule here is still to be written
 - Scope: generic Core versioning architecture; no module pilot is authorized by this draft
 - Relationship to the current design: proposed successor to `2026-07-21-aggregate-version-sets-design.md`; the version-set and transaction machinery of that design stays as the carrier of atomic capture (D16)
 - Implementation gate: see "Review and approval gate"
@@ -32,7 +32,7 @@ The review should actively look for:
 
 ## Current review state
 
-On 2026-10-09 the findings were discussed with the user and decided. The decisions (D1 to D27), with the evidence behind them, are in the review log `2026-08-04-revision-centric-aggregate-history-review.md`. All nine Critical findings (C01 to C09) are resolved by decision or by the milestone 1 scope, and the Important findings are resolved or deferred (I01). A finding closes only when this text carries the resolution and the evidence is rechecked once implemented, so the log still lists them as "spec to align".
+On 2026-10-09 the findings were discussed with the user and decided. The decisions (D1 to D27, and since then D28 to D51), with the evidence behind them, are in the review log `2026-08-04-revision-centric-aggregate-history-review.md`. All nine Critical findings (C01 to C09) are resolved by decision or by the milestone 1 scope, and the Important findings are resolved or deferred (I01). A finding closes only when this text carries the resolution and the evidence is rechecked once implemented, so the log still lists them as "spec to align".
 
 This revision applies those decisions to the text. A section that still needs design work that has not been done says so, and the open items are gathered under "Design still to produce". A reference to "D<n>" is a decision of the review log.
 
@@ -160,6 +160,8 @@ The set of registered authoritative relations whose mutation and revert paths ha
 
 A revision can carry further labels that withhold "restore everything": `partial` (missing references, D25), `schema-mismatch` and `definition-mismatch` (the columns or the relations changed since, D13).
 
+Only capture quality is stored, in a `capture` column of `core_versions_sets`: `atomic` when the set was opened by `run()` before the business SQL (the wrappers of `save()`, `delete()`, `forceDelete()`, the relation mutators, `CrudService`, the Filament save, `withinRevision()`, the revert), `best_effort` when the writer opened it because no scope was active, `incomplete` when an atomic set met something it could not capture. The other labels are computed at revert time. "Restore everything" to R is offered only when every set of the root from its complete anchor set up to R is `atomic` and no computed label applies (D47).
+
 ### Restore and revert
 
 "Restore" is reserved for the bin: the root leaves it (`restored`). "Revert" is the operation on revisions: the document returns to an earlier state, recorded as a new revision in a `Revert` set (D20). The recovery of a hard-deleted root from its snapshot (D17) needs the `restore` permission.
@@ -252,7 +254,7 @@ The hard-delete snapshot, the compaction rewrite and the forced snapshot at the 
 
 **Reconstruction (C08).** To rebuild the state as of revision R, walk back from R to the nearest anchor, then apply the following rows forward in revision order, last write wins per column, and write the result once. Nothing older than that anchor is read or merged. Example, newest first: `diff, diff, SNAPSHOT, diff, diff, diff, diff, SNAPSHOT, diff`. Reverting to the farthest row starts from the second `SNAPSHOT` and applies one row; reverting to the newest starts from the first `SNAPSHOT` and applies two. The walk is driven by each row's own `version_strategy`, because a history mixes `DIFF` and `SNAPSHOT` rows. If no anchor exists at or before R, the revision cannot be rebuilt and the revert is refused. `revertToVersion()` and `revertToRevision()` use this one function; the `DIFF` replay of the library, which merged each earlier row over the live row, is not used (D14).
 
-**Anchor invariant.** The earliest retained row of every versioned record is an anchor. It holds at creation, when versioning is switched on again (a forced snapshot at the record's first save, taken after that save, D22), at the first write after a schema epoch change (lazy baseline, D13), and after compaction (D18). A check reports every record whose earliest retained row is not an anchor.
+**Anchor invariant.** The earliest retained row of every versioned record is an anchor. It holds at creation, when versioning is switched on again (a forced snapshot at the record's first save, taken after that save, D22), at the first write after a schema epoch change (lazy baseline, D13), and after compaction (D18). A check reports every record whose earliest retained row is not an anchor. A stream with no row at or before a revision R is absent at R only when R is at or after a complete anchor set of the root in R's epoch (the creation set or a baseline); otherwise a revert to R is refused (D45). The first row of a locale is always a `SNAPSHOT` read back, whatever the owner's strategy.
 
 **Relation-only changes.** They advance the revision and write membership rows. When no scalar column changed, no fabricated scalar change is written.
 
@@ -265,7 +267,7 @@ A change of what is versioned must not make a history look complete when it is n
 - **Table.** `core_versions_epochs`: `id`, `root_type`, `fingerprint`, `definition` (JSON), `first_seen_at`, unique on `(root_type, fingerprint)`. Every version row has an `epoch_id`.
 - **Fingerprint.** Per root type: the versionable columns of the root (name, type, nullable), the versionable columns of its translation model, and the registered relation descriptors (path, ownership, key columns). Defaults, non-versionable columns and the inner shape of JSON columns are left out; a change inside a JSON is a process rule, not an automatic check.
 - **Detection.** At the first write per process and per class the fingerprint is computed from the schema and the code and compared with the latest epoch of the class; a new epoch is created with `firstOrCreate` guarded by the unique key. A deploy that changes the code without a migration is seen too. Static caches are cleared when the workers restart.
-- **Lazy baseline.** Only a class with more than one epoch checks whether the last row of a record belongs to another epoch. If so, the first write of that record writes a complete `SNAPSHOT` of the root and of every locale present, in the same set, so that every stream has an anchor in the new epoch. No record is rewritten by the migration.
+- **Lazy baseline.** Only a class with more than one epoch checks whether the last row of a record belongs to another epoch. If so, the first write of that record, to any of its streams, writes a baseline of the whole aggregate in the same set: a complete `SNAPSHOT` of the root and of every locale present, and a `created` row per current membership entry, so that every stream has an anchor in the new epoch (D45). No record is rewritten by the migration.
 - **At revert.** Equal epoch: compatible. Different: the definitions are compared and the columns classified (D13): compatible ones applied, vanished ones skipped and reported, a recreation that would miss a required value refused; the revision carries `schema-mismatch` or `definition-mismatch`.
 
 ## Relation descriptors
@@ -329,24 +331,24 @@ The paths that lack the scope today are the Filament saves, `CrudService::insert
 - **Where they arrive.** `setTranslation()` writes at once with `update()` or `create()`; the attribute setters go to `pending_translations` and `savePendingTranslations()` writes them on the root's `saved` event with the same calls. Both end in events of the translation model.
 - **Representation.** One version row per changed locale, on the owner, with `relation_path = 'translations'` and `subject_key = {locale}`, in the same set as the owner's own row. `change_type` is the event of the translation; `contents` is the difference of the fields, or the complete image for a snapshot. Reconstruction (C08) and compaction run per `(relation_path, subject_key)`; a locale whose last row up to R is `deleted` does not exist in R.
 - **The hook.** An observer on the translation models (`ITranslated`, owner found with `parentRelation()`) writes the row on the owner when a translation is created, updated or deleted, and raises the owner's `lock_version` once per revision. Translation models are not versioned on their own: `getVersionStrategy()` returns `false` for them and the seeder creates no setting for them.
-- **The scope.** `save()` and `delete()`, defined inside `HasVersions`, open the revision scope before `saving` and close it after every `saved` handler, only for versioned roots that own translations or have registered relations and only when there is something to write. The root, its pending translations and their rows are one set and one transaction. Without it, `VersionWriter` would open a set per row. If a scope is already active, for the same instance the save proceeds inside it; for another root or another instance it proceeds without calling `run()`, since a nested `run()` throws and the rows join the active set through the writer (D34).
+- **The scope.** `save()` and `delete()`, defined inside `HasVersions`, open the revision scope before `saving` and close it after every `saved` handler, only for versioned roots that own translations or have registered relations and only when there is something to write. The root, its pending translations and their rows are one set and one transaction. Without it, `VersionWriter` would open a set per row. If a scope is already active, the save of the same root proceeds inside it, also from another PHP instance; the save of another root opens that root's own set in the same transaction, after locking its row, and its rows go there, never into the active root's set (D43, replacing the join rule of D34).
 - **Explicit grouping.** `withinRevision(fn)` groups several writes in one revision (importers, any loop over locales).
 - **Async translation.** `TranslateModelJob` is a revision of its own, with a system actor and `reason = "ai-translation"`.
 - **Cases.** The root and its initial translations share the creation set, so the creation anchor is complete. A hard delete snapshots every locale from the live table before the cascade. A translation-only change gives a set made only of translation rows, and the observer of the translation models touches the owner's `updated_at` with a direct update of that column and no events (D30), because the incremental search sync and the freshness fingerprint of the list read it; a deletion is covered too, it does not rise `lock_version`, and it works with versioning off.
 
 ### Switching versioning off and on
 
-Switching versioning off for a table deletes its history, after an explicit confirmation that names what is lost. The hard-delete snapshots of that table are kept until their own expiry. Switching it on forces a complete snapshot at each record's first save, taken after that save; until then `currentRevision()` is `null` (D22).
+Switching versioning off for a table deletes its history, after an explicit confirmation that names what is lost. The hard-delete snapshots of that table are kept until their own expiry. Switching it on forces a complete snapshot at each record's first write, taken after that write; until then `currentRevision()` is `null` (D22). The snapshot is a baseline of the whole aggregate: the root and every locale as `SNAPSHOT` rows read back, and a `created` row per current entry of each registered relation, written by the first write to any of them (D45).
 
 ## Eloquent integration boundary
 
 The recommended approach does not require every application caller to open a transaction manually:
 
 - Core's base model persistence boundary opens or joins a revision scope before SQL for registered aggregate roots;
-- version-aware `BelongsToMany` and `MorphToMany` adapters wrap complete public mutations such as `attach()`, `detach()`, `sync()` and `updateExistingPivot()`;
-- Core Pivot and MorphPivot bases join the descriptor-owned active scope;
+- Core subclasses of `BelongsToMany` and `MorphToMany`, returned by `Core\Overrides\Model`, open the root's scope around their mutators (`attach()`, `detach()`, `sync()`, `toggle()`, `updateExistingPivot()`), so one call is one revision; from the inverse side each pivot joins the set of its own root (D42);
+- the membership rows are written from the events of the pivot models, which fire for every one of those methods with a custom pivot, `detach()` without ids included; a raw query on a pivot table or a foreign-key cascade writes none and is `best-effort` (D42);
 - translation writes join the scope of their owner through an observer on the translation models (D28);
-- the `HardDeleteCoordinator` (D29) owns every hard delete that passes through Core: the `deleting` hook of `HasVersions` delegates to it for `forceDelete()` and for `delete()` on a model with the bin switched off or without a bin, and `ClearExpiredModels` calls its `purge()` in chunks instead of deleting at builder level. A cascade from a parent that is not versioned (an `Entity` or a `Preset`) bypasses it and is `best_effort`;
+- the `HardDeleteCoordinator` (D29) owns every hard delete that passes through Core: `delete()` and `forceDelete()` of every versioned model run inside the root's scope (one transaction, row locked), check the lock first, read the state, perform the delete and, only once the row is gone, write the snapshot and remove the history (D44); the `deleting` and `deleted` hooks are only a `best_effort` fallback, and `ClearExpiredModels` calls `purge()` in chunks instead of deleting at builder level. A cascade from a parent that is not versioned (an `Entity` or a `Preset`) bypasses it and is `best_effort`;
 - query-builder bulk mutations, `saveQuietly()` and uncoordinated cascades are `best_effort` by definition for registered aggregates;
 - Core does not claim to detect arbitrary SQL issued by an operator or an external process with direct database access.
 
@@ -362,7 +364,7 @@ Revert only the root's columns, rebuilt as described in "Anchors and reconstruct
 
 ### Link revert
 
-Revert the registered membership and pivot attributes. Shared related records are not mutated. A reference that no longer exists is skipped and reported, and the result is labelled `partial` (D25).
+Revert the registered membership and pivot attributes. Shared related records are not mutated. A reference that no longer exists refuses a complete revert; with `$force` it is skipped and reported, and the result is labelled `partial` (D25).
 
 ### Owned-part revert
 
@@ -391,7 +393,7 @@ Never automatic. It requires an explicit impact preview because changing a share
 
 ### Authorization and side effects (D26)
 
-A revert needs the new `revert` permission, which implies `history`, and follows the approvals of the model like an update, with the actor attributed. It is refused, before any write, if the record is locked by another user or frozen; the holder of the lease may revert, and others only after a forced unlock. The check covers the whole record, translations and relations included, which carry no lock of their own (D39). Model events fire so search and embeddings realign after commit; automatic translation does not run during a revert: the revert context is the active version set of kind `Revert`, `TranslatedModelSaved` carries a `fromRevert` field set at emission, and the AI listener ignores such an event (D36); there is no global `withoutEvents()`. The approvals subsystem does not create a modification for the writes the revert performs internally.
+A revert needs the new `revert` permission, which implies `history`, and follows the approvals of the model like an update, with the actor attributed. It is refused, before any write, if the record is locked by another user or frozen; the holder of the lease may revert, and others only after a forced unlock. The check covers the whole record, translations and relations included, which carry no lock of their own (D39). On both entry points, the single-version revert and the aggregate one, every check that decides whether the revert may run (the lock, the expected revision read under the root's lock, the replay and the references) runs inside the set after the root is locked; a revert started inside another scope of the same root is refused (D48). Model events fire so search and embeddings realign after commit; automatic translation does not run during a revert: the revert context is the active version set of kind `Revert`, `TranslatedModelSaved` carries a `fromRevert` field set at emission, and the AI listener ignores such an event (D36); there is no global `withoutEvents()`. The approvals subsystem does not create a modification for the writes the revert performs internally.
 
 ## User-facing semantics
 
@@ -406,7 +408,7 @@ The timeline exposes:
 
 The UI must not use the label "complete restore" when only registered links can be reverted.
 
-Reading the history of a record needs the permission `history`, in addition to being able to read the record; the history is always reached through the root and its ACL, never by reading the versions table on its own. `revert` implies `history`. The snapshots of hard-deleted records are read and recovered only with `restore` (D27). The ticket timeline of SAO stays on the permission of the ticket for now.
+Reading the history of a record needs the permission `history`, in addition to being able to read the record; the history is always reached through the root and its ACL, never by reading the versions table on its own: `Version` is excluded from the generated permissions like `VersionSet`, so no generic CRUD endpoint serves `core_versions` (D50). `revert` implies `history`. The snapshots of hard-deleted records are read and recovered only with `restore` (D27). The ticket timeline of SAO stays on the permission of the ticket for now.
 
 ## Concurrency
 
@@ -418,7 +420,7 @@ Two counters, with separate jobs (D23):
 
 The two never replace each other. Optimistic checks protect against stale writers; they do not make several independent SQL statements atomic. Pessimistic `lockForUpdate()` remains available inside managed transactions. Advisory `HasLocks` controls user-level editing and is independent from revision history; a revert on a record locked by another user is refused.
 
-The Filament page guard and the notification for `StaleModelLockingException` exist since 2026-10-12 (`GuardsAgainstStaleRecord`). Two limits remain. A save that touches only translated fields never reaches the update query, so it is compared with the database before the write but is not conditioned on the version, until a translation write raises `lock_version` (D23). And the ticket edit page cannot be rendered today because of two defects in `TicketForm` (an unimported `Heroicon` and `icon()` called on a field that does not have it), so its use of the guard has no test of its own. Not yet verified: whether the generic CRUD update reloads the root together with its pending translations in one step.
+The Filament page guard and the notification for `StaleModelLockingException` exist since 2026-10-12 (`GuardsAgainstStaleRecord`). Two limits remain. A save that touches only translated fields never reaches the update query, so the version is not part of any `UPDATE`; what protects it is the comparison done inside the scope, after `lockExistingRoot()` has reread the row under `FOR UPDATE` (D34). The translation write then raises the root's `lock_version` once per revision: not again when the same revision also updated the root, and the in-memory owner is resynced with the new value (D23). And the ticket edit page cannot be rendered today because of two defects in `TicketForm` (an unimported `Heroicon` and `icon()` called on a field that does not have it), so its use of the guard has no test of its own. Not yet verified: whether the generic CRUD update reloads the root together with its pending translations in one step.
 
 ## Multi-connection policy
 
@@ -432,9 +434,9 @@ Deferred (D25, I01): milestone 1 uses local ids on one connection, and existing 
 
 The history of a live record is never aged on its own. History disappears only through three sanctioned operations (invariant 12).
 
-**Hard delete (D17, D29).** One `HardDeleteCoordinator` performs every hard delete that passes through Core. In one transaction it reads the aggregate before the deletion (complete root image, translations per locale, membership, `RecordOrigin` data), writes the snapshot set (the root's `deleted` row with the complete image, and `SNAPSHOT` rows per locale, per membership entry and for the origin), removes the edit history of the root, then deletes the root; the foreign-key cascades remove their rows afterwards, so no orphan rows remain. The snapshot is the safety net for an accidental deletion and is itself purged after a second retention period; after that the data cannot be recovered.
+**Hard delete (D17, D29).** One `HardDeleteCoordinator` performs every hard delete that passes through Core. It wraps the delete, it is not called from a hook (D44). In one transaction, with the root row locked, it refuses a record locked by somebody else (D39), reads the aggregate before the deletion (complete root image, translations per locale, membership, `RecordOrigin` data), performs the delete (events, guard and cascading observers run, and the foreign-key cascades remove their rows), and only when the row is gone writes the snapshot set (the root's `deleted` row with the complete image, and `SNAPSHOT` rows per locale, per membership entry and for the origin) and removes the edit history of the root. Any failure rolls all of it back, so a refused delete loses no history. In the same transaction it removes the children without a foreign key that no trait removes: the record's embeddings and modifications, and for a user the access tokens and notifications; every polymorphic column of the schema is classified by an architecture test as a child, a kept reference or a transient log (D49). `recover()` refuses on a primary key taken by a live row and applies a snapshot of an older epoch with the column classification of D13. The snapshot is the safety net for an accidental deletion and is itself purged after a second retention period; after that the data cannot be recovered.
 
-**Compaction (D18).** Manual, off by default, not scheduled. Choose a cut-off revision R by age or by number of revisions and find the anchor at or before it. By default the `DIFF` rows between the anchor and R are merged into one `DIFF` row written in place at R, the anchor is kept, and everything before the anchor is deleted. As an option, the row at R is rewritten in place as a full `SNAPSHOT` of the state as of R and everything before R is deleted, for whoever wants to forget the original values. In both cases the row at R keeps its revision coordinate and its unique `(version_set_id, sequence)`, the removal is a real `DELETE`, and the merge never crosses an epoch. It is refused when no anchor exists at or before R. After a compaction the states before the cut-off are no longer reachable, by design. `versions:compact` is redefined this way; until then it refuses to run and writes nothing (D38), because its old body added a snapshot of the live state to every history and its purge flag was never read.
+**Compaction (D18).** Manual, off by default, not scheduled. Choose a cut-off revision R by age or by number of revisions and find the anchor at or before it. By default the `DIFF` rows between the anchor and R are merged into one `DIFF` row written in place at R, the anchor is kept, and everything before the anchor is deleted. As an option, the row at R is rewritten in place as a full `SNAPSHOT` of the state as of R and everything before R is deleted, for whoever wants to forget the original values. In both cases the row at R keeps its revision coordinate and its unique `(version_set_id, sequence)`, the removal is a real `DELETE`, and the merge never crosses an epoch. It is refused when no anchor exists at or before R. After a compaction the states before the cut-off are no longer reachable, by design: no revision of that root before R is a revert target, in either variant, because each stream keeps its own anchor and the earlier sets survive only in pieces. The cut-off is the highest `version_set_id` among the root's rows with `compacted_at`; the earlier sets that still hold an anchor are shown as one compacted entry, not as revisions (D46). `versions:compact` is redefined this way; until then it refuses to run and writes nothing (D38), because its old body added a snapshot of the live state to every history and its purge flag was never read.
 
 **Switching versioning off (D22).** Deletes the history of the table after a user confirmation; the hard-delete snapshots of that table are kept until their own expiry and the purge command keeps running for them.
 
@@ -453,7 +455,7 @@ Potentially reusable:
 - connection-aware contracts;
 - append-only revert history (`Revert` sets, `reverted_from_set_id`).
 
-To change, from the decisions (not done; the code is untouched):
+To change, from the decisions (not done, except D38 and D39, implemented on 2026-10-19):
 
 - detach from `overtrue/laravel-versionable` (D14): absorb the `VersionStrategy` enum and the base `Version` model with the MIT attribution, move the config keys `versionable.version_model` and `versionable.user_foreign_key` to a Core configuration, remove the requirement (with the user's approval), check whether `Diff` is used;
 - rename the tables to `core_versions` and `core_versions_sets` (D15) and drop `deleted_at`, `is_deleted`, `updated_at`, add `compacted_at` (D19); adjust the readers `CompactVersions` and the sequence-gap check of `ActiveVersionSet`;
@@ -461,11 +463,12 @@ To change, from the decisions (not done; the code is untouched):
 - the reconstruction of C08 in Core's own `Version`, replacing the `DIFF` loop of `revertWithoutSaving()`, shared by `revertToVersion()` and `restoreScalarState()`, and the rename of `restoreToRevision()` to `revertToRevision()`;
 - `createInitialVersion()` reads the row back after the insert (C09);
 - exclude the lock columns from the versionable columns of models with `HasLocks`; force versioning off on the comment and rating models; translation models are not versioned (D8, D10, D21);
-- the epoch (D13), the forced snapshot (D22), the compaction (D18) and the hard-delete coordinator with the reworked `ClearExpiredModels` (D17);
+- the epoch (D13, D33), the whole-aggregate baseline (D22, D45), the compaction and its cut-off (D18, D46) and the hard-delete coordinator wrapping the delete, with the reworked `ClearExpiredModels` and the children without a foreign key (D17, D29, D44, D49);
+- membership capture from the pivot events with relation subclasses (D42), one version set per root (D43), the `capture` column of the sets (D47), the checks of both revert entry points under the lock (D48), `Version` excluded from the generated permissions (D50), `OwnerTimestamp` deduplicating per transaction (D37, D51);
 - the `history` and `revert` permissions (D26, D27);
 - the SAO ticket timeline reads `change_type`, `contents`, `original_contents` and `created_at`, so it needs updating for D18 and D20.
 
-Separate defect found on the way, not part of this design: a soft delete of a `Content` detaches all its tags (`HasTags`, `deleted` handler) and a restore does not reattach them.
+Separate defect found on the way, not part of this design, fixed since: a soft delete of a `Content` detached all its tags (`HasTags`, `deleted` handler); it now detaches only when the record no longer exists.
 
 No existing migration or commit is reverted until this draft is approved and a replacement implementation plan identifies the exact compatibility path.
 
@@ -504,7 +507,7 @@ Designed and no longer open: the hook for translation changes, the grouping of t
 - switching versioning off deletes the history and keeps the hard-delete snapshots; the first save afterwards writes a complete snapshot and `currentRevision()` is `null` before it;
 - a hard delete writes the snapshot, removes the history and the root atomically, leaves no orphan `RecordOrigin` row, and a recovery recreates the aggregate;
 - `versions:purge-deleted` removes the snapshot sets older than `hard_deletes.expiration_days` with their rows per locale, membership and origin, keeps the newer ones, and does nothing when the setting is 0; `defaultCrons()` seeds the two rows once and leaves an administrator's edits alone;
-- every hard-delete path that passes through Core (`forceDelete()`, `delete()` with the bin off, `delete()` without a bin, `ClearExpiredModels`) goes through the coordinator and writes the snapshot, with the history removed only after it is written;
+- every hard-delete path that passes through Core (`forceDelete()`, `delete()` with the bin off, `delete()` without a bin, `ClearExpiredModels`) goes through the coordinator and writes the snapshot, with the history removed only after it is written; a hard delete refused by the lock writes nothing and removes nothing (D44);
 - recovery recreates the root with the same primary key, consumes the snapshot and skips a vanished reference reporting it;
 - a cascade from a parent that is not versioned leaves no snapshot and is documented as `best_effort`;
 - `lock_version` increments on a translation write and not on a relation change;
@@ -523,7 +526,7 @@ Designed and no longer open: the hook for translation changes, the grouping of t
 
 ## Decisions
 
-The decisions recorded on 2026-07-29/30 and reopened by the findings are now settled; the full list (D1 to D27) is in the review log.
+The decisions recorded on 2026-07-29/30 and reopened by the findings are now settled; the full list (D1 to D51) is in the review log.
 
 **1. `lock_version` is not the aggregate revision.** Two separate logical values. `lock_version` keeps its current job, the user-facing conflict token of what a form edits (the root and its translations, D23); the aggregate revision is the restore coordinate. Reusing one column would make any relation change invalidate an open editing form: attaching a tag would fail Anna's save on a field Marco never touched. It would also leave the restore coordinate reachable from `request('lock_version')`.
 
@@ -568,7 +571,8 @@ Done so far:
 1. the draft has been challenged and the findings are preserved in the 2026-08-04 review log;
 2. its description of the existing code has been replaced with verified behaviour;
 3. four defects found while checking those premises have been fixed and covered by tests;
-4. on 2026-10-09 the findings were discussed with the user and decided (D1 to D27), and this text was aligned with them.
+4. on 2026-10-09 the findings were discussed with the user and decided (D1 to D27), and this text was aligned with them;
+5. on 2026-10-12, 2026-10-14 and 2026-10-19 the open points were decided (D28 to D41), an independent recheck found eight design gaps and they were answered (D42 to D51), and this text was aligned again.
 
 Before implementation resumes:
 
