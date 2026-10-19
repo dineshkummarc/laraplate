@@ -16,7 +16,7 @@ Phase 1 is a **parity move**: reach the same functional state as ERP M3.1 today,
 Core  <-  CRM  <-  ERP  <-  Shop, MES
 ```
 
-- CRM `requires` only `Core`. `module.json` priority 5 (ERP is 10).
+- CRM `requires` only `Core`. `module.json` priority 10 (ERP is 20, Core 0).
 - ERP `module.json` `requires` gains `CRM`. Shop and MES receive it transitively.
 - ERP writes into CRM (flags, opportunity lifecycle). CRM never imports an ERP class.
 - This follows the existing idiom: Shop `Product` extends a CMS `Content`, MES listens to ERP events, `StockReservation` uses opaque source references.
@@ -84,6 +84,15 @@ Rules that follow:
 - `crm_counterparty_bank_accounts` is 30 characters and derived foreign key and index names are longer. The repository supports Oracle, so check the identifier length limit in force before fixing the names (not verified; `MigrateUtils` does not enforce a length).
 - Foreign key and index names follow the existing style (`{table}_{column}_FK`).
 
+### 3.5 Filament presence
+
+Each module with a backoffice owns a plugin (`CMSPlugin`, `CorePlugin`, `ERPPlugin`, `MESPlugin`, `SAOPlugin`); the panel auto-registers module plugins (`config/filament-modules.php`, `auto-register-plugins`). The CRM follows the same shape:
+
+- `Modules\CRM\Filament\CRMPlugin` with `ModuleFilamentPlugin`, id `crm`, which in `afterRegister` registers the module colour (from the `color` key of `module.json`) and the CRM navigation groups.
+- Navigation group keys are translation keys prefixed by the module, as in the ERP (`erp.navigation.sales`). Proposal: `crm.navigation.master_data` (`Counterparty`, `Contact`) and `crm.navigation.pipeline` (`Lead`, `Opportunity`, and the sales pipeline page that follows `SalesPipelineService`). Labels live in `Modules/CRM/lang/{de,en,es,it,sl}/crm.php`, the locales the ERP ships.
+- Resources move with their entities: `Leads` and `Opportunities` leave the ERP group `erp.navigation.sales`; a new `Counterparties` resource and the `Contacts` resource live in the CRM. The ERP `Parties` resource stays in `erp.navigation.master_data` and keeps editing the identity fields through the transparent proxy (D15), so its form does not change.
+- A `CRMPluginTest` mirrors `ERPPluginTest`: the plugin exposes its id and module name, and every `navigationGroup` used by a CRM resource or page is registered.
+
 ## 4. Decisions
 
 - **D1.** The CRM is mandatory for the ERP. `Party.counterparty_id` is NOT NULL and the `Counterparty` is created transparently on first `Party` save. The idiom is that of Shop `Product` over a CMS `Content` (transparent merge: always-loaded relation, attribute proxy, save bridge), but the code of `ExtendsContentTrait` is not reusable: it is tied to `Content` (`extended_type`, `HidesExtendedContent`, search indexing, cascade) and assumes a 1:1 link, while here many `Party` rows point to one `Counterparty`. The ERP gets its own small trait; `ContentExtenderRegistry` is not needed because the `Counterparty` does not need to know its extenders.
@@ -107,6 +116,11 @@ Rules that follow:
 - **D19.** Decided 2026-10-15: deleting a `Counterparty` is forbidden while any `Party` points to it (fiscal documents hang off the `Party`). Without a `Party`, it is soft-deleted and its leads and opportunities stay visible with the subject in the trash; there is no cascade and no `nullOnDelete` on `Opportunity.counterparty_id`, which stays NOT NULL with `restrictOnDelete` as `party_id` is today (`Lead.party_id` is `nullOnDelete` today and `Lead.counterparty_id` stays nullable). Hard delete is possible only when no `Party`, lead or opportunity references it. `erp_parties` already has soft delete.
 - **D20.** Decided 2026-10-15: the moved entities keep the standard CRUD abilities, now defined in the CRM module with the permissions already granted to the moved roles. Bank accounts are guarded by the standard CRUD abilities of the `CounterpartyBankAccount` entity (separate read and write), with no custom ability. To verify: how `ERPPermissions` and the seeders assign abilities, and that nothing needs moving beyond the seeder.
 - **D21.** Decided 2026-10-15: the existing ERP create-table migrations for `parties`, `contacts`, `contactables`, `leads`, `opportunities` and the party bank accounts are rewritten in place, and the CRM tables are created with new CRM migrations, because no installation exists. Table names, prefixes and the module enum follow section 3.4. Version bumps are proposed at commit time per `08-versioning.mdc`: an ERP `major` and a first CRM version.
+- **D22.** Decided 2026-10-15: the CRM gets its own Filament plugin and its own navigation group(s), with resources moved alongside their entities, following the other modules (section 3.5).
+- **D23.** Decided 2026-10-15: module colours must be unique. The CRM uses `bright-green` (Filament Lime). Shop, which shared `magenta` with AI, moves to `bright-magenta` (Purple); AI keeps `magenta`. In use otherwise: Core `green`, CMS `cyan`, ERP `yellow`, MES `blue`, SAO `bright-red`.
+- **D24.** Decided 2026-10-15: seeders. `CRMDatabaseSeeder` (production) owns the `opportunity_stage` entity and preset and the CRM permissions, all removed from `ERPDatabaseSeeder`. `DevCRMDatabaseSeeder` seeds the pipeline stages and demo prospects (`Counterparty` without `Party`), leads and opportunities. `DevERPDatabaseSeeder` keeps creating `Party` rows from identity attributes, so the `Counterparty` is created by the transparent bridge (D1, D16), and its demo quotations point at the CRM demo opportunities, so ERP dev seeding runs after CRM dev seeding. `ERP/module.json` `requires` gains `CRM`. Ordering uses the legacy `module.json` `priority` (lower runs first per the seeder spec, where MES at 2 ran before ERP at 99; CRM 10 before ERP 20) without touching Task 11 of the seeder orchestration spec; to verify that a new module needs nothing more in the dependency graph.
+- **D25.** Decided 2026-10-15: API. The moved entities keep parity with today: the same generic Core CRUD routes on `/app` and, when enabled, `/api/v1` (`EXPOSE_CRUD_API`), registered by the CRM; no new custom route. To verify how the ERP registers its routes and whether any domain action (for example `create_revision`) concerns a moved entity.
+- **D26.** Decided 2026-10-15: documentation. The CRM ships a `README.md` in the style of the other modules, `docs/` for users and developers, and `docs/rag/MODULE.md` and `GLOSSARY.md` receiving the M3.1 and CRM sections moved from the ERP, which keeps a short pointer to the CRM. Added env vars, if any, go in the CRM README (`AGENTS.md`).
 
 ## 5. Use cases covered
 
