@@ -50,8 +50,8 @@ created_on: 2026-10-12
 
 ### Task 1: Branch and agent skills (guide 0)
 
-- [ ] **Step 1:** Create the branch `neuron-4` in `Modules/AI` and in `laraplate` from their `master`.
-- [ ] **Step 2 (after Task 2's `composer update`, since the skills ship in the 4.x package):** run `npx skills add ./vendor/neuron-core/neuron-ai/skills -y` from the `laraplate` root; the skills land in `.agents/skills/`. Commit them on the branch: `chore: install the Neuron 4 agent skills`.
+- [x] **Step 1:** Create the branch `neuron-4` in `Modules/AI` and in `laraplate` from their `master`. Done 2026-10-19, in a worktree so the shared checkout and the other sessions keep 3.x: `laraplate/.claude/worktrees/neuron-4` (root branch `worktree-neuron-4`, from `origin/master` `50c99c8`; `Modules/AI` branch `neuron-4` from the pinned `ecb07f0`), with its own `vendor/` and a copy of `.env`. The AI suite there on 3.17.2 before any change: 1674 passed, 7 skipped, as in *Baseline*.
+- [x] **Step 2 (after Task 2's `composer update`, since the skills ship in the 4.x package):** run `npx skills add ./vendor/neuron-core/neuron-ai/skills -y` from the `laraplate` root; the skills land in `.agents/skills/`. Commit them on the branch: `chore: install the Neuron 4 agent skills`. Done: the 13 `neuron-*` skills in `.agents/skills/`, linked into `.claude/skills/`, and `skills-lock.json` (root `5787385`).
 - [ ] **Step 3:** Guide 0 Step 4: stop and tell the owner to continue in a new session, so the new skills load.
 
 ### Task 2: Composer (guide 1)
@@ -59,10 +59,10 @@ created_on: 2026-10-12
 **Files:**
 - Modify: `Modules/AI/composer.json`, `composer.lock`
 
-- [ ] **Step 1:** In `Modules/AI/composer.json`: `"neuron-core/neuron-ai": "^4.1"`. No other `composer.json` changes (spec Decision 7).
-- [ ] **Step 2:** From the root: `composer update neuron-core/neuron-ai -W`. Expected: `neuron-core/neuron-ai` 4.1.x installed, `inspector-apm/inspector-php` removed (nothing else requires it), `guzzlehttp/guzzle` still installed (required by `laravel/framework`), nothing else downgraded. Record the package diff of `composer.lock` in the commit message.
-- [ ] **Step 3:** Run Task 1 Step 2.
-- [ ] **Step 4:** Commit in `Modules/AI` and the root lock: `chore(ai): require neuron-ai 4.1`.
+- [x] **Step 1:** In `Modules/AI/composer.json`: `"neuron-core/neuron-ai": "^4.1"`. No other `composer.json` changes (spec Decision 7). Done (`Modules/AI` `4adadb8`).
+- [x] **Step 2:** From the root: `composer update neuron-core/neuron-ai -W`. Expected: `neuron-core/neuron-ai` 4.1.x installed, `inspector-apm/inspector-php` removed (nothing else requires it), `guzzlehttp/guzzle` still installed (required by `laravel/framework`), nothing else downgraded. Record the package diff of `composer.lock` in the commit message. Done: 3.17.2 => **4.1.12** (released after the triage on 4.1.9; between the two only guides 7 and 26 changed, and neither applies), `inspector-apm/inspector-php` removed, nothing else changed (root `b43823b`).
+- [x] **Step 3:** Run Task 1 Step 2. Done.
+- [x] **Step 4:** Commit in `Modules/AI` and the root lock: `chore(ai): require neuron-ai 4.1`. Done.
 
 ### Task 3: HTTP client layer (guide 2)
 
