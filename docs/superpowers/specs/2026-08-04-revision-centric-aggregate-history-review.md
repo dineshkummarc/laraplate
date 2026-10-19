@@ -4,8 +4,8 @@
 
 - Date: 2026-08-04
 - Target: `2026-07-29-revision-centric-aggregate-history-design.md`
-- Target revision reviewed: `30b75b0` (first review, 2026-08-04); the spec as aligned with D1–D51 (independent recheck, 2026-10-19)
-- Status: every finding resolved by D1–D51; the independent recheck of 2026-10-19 found eight design gaps, answered by D42–D49, plus D50 and D51; a short second recheck is pending before an implementation plan may be written. Nothing of the design is implemented yet except D38 and D39
+- Target revision reviewed: `30b75b0` (first review, 2026-08-04); the spec as aligned with D1–D51 (independent recheck, 2026-10-19); the spec and this log as of 2026-10-20 (second recheck)
+- Status: every finding resolved by D1–D59. The independent recheck of 2026-10-19 found eight design gaps, answered by D42–D49, plus D50 and D51; the second recheck of 2026-10-20 found one critical and seven important gaps, answered by D52–D59 and approved by the user. An implementation plan may be written: `docs/superpowers/plans/2026-10-20-core-versioning-rebuild.md`. Implemented so far: D38, D39, D49 and D50; D2 and D16 match code shipped before this design (commits `19e86c1`, `c05cf32`)
 - Scope: generic Core architecture, not the CMS pilot
 
 This log is the durable hand-off between reviewers. It records findings separately from design decisions so another agent can challenge the proposal without losing earlier reasoning.
@@ -334,11 +334,61 @@ Recorded as agreed with the user; the design spec is to be aligned with them, an
     - **Rule.** `Version` joins the excluded models: no CRUD permission, no generic endpoint. The history is read only through the root, with `history` and the root's ACL (D27); internal readers such as `TicketTimelineService` query it in code and are unaffected.
     - **Tests, written first:** the permission refresh creates no `core.versions.*` permission and removes one left from before.
     - **Implemented on 2026-10-19:** `Version` is in `CorePermissions::excludedModels()`. A superadmin, who passes every permission check, can still reach the table; the rule binds every other role.
+    - **Correction (second recheck, 2026-10-20).** The premise was false: `Version` has been in `PermissionsRefreshCommand::$MODELS_BLACKLIST` since `62061687` (2025-09-19), so no `core.versions.*` permission was generated. The change to `CorePermissions` is redundant but harmless and stays, so that both lists agree.
 
 51. **`OwnerTimestamp` skips repeated touches within a transaction, not within a second (decided by Claude on the user's delegation, 2026-10-19; amends D37).**
     - **The gap.** D37 skipped a touch when the same owner had been touched in the same second by the same process. If the first touch belonged to a transaction that was rolled back, a second, real change in the same second was skipped and the owner's `updated_at` stayed behind, so the incremental search sync would miss it.
     - **Rule.** The helper remembers the owners it touched in the current outermost transaction of the connection and forgets them when that transaction commits or rolls back (Laravel's transaction events); a sync of ten tags still runs one `UPDATE`. Outside a transaction every touch is written.
     - **Tests, written first:** a sync of ten tags in one transaction runs one `UPDATE`; a touch inside a rolled-back transaction followed by a change in the same second moves `updated_at`.
+
+## Decisions from the second recheck (2026-10-20)
+
+The second independent recheck (2026-10-20) found one critical and seven important gaps; the user approved the resolutions below the same day. Its verdict was that a plan may be written once C1, I1, I2, I3, I4 and I7 are settled; I5 and I6 are settled as well, because both touch the create migrations of the first slice.
+
+52. **Capture quality depends on whether a transaction was open before the business SQL (user decision, 2026-10-20; answers C1 of the second recheck; amends D47).**
+    - **The gap.** D47 counts a set as `atomic` only when `run()` was opened for the root before the business SQL. A translation written alone (`TranslateModelJob`, the importers), a relation mutated from its inverse side, and a second root saved inside an outer transaction (D43) would all be `best_effort`, and one such set withdraws the complete revert of the record until the next baseline: a single automatic translation would be enough.
+    - **Rule.** A set is `atomic` when a database transaction on the root's connection was open before the statement that produced its rows. The manager records it when it opens the set, whether the transaction is its own or an outer one it joins. The translation models' `save()`/`delete()` and both sides of the Core relation subclasses (D42) open the transaction before their SQL, with the per-root sets of D43 opened lazily inside it.
+    - **The loss is bounded.** After a `best_effort` set, the next atomic write of the same root writes a whole-aggregate baseline (D45 rule 1, D53), so the complete revert comes back from that point on.
+    - **A model without an aggregate is not affected.** A versioned model with no translations and no registered relations has only a scalar revert, which does not depend on capture quality; its `save()` gets no extra transaction.
+    - **`incomplete` is not written yet** (minor M6 of the recheck): its triggers are not concrete. Milestone 1 writes only `atomic` and `best_effort`; the value stays in the enum.
+    - **Tests, written first:** a translation written alone by the job gives an `atomic` set; a `sync()` from the inverse side gives one `atomic` set per affected root; a `best_effort` set followed by an atomic write produces a baseline; a plain versioned model's `save()` stays `best_effort` and its scalar revert still works.
+
+53. **A complete anchor is marked by the kind of its set (user decision, 2026-10-20; answers I1; completes D45 and D47).**
+    - `VersionSetKind` gains `baseline`. The creation set of a root and the baselines of D22 and D45 are written with it. Rule 2 of D45 and the gate of D47 start from the latest `baseline` set at or before R.
+    - **Layout of a baseline set:** the root image as one `SNAPSHOT` row (`created` at creation, `updated` for a later baseline), one `SNAPSHOT` row per locale (`relation_path = translations`, `subject_key = {locale}`), one `created` row per current membership.
+    - Completeness is "as written". After a compaction, the cut-off of D46 decides which revisions remain revert targets.
+    - **Tests, written first:** a created root's first set has kind `baseline`; a revert to an R with no `baseline` at or before it is refused.
+
+54. **Writes caused by the hard delete do not enter the snapshot set (user decision, 2026-10-20; answers I2; amends D44).**
+    - **The gap.** During step (2) of D44 the delete fires the model events: `HasTags` detaches on `deleted`, which the pivot trait of D42 would record as membership rows in the root's active set, and the fallback hooks of `HasVersions` would add a `Deleted` row. Both would pollute the set that `recover()` and the purge read.
+    - **Rule.** While the coordinator deletes a root, the root's active set carries a flag, and the fallback hooks and the pivot capture skip that root. Only the rows of D29 step 2 go into the snapshot set. Cascades that reach other roots still open those roots' own sets (D43).
+    - **Order (minor M3 of the recheck).** D44 also changes the order of D29, not only its callers: read the state, delete, then write the snapshot. The wording "snapshot first" in D17, C07 and the spec is superseded.
+    - **Tests, written first:** the hard delete of a content with tags writes no membership row from the tag detach and no fallback `Deleted` row into its snapshot set.
+
+55. **Row format of the snapshot set (user decision, 2026-10-20; answers I3; completes D29 and D35).**
+    - Every row is `SNAPSHOT` with `change_type = deleted`; the image is in `original_contents` and `contents` is empty, as the shipped tombstone already writes it.
+    - The root row has no `relation_path`. A locale row has `relation_path = translations` and `subject_key = {locale}`. A membership row has `relation_path` = the relation and `subject_key = {id}`, with the pivot columns declared authoritative (D41) in `original_contents`, otherwise empty. The origin row has `relation_path = origin`.
+    - The snapshot set is read only by `recover()` and the purge (D35), never by the revision replay. The origin row is outside reconstruction and outside the epoch fingerprint.
+    - **Tests, written first:** the snapshot set of a content with two locales and three tags holds exactly the rows above; `recover()` rebuilds the root, the locales and the membership from them.
+
+56. **Two revert entry points, one implementation (user decision, 2026-10-20; answers I4; amends D48).**
+    - **The gap.** `revertToVersion(id)` targets the id of a row, against the rule that a revert targets a revision. Once translations (D28) and membership (D42) write rows whose `versionable` is the root, the id of such a row would apply its fields to the root's columns. It also takes no expected revision.
+    - **Rule.** `revertToRevision(int $set, int $expectedRevision, RevertMode $mode)` is the only implementation; `RevertMode` is `Scalar`, `Link`, `OwnedPart` or `Complete`, as in the spec's revert modes. `revertToVersion(int|string $versionId, int $expectedRevision)` stays as a shorthand: it resolves the row's set, refuses a row that is not one of the root's own columns (a non-null `relation_path`), and calls `revertToRevision($set, $expectedRevision, RevertMode::Scalar)`. Both entry points get every check of D48, because they share the implementation. After D14 the name no longer comes from the library.
+    - **Tests, written first:** `revertToVersion()` on a translation or membership row is refused; on a root row it gives the same result as a scalar `revertToRevision()`; a stale expected revision is refused on both.
+
+57. **Coverage is declared on each descriptor (user decision, 2026-10-20; answers I7; completes invariant 4).**
+    - `RelationDescriptor` gains a `coverage`, `complete` or `partial`, declared by the module that registers the relation; it is `complete` only when that relation's mutation and revert paths are covered by tests. The default is `partial`.
+    - The root's coverage is `complete` when every registered descriptor is. It is part of the epoch fingerprint (D33), so changing it starts a new epoch, and it is evaluated at revert time with the computed labels of D47: a complete revert is offered only with complete coverage.
+    - **Tests, written first:** a root with one `partial` descriptor is refused a complete revert and allowed a link revert of the complete ones; changing a descriptor's coverage changes the fingerprint.
+
+58. **`reverted_from_set_id` is set to null when its target is removed (user decision, 2026-10-20; answers I5; amends D19 and D29).**
+    - The self foreign key becomes `nullOnDelete()` in the create migration. A `Revert` set whose target was purged or compacted shows that its target is no longer in the history. D29 step 3 no longer nulls the column first.
+    - This is the only change a set undergoes after it is written, and the database makes it, not the application.
+    - **Tests, written first:** removing the target set of a `Revert` set leaves that set with a null `reverted_from_set_id`.
+
+59. **A compaction refuses a stretch that holds a non-atomic set (user decision, 2026-10-20; answers I6; amends D18 and D46).**
+    - Before writing, the compaction reads the capture of every set of the stretch up to the cut-off; a `best_effort` or `incomplete` one refuses the whole compaction and lists the sets. Otherwise the merged row at R would make the stretch look `atomic` and pass the gate of D47.
+    - **Tests, written first:** a stretch with one `best_effort` set is refused and nothing is written; an all-atomic stretch is compacted.
 
 ## Evidence verified in code (2026-10-09)
 
