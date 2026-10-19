@@ -1,5 +1,5 @@
 ---
-status: open
+status: completed
 created_on: 2026-10-12
 ---
 # Neuron AI 4 Upgrade Implementation Plan
@@ -14,11 +14,11 @@ created_on: 2026-10-12
 
 **Spec:** `docs/superpowers/specs/2026-10-12-neuron-ai-4-upgrade-design.md`
 
-## Delivery status (2026-10-19): done on the `neuron-4` branches, merge waiting for the owner
+## Delivery status (2026-10-19): done, merged into `master` locally, not pushed
 
 **Documented in:** `Modules/AI/docs/GLOSSARY.md`, `Modules/AI/docs/rag/GLOSSARY.md`, `Modules/AI/docs/rag/MODULE.md`.
 
-`Modules/AI` runs on `neuron-core/neuron-ai` 4.1.12 (`^4.1`). The fifteen guides were applied one task each, in numeric order, with the tests red before the code; a whole-branch review (read-only, fresh context) found no Critical issue and one Important, fixed below. The merge into `master` of `Modules/AI` and of `laraplate` (Task 13 Step 6) and the flip of this plan to `status: completed`, with its `INDEX.md` lines, wait for the owner's go.
+`Modules/AI` runs on `neuron-core/neuron-ai` 4.1.12 (`^4.1`). The fifteen guides were applied one task each, in numeric order, with the tests red before the code; a whole-branch review (read-only, fresh context) found no Critical issue and one Important, fixed below. On the owner's go it was merged into `master` of `Modules/AI` (fast-forward) and of `laraplate` (merge commit, with the submodule pointer), and this plan and its spec were closed. Nothing was pushed: the push is the owner's. The main checkout's `vendor/` still holds Neuron 3.17.2 until `composer install` runs there.
 
 **Against the baseline.** Module AI: 1674 passed, 7 skipped, 0 failed before; 1712 passed, 7 skipped, 0 failed now (38 new tests). PHPStan on `Modules/AI`: 182 errors before, 170 now, no identifier above its baseline count. Whole repository from the worktree: 9181 passed, 35 skipped, 1 risky, 2 failed at the first full run; both failures are explained under Task 13 Step 2. The evaluation gates passed and no report under any `docs/rag/evaluations` changed.
 
@@ -209,8 +209,8 @@ Recommendations: when assistant turns move to Neuron workflows (a later spec), a
 - [x] **Step 2:** `vendor/bin/pest --parallel --compact`: totals equal the baseline (a failing test of the baseline may still fail; any new failure is fixed). `vendor/bin/phpstan analyse Modules/AI`: no error above the baseline count. The evaluation gates of Task 0 Step 4 pass and `git status` shows no change under any `docs/rag/evaluations`. Done. Whole repository, from this worktree (the baseline was taken in the main checkout, whose other modules held another session's uncommitted work, so the totals differ by design): 9181 passed, 35 skipped, 1 risky, 2 failed; one failure was `ChatServiceFullTest` (fixed and green), the other `PartsOfParentHydrationTest` of CMS (a 403, green when run alone: a parallel-run flake outside the upgrade). Module AI alone: baseline 1674 passed, 7 skipped, 0 failed; 1700 passed, 7 skipped, 0 failed at that run, 1712 after the review fixes (38 new tests). PHPStan on `Modules/AI`: baseline 182 errors, now 170, and no identifier above its baseline count. The evaluation gates ran inside the suite and passed; `git status` shows no change under any `docs/rag/evaluations`.
 - [x] **Step 3:** Run guide `AGENTS.md`'s conclusion: activate the `neuron-laravel-integration` skill, walk its foundations checklist, and write what differs from the recommended setup in the delivery status (recommendations only; no change in this plan). Done: see the delivery status.
 - [x] **Step 4:** Update the docs listed above. Done: both glossaries say v4; `Modules/AI/README.md` names no Neuron version; `MODULE.md` states the structured output rule; the Task 2 line of the Laravel 13 plan is `- [-]`.
-- [ ] **Step 5:** Delivery status, `**Documented in:**` line, `status: completed`, the plans and specs `INDEX.md` entries; `php artisan test --compact tests/Unit/ClosedPlansPointToDocumentationTest.php` passes. Open: the delivery status, the `**Documented in:**` line and the closed-plans test are done (3 passed); `status: completed` and the two `INDEX.md` entries flip in the merge commit of Step 6, since the branch is not merged yet.
-- [ ] **Step 6:** Merge `neuron-4` into `master` in `Modules/AI` and the other touched modules, then in `laraplate` with the submodule pointers; push after the owner's go.
+- [x] **Step 5:** Delivery status, `**Documented in:**` line, `status: completed`, the plans and specs `INDEX.md` entries; `php artisan test --compact tests/Unit/ClosedPlansPointToDocumentationTest.php` passes. Done: the closed-plans test passes (3 passed); the plan is `status: completed` and both `INDEX.md` entries and the spec status say delivered.
+- [x] **Step 6:** Merge `neuron-4` into `master` in `Modules/AI` and the other touched modules, then in `laraplate` with the submodule pointers; push after the owner's go. Done on 2026-10-19 with the owner's go: `Modules/AI` fast-forwarded (no other module was touched), `laraplate` merged with a merge commit; no push.
 
 ## Baseline
 
