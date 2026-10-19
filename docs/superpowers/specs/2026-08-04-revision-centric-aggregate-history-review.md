@@ -226,6 +226,17 @@ Recorded as agreed with the user; the design spec is to be aligned with them, an
     - **`related()` (`Relatable`) is not touched (user decision).** It lives on its own: the related contents are an editorial association, outside the guarantee already (D24), and a change of the link does not move the `updated_at` of either content.
     - **Tests, written first:** for each of the four relations, `attach`, `detach` and `sync` move the `updated_at` of the content (time frozen) and not its `lock_version`, also when changed from the inverse side; a `sync` of three tags runs one `UPDATE` of the content; no model event of `Content` fires; the reference record does not change; a change of `related()` does not move `updated_at`.
 
+38. **`versions:compact` refuses to run until D18 is implemented (user decision, 2026-10-19; answers "what `versions:compact` does until it is redefined").**
+    - **Facts, read in the code.** For every versioned record the command refreshed the live row and appended a `SNAPSHOT` version of it; the `purgeOldVersions` flag reaches `createVersion()`, which ignores it, so nothing was deleted. Each run added to every history a revision with no change, shown to the user like any other, and one more row per record. Nothing scheduled or called it.
+    - **Decision.** The command keeps its name and signature, writes nothing and exits with an error that says compaction is being redefined. Its old body is removed: the implementation of D18 replaces it, it is not a repair of it. Test written first: with a versioned record present, both forms of the call fail and leave the number of version rows unchanged.
+    - **Documentation aligned.** Core's `MODULE.md` no longer says that `createSnapshotVersion()` with its purge flag compacts the history.
+
+39. **A revert on a locked record is refused unless the user holds the lease (user decision, 2026-10-19; answers "whether a revert on a record locked by another user is refused").**
+    - **Facts, read in the code.** `LockedModelSubscriber` refuses `saving` and `deleting` of a locked record when the acting user is not the holder; a freeze has no holder. A revert writes through the root's `save()`, so a revert that changes a root column was refused already. But the guard sees one model's row: translations and pivot rows have no lock of their own, so a revert that leaves the root row unchanged (only the title differs, or the root column is already at the target value) walked past it. A test reproduced the second case.
+    - **Rule (the user's): a lock means the record is being edited, and nothing else may change it unless the lock is forcibly removed.** The holder of the lease may revert, since a revert is one more edit of theirs; anybody else is refused; a freeze refuses everybody. The way through for others is `forceUnlock()`, behind the `unlock` permission. `Locked::withoutGuard()` and `core.locking.prevent_modifications` apply as for the guard.
+    - **Where.** `HasVersions::revertToVersion()` checks `HasLocks::blocksWritesByCurrentUser()` inside the version set, after `lockExistingRoot()` has reread the row under `FOR UPDATE`, and throws `LockedModelException` before any write; the set rolls back. A lock taken after the model was loaded is therefore seen.
+    - **Tests, written first:** refused when locked by another user and when frozen, with nothing written and no `Revert` set; refused when the root row would not change; refused when the lock was taken after loading; allowed to the holder; allowed after a forced unlock.
+
 ## Evidence verified in code (2026-10-09)
 
 Verified by running a throwaway test (deleted afterwards) against the `HasVersions` + `Core\Models\Version::revert()` path, `DIFF` strategy, SQLite:
@@ -458,7 +469,7 @@ Target: `2026-07-29-revision-centric-aggregate-history-design.md`. Grouped by wh
 
 ### E. Not part of the spec but surfaced and still open
 
-The tag detach on soft delete (separate defect); whether forms show relations (D23); whether a revert on a record locked by another user is refused; what `versions:compact` does until it is redefined; the config key and schedule of the hard-delete purge; the metadata kept in a snapshot.
+Whether forms show relations (D23). Closed since: whether a revert on a record locked by another user is refused (D39); the tag detach on soft delete (fixed: `HasTags` detaches only when the record no longer exists); what `versions:compact` does until it is redefined (D38); the config key and schedule of the hard-delete purge and the metadata kept in a snapshot (D35).
 
 ## Candidate resolution paths
 
