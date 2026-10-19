@@ -94,9 +94,9 @@ created_on: 2026-10-12
 **Files:**
 - Modify: `Modules/AI/app/Ai/Agents/ChatAgent.php` (`resolveToolErrorHandler()`), `Modules/AI/tests/Stubs/Assistance/ToolCallingFakeProvider.php`, `Modules/AI/tests/Feature/Assistance/AgentEndpointTest.php`, `Modules/AI/tests/Integration/ChatAgentTest.php`
 
-- [ ] **Step 1:** `ChatAgent::resolveToolErrorHandler()` returns `Closure(Throwable, ToolCall): string|ToolOutput|null`; it still rethrows `AssistancePolicyViolationException` and returns the same safe text for anything else. Drop the `ToolInterface` import.
-- [ ] **Step 2:** The fake provider builds its calls with `ToolCall::make(name:, callId:, inputs:)`; `AgentEndpointTest` reads `getToolCalls()[0]`; `ChatAgentTest` builds a `ToolCall` instead of `Tool::make('lookup', …)`.
-- [ ] **Step 3:** Run `ChatAgentTest.php` and `AgentEndpointTest.php` (the missing-argument test may still fail until Task 6). Commit: `refactor(ai): tool errors and fake tool calls use Neuron 4's ToolCall`.
+- [x] **Step 1:** `ChatAgent::resolveToolErrorHandler()` returns `Closure(Throwable, ToolCall): string|ToolOutput|null`; it still rethrows `AssistancePolicyViolationException` and returns the same safe text for anything else. Drop the `ToolInterface` import.
+- [x] **Step 2:** The fake provider builds its calls with `ToolCall::make(name:, callId:, inputs:)`; `AgentEndpointTest` reads `getToolCalls()[0]`; `ChatAgentTest` builds a `ToolCall` instead of `Tool::make('lookup', …)`. Done. `ToolCallingFakeProvider::chat()` also returns `ProviderResponse` (guide 41 for test doubles, pulled forward from Task 12 Step 1): the class does not load against the 4.x `FakeAIProvider` otherwise, and `AgentEndpointTest` cannot run.
+- [x] **Step 3:** Run `ChatAgentTest.php` and `AgentEndpointTest.php` (the missing-argument test may still fail until Task 6). Commit: `refactor(ai): tool errors and fake tool calls use Neuron 4's ToolCall`. Done: the handler tests pass; the rest fail on Task 7 (no thread id: the run ends in the refusal text), Task 8 (`Workflow::$executor` reflection) and the missing-argument case of Task 6.
 
 ### Task 6: Tool properties validate and cast (guide 5)
 
@@ -160,7 +160,7 @@ created_on: 2026-10-12
 
 ### Task 12: Provider responses and testing fakes (guides 41 and 56)
 
-- [ ] **Step 1:** Guide 41: `ToolCallingFakeProvider::chat()` returns `ProviderResponse` (wrap its `ToolCallMessage`, return `parent::chat()` unchanged); `AiTextGenerationModelBindingTest.php:24` reads `->message()->getContent()`.
+- [ ] **Step 1:** Guide 41: `ToolCallingFakeProvider::chat()` returns `ProviderResponse` (done in Task 5); `AiTextGenerationModelBindingTest.php:24` reads `->message()->getContent()`.
 - [ ] **Step 2:** Guide 56: check that `DocumentationServiceTest`'s `FakeVectorStore` canned hits (around lines 410 and 463) still come back unchanged; adjust to the 4.x constructor if they do not.
 - [ ] **Step 3:** Run `AgentEndpointTest.php`, `AiTextGenerationModelBindingTest.php`, `DocumentationServiceTest.php`; pass. Commit: `test(ai): fakes and provider calls follow Neuron 4`.
 
