@@ -69,9 +69,10 @@ created_on: 2026-10-12
 **Files:**
 - Modify: `Modules/AI/tests/Stubs/RecordingHttpClient.php`, `Modules/AI/tests/Integration/AiTextGenerationModelBindingTest.php`
 
-- [ ] **Step 1:** Apply guide 2 Case 7 to `RecordingHttpClient`: drop `withBaseUri()`, `withHeaders()`, `withTimeout()`; a recorded response with status 400 or above throws `HttpException::statusError()`.
-- [ ] **Step 2:** `AiTextGenerationModelBindingTest` asserts the absolute Ollama chat URL instead of `'chat'` (read it from the 4.x Ollama provider, do not guess).
-- [ ] **Step 3:** Run `AiTextGenerationModelBindingTest.php`, `AgentRoundTripTest.php`, `AiModelFeatureWiringTest.php`; they pass as far as later guides allow. Commit: `test(ai): the recording HTTP client follows the Neuron 4 contract`.
+- [x] **Step 1:** Apply guide 2 Case 7 to `RecordingHttpClient`: drop `withBaseUri()`, `withHeaders()`, `withTimeout()`; a recorded response with status 400 or above throws `HttpException::statusError()`. Done.
+- [x] **Step 2:** `AiTextGenerationModelBindingTest` asserts the absolute Ollama chat URL instead of `'chat'` (read it from the 4.x Ollama provider, do not guess). Done: `http://ollama.test/api/chat` (`rtrim($this->baseUri, '/') . '/chat'` in `Ollama/HandleChat.php`; the factory appends `/api`). The assertion is reached only after Task 12 fixes the `ProviderResponse` read on the line above; the URL was checked on a one-off call.
+- [x] **Step 3:** Run `AiTextGenerationModelBindingTest.php`, `AgentRoundTripTest.php`, `AiModelFeatureWiringTest.php`; they pass as far as later guides allow. Commit: `test(ai): the recording HTTP client follows the Neuron 4 contract`. Done: the failures left are Task 7 (thread id, `AgentRoundTripTest`) and Task 12 (`ProviderResponse::getContent()`, `AiTextGenerationModelBindingTest`).
+- [x] **Step 4 (found by guide 2's searches, not in the triage):** Neuron 4's default client has a 300-second timeout (3.x: 60) and `ChatAgent::provider()` called `withTimeout()` on the provider's client after construction (Case 2). `ProviderFactory` and `EmbeddingsProviderFactory` now hand each provider a `CurlHttpClient` with `ProviderFactory::HTTP_TIMEOUT` (60 s), and `ChatAgent` passes its cap to `ProviderFactory::make()`. Tests: `ChatAgentTest` "leaves the provider timeout alone" (red, now green) and a new embeddings factory case. Commit: `fix(ai): keep the 60-second request timeout on Neuron 4 providers`.
 
 ### Task 4: Tools are classes (guide 3)
 
