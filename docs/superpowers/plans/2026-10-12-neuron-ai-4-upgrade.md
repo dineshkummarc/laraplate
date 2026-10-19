@@ -107,8 +107,8 @@ created_on: 2026-10-12
 **Interfaces:**
 - Produces: `SchemaToolProperty::isNullable(): bool` (false: no schema parameter is nullable today) and `SchemaToolProperty::cast(mixed $input): mixed`, lenient as spec Decision 4 states.
 
-- [ ] **Step 1:** Write the tests: `cast()` turns `'42'` into `42` for `integer`, `'1.5'` into `1.5` for `number`, `42` into `'42'` for `string`, `'true'`/`1` into `true` and `'false'`/`0` into `false` for `boolean`; it returns `'abc'` unchanged for `integer`; arrays and objects pass through. The Review Focus case: a tool whose `id` is declared `string` runs when the model sends `42`.
-- [ ] **Step 2:** Run: fail. Implement `isNullable()` and `cast()`. Run: pass.
+- [x] **Step 1:** Write the tests: `cast()` turns `'42'` into `42` for `integer`, `'1.5'` into `1.5` for `number`, `42` into `'42'` for `string`, `'true'`/`1` into `true` and `'false'`/`0` into `false` for `boolean`; it returns `'abc'` unchanged for `integer`; arrays and objects pass through. The Review Focus case: a tool whose `id` is declared `string` runs when the model sends `42`. Done: `SchemaToolPropertyTest` (12 cases); 8 failed first, the 4 that passed are `isNullable()`, the unchanged `'abc'` and the pass-through, which Task 4's identity `cast()` already gave.
+- [x] **Step 2:** Run: fail. Implement `isNullable()` and `cast()`. Run: pass. Done: `cast()` uses Neuron's `ScalarCaster` and returns the input unchanged when it cannot convert it.
 - [ ] **Step 3:** `AgentEndpointTest` "tool without a required argument": the model now receives Neuron's error output for the missing parameter and the error handler is not called. Assert that the stored answer is the model's next reply and that no exception text reaches the user.
 - [ ] **Step 4:** Run both files; pass. Commit: `feat(ai): schema tool properties cast leniently (Neuron 4)`.
 
