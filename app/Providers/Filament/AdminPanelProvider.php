@@ -82,7 +82,7 @@ final class AdminPanelProvider extends PanelProvider
             ->unsavedChangesAlerts()
             ->sidebarCollapsibleOnDesktop()
             ->colors([
-                'primary' => Color::Green,
+                'primary' => Color::hex('#80C027'),
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
