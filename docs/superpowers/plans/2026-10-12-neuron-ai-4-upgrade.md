@@ -109,8 +109,8 @@ created_on: 2026-10-12
 
 - [x] **Step 1:** Write the tests: `cast()` turns `'42'` into `42` for `integer`, `'1.5'` into `1.5` for `number`, `42` into `'42'` for `string`, `'true'`/`1` into `true` and `'false'`/`0` into `false` for `boolean`; it returns `'abc'` unchanged for `integer`; arrays and objects pass through. The Review Focus case: a tool whose `id` is declared `string` runs when the model sends `42`. Done: `SchemaToolPropertyTest` (12 cases); 8 failed first, the 4 that passed are `isNullable()`, the unchanged `'abc'` and the pass-through, which Task 4's identity `cast()` already gave.
 - [x] **Step 2:** Run: fail. Implement `isNullable()` and `cast()`. Run: pass. Done: `cast()` uses Neuron's `ScalarCaster` and returns the input unchanged when it cannot convert it.
-- [ ] **Step 3:** `AgentEndpointTest` "tool without a required argument": the model now receives Neuron's error output for the missing parameter and the error handler is not called. Assert that the stored answer is the model's next reply and that no exception text reaches the user.
-- [ ] **Step 4:** Run both files; pass. Commit: `feat(ai): schema tool properties cast leniently (Neuron 4)`.
+- [x] **Step 3:** `AgentEndpointTest` "tool without a required argument": the model now receives Neuron's error output for the missing parameter and the error handler is not called. Assert that the stored answer is the model's next reply and that no exception text reaches the user. Done after Task 7 (the endpoint test cannot reach a tool call before the agents have a thread id): red on `toBeString()` since the model now gets `ToolOutput::error('Parameter "namespace" is required.')`; now asserts that, that no `Assistant tool call failed` warning is logged and that nothing of it is in the streamed events.
+- [x] **Step 4:** Run both files; pass. Commit: `feat(ai): schema tool properties cast leniently (Neuron 4)`. Done: `SchemaToolPropertyTest` 12/12; `AgentEndpointTest` passes but for "keeps what the page claims…", which reads the system prompt as a string (Task 11).
 
 ### Task 7: A thread id for every agent (guide 13)
 
