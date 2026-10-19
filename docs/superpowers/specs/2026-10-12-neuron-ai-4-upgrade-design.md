@@ -1,6 +1,6 @@
 # Neuron AI 4 upgrade
 
-**Status:** approved (2026-10-12) — decisions agreed with the owner the same day
+**Status:** Delivered (2026-10-19) with its plan, `docs/superpowers/plans/2026-10-12-neuron-ai-4-upgrade.md`; approved 2026-10-12, decisions agreed with the owner the same day. The behaviour is described now in `Modules/AI/docs/rag/MODULE.md`.
 
 **Date:** 2026-10-12
 

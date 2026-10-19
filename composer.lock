@@ -127,16 +127,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.400.1",
+            "version": "3.401.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "c0cf2c322bc1a344aaf39250da8856563532f82b"
+                "reference": "b1af9196bd0f94bcebdb6588a150dd85dc240758"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/c0cf2c322bc1a344aaf39250da8856563532f82b",
-                "reference": "c0cf2c322bc1a344aaf39250da8856563532f82b",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/b1af9196bd0f94bcebdb6588a150dd85dc240758",
+                "reference": "b1af9196bd0f94bcebdb6588a150dd85dc240758",
                 "shasum": ""
             },
             "require": {
@@ -218,9 +218,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.400.1"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.401.2"
             },
-            "time": "2026-10-09T18:11:15+00:00"
+            "time": "2026-10-14T18:09:34+00:00"
         },
         {
             "name": "babenkoivan/elastic-adapter",
@@ -2950,16 +2950,16 @@
         },
         {
             "name": "google/auth",
-            "version": "v1.55.1",
+            "version": "v1.55.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/googleapis/google-auth-library-php.git",
-                "reference": "ef1b92cb42470b09b3caaf23bb9b4bb9a2dc787e"
+                "reference": "293fdf064cfc5b77a22bb7406b59f149b3fb70e8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/googleapis/google-auth-library-php/zipball/ef1b92cb42470b09b3caaf23bb9b4bb9a2dc787e",
-                "reference": "ef1b92cb42470b09b3caaf23bb9b4bb9a2dc787e",
+                "url": "https://api.github.com/repos/googleapis/google-auth-library-php/zipball/293fdf064cfc5b77a22bb7406b59f149b3fb70e8",
+                "reference": "293fdf064cfc5b77a22bb7406b59f149b3fb70e8",
                 "shasum": ""
             },
             "require": {
@@ -2981,8 +2981,7 @@
                 "sebastian/comparator": ">=1.2.3",
                 "squizlabs/php_codesniffer": "^4.0",
                 "symfony/filesystem": "^6.4.39||^7.3",
-                "symfony/process": "^6.4.41||^7.0",
-                "webmozart/assert": "^1.11||^2.0"
+                "symfony/process": "^6.4.41||^7.0"
             },
             "suggest": {
                 "phpseclib/phpseclib": "May be used in place of OpenSSL for signing strings or for token management. Please require version ^2."
@@ -3015,9 +3014,9 @@
             "support": {
                 "docs": "https://cloud.google.com/php/docs/reference/auth/latest",
                 "issues": "https://github.com/googleapis/google-auth-library-php/issues",
-                "source": "https://github.com/googleapis/google-auth-library-php/tree/v1.55.1"
+                "source": "https://github.com/googleapis/google-auth-library-php/tree/v1.55.2"
             },
-            "time": "2026-09-28T17:51:46+00:00"
+            "time": "2026-10-16T21:30:20+00:00"
         },
         {
             "name": "graham-campbell/result-type",
@@ -3610,68 +3609,6 @@
                 "source": "https://github.com/hedii/laravel-gelf-logger"
             },
             "time": "2025-03-22T16:26:16+00:00"
-        },
-        {
-            "name": "inspector-apm/inspector-php",
-            "version": "3.19.1",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/inspector-apm/inspector-php.git",
-                "reference": "27d5133dd47e96dabc6fa4f80e7328e5d74848a7"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/inspector-apm/inspector-php/zipball/27d5133dd47e96dabc6fa4f80e7328e5d74848a7",
-                "reference": "27d5133dd47e96dabc6fa4f80e7328e5d74848a7",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^8.1"
-            },
-            "require-dev": {
-                "ext-curl": "*",
-                "friendsofphp/php-cs-fixer": "^3.75",
-                "neuron-core/neuron-ai": "^4.0",
-                "phpstan/phpstan": "^2.1",
-                "phpunit/phpunit": "^9.0",
-                "rector/rector": "^2.2",
-                "tomasvotruba/type-coverage": "^2.0"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-main": "3.17.x-dev",
-                    "dev-develop": "3.17.x-dev"
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Inspector\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Valerio Barbera",
-                    "email": "valerio@inspector.dev"
-                }
-            ],
-            "description": "Inspector monitoring for PHP applications.",
-            "keywords": [
-                "inspector",
-                "monitoring",
-                "observability",
-                "php",
-                "telemetry"
-            ],
-            "support": {
-                "issues": "https://github.com/inspector-apm/inspector-php/issues",
-                "source": "https://github.com/inspector-apm/inspector-php/tree/3.19.1"
-            },
-            "time": "2026-09-30T10:34:47+00:00"
         },
         {
             "name": "james-heinrich/getid3",
@@ -4438,16 +4375,16 @@
         },
         {
             "name": "laravel/horizon",
-            "version": "v5.50.0",
+            "version": "v5.50.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravel/horizon.git",
-                "reference": "009177cc3d0829c839c8ab573dd17d158fc0b71e"
+                "reference": "9d65cae809688179ce2c4ace64eb75e886e245c5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravel/horizon/zipball/009177cc3d0829c839c8ab573dd17d158fc0b71e",
-                "reference": "009177cc3d0829c839c8ab573dd17d158fc0b71e",
+                "url": "https://api.github.com/repos/laravel/horizon/zipball/9d65cae809688179ce2c4ace64eb75e886e245c5",
+                "reference": "9d65cae809688179ce2c4ace64eb75e886e245c5",
                 "shasum": ""
             },
             "require": {
@@ -4512,9 +4449,9 @@
             ],
             "support": {
                 "issues": "https://github.com/laravel/horizon/issues",
-                "source": "https://github.com/laravel/horizon/tree/v5.50.0"
+                "source": "https://github.com/laravel/horizon/tree/v5.50.1"
             },
-            "time": "2026-09-15T13:59:54+00:00"
+            "time": "2026-10-13T06:25:19+00:00"
         },
         {
             "name": "laravel/passkeys",
@@ -6700,43 +6637,64 @@
         },
         {
             "name": "neuron-core/neuron-ai",
-            "version": "3.17.2",
+            "version": "4.1.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/neuron-core/neuron-ai.git",
-                "reference": "3d46ba80472d6c59b6e6d60730ed146e76590e34"
+                "reference": "8138e4baee8a5437e7072626b793740ea956d0bc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/neuron-core/neuron-ai/zipball/3d46ba80472d6c59b6e6d60730ed146e76590e34",
-                "reference": "3d46ba80472d6c59b6e6d60730ed146e76590e34",
+                "url": "https://api.github.com/repos/neuron-core/neuron-ai/zipball/8138e4baee8a5437e7072626b793740ea956d0bc",
+                "reference": "8138e4baee8a5437e7072626b793740ea956d0bc",
                 "shasum": ""
             },
             "require": {
-                "guzzlehttp/guzzle": "^7.0 || ^8.0",
-                "inspector-apm/inspector-php": "^3.18",
+                "ext-curl": "*",
                 "php": "^8.1",
-                "psr/http-message": "^1.0|^2.0"
+                "psr/event-dispatcher": "^1.0"
             },
             "require-dev": {
                 "amphp/amp": "^3.1.1",
                 "amphp/http-client": "^5.3",
                 "aws/aws-sdk-php": "^3.209",
-                "elasticsearch/elasticsearch": "^8.0|^9.0",
+                "elasticsearch/elasticsearch": "^8.19|^9.0",
+                "ext-bcmath": "*",
+                "ext-igbinary": "*",
+                "ext-mongodb": "*",
                 "ext-pdo": "*",
+                "ext-pdo_pgsql": "*",
+                "ext-redis": "*",
+                "ext-sodium": "*",
                 "friendsofphp/php-cs-fixer": "^3.75",
                 "google/auth": "^1.49",
+                "guzzlehttp/guzzle": "^7.0|^8.0",
                 "html2text/html2text": "^4.3",
-                "illuminate/database": "^10.0|^11.0|^12.0",
+                "illuminate/database": "^10.21|^11.0|^12.0",
                 "laudis/neo4j-php-client": "^3.4",
+                "mongodb/mongodb": "^2.3",
                 "opensearch-project/opensearch-php": "^2.5",
                 "phpstan/phpstan": "^2.1",
                 "phpunit/phpunit": "^10.0",
+                "psr/http-message": "^1.0|^2.0",
+                "psr/log": "^1.0|^2.0|^3.0",
+                "pusher/pusher-php-server": "^7.2.4",
                 "rector/rector": "^2.0",
                 "spatie/fork": "^1.2",
+                "symfony/mercure": "^0.7|^0.8",
                 "tomasvotruba/type-coverage": "^2.0",
-                "typesense/typesense-php": "^5.0",
+                "typesense/typesense-php": "^5.0.2",
                 "vlucas/phpdotenv": "^5.6"
+            },
+            "suggest": {
+                "ext-bcmath": "Exact integer tools in the Calculator toolkit (factorial, combinations, gcd, mod_pow, primes).",
+                "ext-igbinary": "Smaller/faster durable-step serialization via IgbinarySerializer.",
+                "ext-redis": "Redis workflow persistence via RedisPersistence and Pub/Sub streaming via RedisChannel and RedisChannelReader.",
+                "ext-sodium": "End-to-end encryption for Pusher streaming channels.",
+                "psr/log": "Logging observability events through LogListener.",
+                "pusher/pusher-php-server": "Pusher-compatible streaming channels, including encrypted channels (requires >=7.2.4 for HTTP timeout propagation).",
+                "spatie/fork": "Parallel evaluation runs via the --concurrency option (requires ext-pcntl and ext-posix).",
+                "symfony/mercure": "Mercure streaming channel (^0.8 for hubs speaking Mercure protocol 1.0)."
             },
             "bin": [
                 "bin/neuron"
@@ -6757,10 +6715,10 @@
                     "email": "valerio@inspector.dev"
                 }
             ],
-            "description": "The PHP Agentic Framework.",
+            "description": "A unified layer for building AI-native applications in PHP.",
             "support": {
                 "issues": "https://github.com/neuron-core/neuron-ai/issues",
-                "source": "https://github.com/neuron-core/neuron-ai/tree/3.17.2"
+                "source": "https://github.com/neuron-core/neuron-ai/tree/4.1.12"
             },
             "funding": [
                 {
@@ -6768,7 +6726,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-10-08T07:18:33+00:00"
+            "time": "2026-10-16T08:42:22+00:00"
         },
         {
             "name": "nikic/php-parser",
@@ -9358,16 +9316,16 @@
         },
         {
             "name": "smalot/pdfparser",
-            "version": "v2.12.5",
+            "version": "v2.13.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/smalot/pdfparser.git",
-                "reference": "2cfa0d92bd557875c9f52a75fde0e8392302a354"
+                "reference": "a71c6dd38e60a995fdb4d36e4433b8b3557c65dc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/smalot/pdfparser/zipball/2cfa0d92bd557875c9f52a75fde0e8392302a354",
-                "reference": "2cfa0d92bd557875c9f52a75fde0e8392302a354",
+                "url": "https://api.github.com/repos/smalot/pdfparser/zipball/a71c6dd38e60a995fdb4d36e4433b8b3557c65dc",
+                "reference": "a71c6dd38e60a995fdb4d36e4433b8b3557c65dc",
                 "shasum": ""
             },
             "require": {
@@ -9403,9 +9361,9 @@
             ],
             "support": {
                 "issues": "https://github.com/smalot/pdfparser/issues",
-                "source": "https://github.com/smalot/pdfparser/tree/v2.12.5"
+                "source": "https://github.com/smalot/pdfparser/tree/v2.13.1"
             },
-            "time": "2026-04-17T11:37:58+00:00"
+            "time": "2026-10-13T08:49:45+00:00"
         },
         {
             "name": "spatie/eloquent-sortable",
@@ -19471,8 +19429,5 @@
         "ext-sockets": "*"
     },
     "platform-dev": {},
-    "platform-overrides": {
-        "ext-oci8": "3.0.1"
-    },
     "plugin-api-version": "2.9.0"
 }
