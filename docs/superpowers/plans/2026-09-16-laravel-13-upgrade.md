@@ -86,7 +86,9 @@ to:
 ```json
 "laravel/framework": "^13.0",
 ```
-Additionally, in `Modules/AI/composer.json` change `"neuron-core/neuron-ai": "^3.2"` to `"neuron-core/neuron-ai": "^3.16"` (the version both locks already use; keeps the module manifest honest). Leave `Modules/CMS` `php-ffmpeg/php-ffmpeg: ^1.4`, `ext-gd`, `ext-exif` untouched.
+- [-] The `neuron-core/neuron-ai` constraint of `Modules/AI/composer.json` (`^3.2` to `^3.16`) is dropped: the Neuron 4 upgrade (`2026-10-12-neuron-ai-4-upgrade.md`) moves it to `^4.1`, so this plan leaves it alone.
+
+Leave `Modules/CMS` `php-ffmpeg/php-ffmpeg: ^1.4`, `ext-gd`, `ext-exif` untouched.
 
 - [ ] **Step 2: Validate the manifests**
 
