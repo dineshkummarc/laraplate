@@ -126,8 +126,8 @@ created_on: 2026-10-12
 
 ### Task 8: Branch runners (guide 17)
 
-- [ ] **Step 1:** `ChatAgentTest.php:9-17` reflects on `Workflow::$executor`, which 4.x removed. Replace it with the assertion it was protecting: a constructed agent runs a `chat()` (covered by Task 7), and delete the reflection test. Fix the stale constructor comment in `DocumentationAgent` if Task 7 did not.
-- [ ] **Step 2:** Run `ChatAgentTest.php`; pass. Commit: `test(ai): drop the reflection on the removed workflow executor`.
+- [x] **Step 1:** `ChatAgentTest.php:9-17` reflects on `Workflow::$executor`, which 4.x removed. Replace it with the assertion it was protecting: a constructed agent runs a `chat()` (covered by Task 7), and delete the reflection test. Fix the stale constructor comment in `DocumentationAgent` if Task 7 did not. Done: the reflection test (red: `ReflectionException`) and its `Workflow` import are gone; both agents' constructor comments were replaced in Task 7, and the guide's other searches find nothing in `Modules/AI`.
+- [x] **Step 2:** Run `ChatAgentTest.php`; pass. Commit: `test(ai): drop the reflection on the removed workflow executor`. Done.
 
 ### Task 9: Vector store contract (guide 19)
 
