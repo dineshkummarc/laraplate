@@ -286,7 +286,7 @@ Every registered relation declares:
 
 Automatic Eloquent relation discovery is forbidden.
 
-The relations registered for `Content` in milestone 1 are `categories`, `tags`, `locations` and `contributors`, all `reference` with membership only: none of their pivots has an attribute besides the key and the timestamps, so no pivot attribute is authoritative and the timestamps are not restored (D31). Ownership is one of `reference` or `owned`. In milestone 1 the only owned parts are translations, which have no history of their own (D10); a descriptor that registers more than one authoritative root is rejected (D24).
+The relations registered for `Content` in milestone 1 are `categories`, `tags`, `locations` and `contributors`, all `reference` with membership only: none of their pivots has an attribute besides the key and the timestamps, so no pivot attribute is authoritative and the timestamps are not restored (D31). A pivot column added later is part of the state only when the descriptor declares it authoritative, which opens a new epoch (D41, D13). Ownership is one of `reference` or `owned`. In milestone 1 the only owned parts are translations, which have no history of their own (D10); a descriptor that registers more than one authoritative root is rejected (D24).
 
 ## Excluded from the guarantee
 
@@ -412,8 +412,9 @@ Reading the history of a record needs the permission `history`, in addition to b
 
 Two counters, with separate jobs (D23):
 
-- `lock_version` protects the form. It covers what the form edits: the root and, since the text lives in them, its translations. A translation write increments the root's `lock_version`, at the same point where the owner's version is created. Relation changes do not increment it, as long as the form does not show them.
-- The aggregate revision protects the revert and covers everything, relations included. A revert and a membership-replacement command accept an expected revision; a command that modifies both columns and authoritative relations carries both tokens. A mismatch in the token relevant to the operation fails before mutation.
+- `lock_version` protects the form. It covers what the form edits of the record: the root and, since the text lives in them, its translations. A translation write increments the root's `lock_version`, at the same point where the owner's version is created. Relation changes do not increment it, also when the form shows them: those are protected per relation, below (D40).
+- A form that shows relations sends, with the new membership of a relation, the membership it loaded; the server compares it with the current one inside the write and refuses with a conflict, writing nothing, when they differ (D40). Precise per relation, and no new counter.
+- The aggregate revision protects the revert and covers everything, relations included. A revert accepts an expected revision. It is not the token of a form save: the first request of the save already advances it. A mismatch in the token relevant to the operation fails before mutation.
 
 The two never replace each other. Optimistic checks protect against stale writers; they do not make several independent SQL statements atomic. Pessimistic `lockForUpdate()` remains available inside managed transactions. Advisory `HasLocks` controls user-level editing and is independent from revision history; a revert on a record locked by another user is refused.
 

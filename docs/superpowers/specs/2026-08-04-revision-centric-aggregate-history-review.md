@@ -148,7 +148,7 @@ Recorded as agreed with the user; the design spec is to be aligned with them, an
 26. **Restore security and side effects (user decision, 2026-10-09; part of I05, decisions 2 and 3).**
     - **A new permission verb `revert`.** It is generated for versioned models, distinct from `update` (a revert overwrites with old data and is more powerful), consistent with the word reserved by D20. Recovering a hard-deleted root needs `restore`. A revert is an ordinary write: it follows the approvals of the model like an `update` (with the actor attributed) and is refused if the record is locked by another user.
     - **Side effects.** Model events fire during a revert, so search indexing and re-embedding realign with the restored content after commit. Automatic translation does **not** run: verified in `HasTranslations`, the `updated` handler emits `TranslatedModelSaved($model, [], true)` when the default-locale translation changes, and `TranslateModelJob` would then retranslate the other locales with `force`, overwriting the ones just restored (conditional on `features.translation.enabled`, seeded off, and the model's own setting). A scoped revert context suppresses the translation dispatch; it is not a global `withoutEvents()`. The approvals subsystem does not create a new modification for the writes the revert performs internally.
-    - **Still open (decision 1 of I05):** who may read the history. Today `Version` and `VersionSet` are in `CorePermissions::excludedModels()`, so they have no permissions of their own. Concern: reading the versions table directly would show the history of rows the user's ACL hides.
+    - **Who may read the history (decision 1 of I05)** was open here and is closed by D27.
 
 27. **History visibility: a `history` permission (user decision, 2026-10-09; closes I05 decision 1).** Reading the history of a versioned record needs the new verb `history`, declared for versioned models like `revert` (D26), in addition to being able to read the record (`select`). `history` shows the revisions, who changed what and when, and the past values; it modifies nothing. `revert` implies `history`. The history is always reached through the root and its ACL, never by reading `core_versions` on its own. The snapshots of hard-deleted records (D17) are read and recovered only with `restore`. The SAO ticket timeline (`TicketTimelineService`) stays on the permission of the ticket for now; it reads `change_type`, `contents`, `original_contents` and `created_at`, so D18 (a compacted stretch becomes one entry) and D20 (new `change_type` values) require updating it when implemented.
 
@@ -236,6 +236,16 @@ Recorded as agreed with the user; the design spec is to be aligned with them, an
     - **Rule (the user's): a lock means the record is being edited, and nothing else may change it unless the lock is forcibly removed.** The holder of the lease may revert, since a revert is one more edit of theirs; anybody else is refused; a freeze refuses everybody. The way through for others is `forceUnlock()`, behind the `unlock` permission. `Locked::withoutGuard()` and `core.locking.prevent_modifications` apply as for the guard.
     - **Where.** `HasVersions::revertToVersion()` checks `HasLocks::blocksWritesByCurrentUser()` inside the version set, after `lockExistingRoot()` has reread the row under `FOR UPDATE`, and throws `LockedModelException` before any write; the set rolls back. A lock taken after the model was loaded is therefore seen.
     - **Tests, written first:** refused when locked by another user and when frozen, with nothing written and no `Revert` set; refused when the root row would not change; refused when the lock was taken after loading; allowed to the holder; allowed after a forced unlock.
+
+40. **A form that shows relations sends the membership it loaded; a changed membership is a conflict (decision proposed by Claude, confirmed by the user, 2026-10-19; answers "whether forms show relations" of D23).**
+    - **Facts, read in the code.** The Filament content form shows no relation (title, slug, components, position, validity); the user notes the Filament forms are quick and incomplete, so the rule must hold for any form, including a future Filament one. The Vue content form (`laraplate-ui`, `ContentsFormView.vue`) does show them: in the editor lens, for users with `update`, tags, categories, locations and contributors are a second section of the same form. The save makes two requests: `crud.update` of the content, then `syncContentRelations` of only the relations the user changed against what was loaded, each replacing the whole membership of that relation. A tag added meanwhile by somebody else, in a relation the user also changed, is lost without a conflict; relations the user did not touch are safe.
+    - **Rule: compare and set, per relation.** Together with the new membership of a relation, the form sends the membership it loaded. The server compares it with the current one inside the write and, when they differ, refuses with a conflict (409) and writes nothing. Precise: a tag added by somebody else does not block whoever edits the categories. No new counter: `lock_version` keeps protecting what the form edits of the record and its translations (D23, rule 1) and is still not raised by relation changes; the aggregate revision keeps protecting the revert. The aggregate revision is not the token here, because the first request of the same save already advances it and would refuse the second.
+    - **Amends the design spec,** which said a membership-replacement command accepts an expected aggregate revision: it accepts the expected membership of the relation it replaces.
+    - **Left to the UI repository, as separate work:** the Vue form sends no `lock_version`, so the fields of the record are overwritten without a conflict today; it must send it, handle the 409 of both checks, and preferably save record and relations in one atomic request instead of two (a failure of the second leaves a half-saved content).
+
+41. **The state of a CMS relation is its membership; a pivot column enters it only when declared (decision proposed by Claude, confirmed by the user, 2026-10-19; confirms D31 and settles question 10 of section C).**
+    - **Confirmed from D31, rechecked in the migrations and the models:** the four pivots hold the keys and the timestamps only, and no relation reads another pivot column (`withPivot`). The versioned state of each relation is the set of related ids (for tags with the morph type); the timestamps are metadata, not restored; `related()` stays out (D24).
+    - **New: a future pivot column** (the role of a contributor, the main category, an order) becomes part of the state only when the relation descriptor declares it authoritative. Declaring it changes the descriptor and so opens a new epoch with a lazy baseline (D13); an undeclared column is neither captured nor restored.
 
 ## Evidence verified in code (2026-10-09)
 
@@ -456,7 +466,7 @@ Target: `2026-07-29-revision-centric-aggregate-history-design.md`. Grouped by wh
 7. Bypasses: rejected or labelled `best-effort` as in D6, D17; disabling versioning is a purge (D22).
 8. Revision provider for models without optimistic locking: the two counters stay independent (D23).
 9. Retention reachability: anchors and the compaction rule (D18), hard-delete snapshots (D17).
-10. CMS category semantics: categories, tags, locations and contributors are `reference` (D2); `related()` is outside the guarantee (D24); which pivot attributes are authoritative is **still open**.
+10. CMS category semantics: categories, tags, locations and contributors are `reference` (D2); `related()` is outside the guarantee (D24); no pivot attribute is authoritative, membership only (D31, D41).
 
 ### D. Design work that does not exist yet and the spec must still produce
 
@@ -465,11 +475,11 @@ Target: `2026-07-29-revision-centric-aggregate-history-design.md`. Grouped by wh
 3. The hard-delete coordinator and the reworked `ClearExpiredModels`.
 4. The epoch fingerprint and its detection at the end of a migration.
 5. The scoped revert context that suppresses automatic translation.
-6. The pivot attributes that are authoritative for each CMS relation.
+6. The pivot attributes that are authoritative for each CMS relation: none, membership only (D31, D41).
 
 ### E. Not part of the spec but surfaced and still open
 
-Whether forms show relations (D23). Closed since: whether a revert on a record locked by another user is refused (D39); the tag detach on soft delete (fixed: `HasTags` detaches only when the record no longer exists); what `versions:compact` does until it is redefined (D38); the config key and schedule of the hard-delete purge and the metadata kept in a snapshot (D35).
+Nothing. Closed since: whether forms show relations (D40); whether a revert on a record locked by another user is refused (D39); the tag detach on soft delete (fixed: `HasTags` detaches only when the record no longer exists); what `versions:compact` does until it is redefined (D38); the config key and schedule of the hard-delete purge and the metadata kept in a snapshot (D35).
 
 ## Candidate resolution paths
 
