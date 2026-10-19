@@ -19,6 +19,15 @@ Divergences and extras:
 
 **Documented in:** `Modules/Core/docs/rag/MODULE.md`.
 
+**Superseded (2026-10-20)** by the final design, decisions D1–D51 in `docs/superpowers/specs/2026-07-29-revision-centric-aggregate-history-design.md` and `docs/superpowers/specs/2026-08-04-revision-centric-aggregate-history-review.md`. Do not extend this plan. The parts it shipped that the design changes:
+- D42 replaces `attachVersioned`/`detachVersioned`/`syncVersioned` with capture from pivot events and Core `BelongsToMany`/`MorphToMany` subclasses.
+- D20 replaces the soft delete recorded as `Updated` on `deleted_at` (and the JSON search of `trashingVersions()`) with the `trashed`/`restored` change types. The user confirmed D20 over that earlier choice on 2026-10-20.
+- D15 renames `vend_versions*` to `core_versions*`; D41 keeps pivot attributes only where a column is declared authoritative.
+- D48 renames `restoreToRevision()` to `revertToRevision()` and moves its checks under the root's lock; C08 replaces the library's DIFF replay used by `restoreScalarState()`.
+- D10 makes translations the owned part, so `subject_version_id` is not built.
+
+The shipped code stays in place until the replacement plan says which commits remain, change or are reverted.
+
 ## Global Constraints
 
 - Every PHP file starts with `declare(strict_types=1);`.
