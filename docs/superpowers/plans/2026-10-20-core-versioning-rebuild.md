@@ -35,7 +35,7 @@ Commits in `Modules/Core` unless noted.
 
 Each slice is delivered, reviewed and closed before the next starts.
 
-- [ ] **Slice 1 — Schema and library absorption** (D14, D15, D19, D20, plus the columns of D47/D52, D53 and D58): this file, Tasks 1–9.
+- [x] **Slice 1 — Schema and library absorption** (D14, D15, D19, D20, plus the columns of D47/D52, D53 and D58): this file, Tasks 1–9.
 - [ ] **Slice 2 — Reconstruction and complete anchors** (C08, C09, D53 creation set of kind `baseline`, D21 lock columns excluded, D8 comments and ratings never versioned, D10 translation models not versioned): own plan.
 - [ ] **Slice 3 — Version-set manager** (D34 `lockExistingRoot()` compares and keeps relations, D43 one set per root in one transaction, D52 capture recorded by the manager, counting the open transaction above the one `RefreshDatabase` wraps around each test; D60 the stored kind is decided when a root's set opens and is not part of the scope options): own plan.
 - [ ] **Slice 4 — Capture wrappers** (D34 `save()`/`delete()` scope, D28 translation observer and `withinRevision()`, D42 relation subclasses and pivot trait replacing the explicit methods, D41, D57 coverage, D24 multi-root rejected, then D44/D29 hard-delete coordinator with D54/D55): own plan.
@@ -57,9 +57,10 @@ Each slice is delivered, reviewed and closed before the next starts.
 **Files:**
 - Create: `Modules/Core/app/Enums/VersionStrategy.php`
 - Create: `Modules/Core/tests/Unit/Versioning/VersioningLibraryDetachedTest.php`
-- Modify: every PHP file importing `Overtrue\LaravelVersionable\VersionStrategy` (Core 25 prod and test files, ERP, MES, SAO; list with the grep below)
+- Modify: every PHP file importing `Overtrue\LaravelVersionable\VersionStrategy` (39 files in Core, ERP, MES, SAO; list with the grep below)
+- Modify: `Modules/Core/app/Models/Concerns/HasVersions.php` (`getVersionableAttributes()` on Core's enum)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 <?php
@@ -93,12 +94,12 @@ it('leaves no reference to the absorbed versioning library', function (string $s
 ]);
 ```
 
-- [ ] **Step 2: Run it and see it fail**
+- [x] **Step 2: Run it and see it fail**
 
 Run: `php artisan test --compact Modules/Core/tests/Unit/Versioning/VersioningLibraryDetachedTest.php`
 Expected: FAIL, listing about 40 files.
 
-- [ ] **Step 3: Create the enum**
+- [x] **Step 3: Create the enum**
 
 ```php
 <?php
@@ -120,7 +121,7 @@ enum VersionStrategy: string
 }
 ```
 
-- [ ] **Step 4: Swap the imports and inline references**
+- [x] **Step 4: Swap the imports and inline references**
 
 From `laraplate/`:
 
@@ -128,14 +129,16 @@ From `laraplate/`:
 grep -rl --include='*.php' 'Overtrue\\LaravelVersionable\\VersionStrategy' Modules | grep -v '/vendor/' | xargs sed -i -e 's#use Overtrue\\LaravelVersionable\\VersionStrategy;#use Modules\\Core\\Enums\\VersionStrategy;#' -e 's#\\Overtrue\\LaravelVersionable\\VersionStrategy#\\Modules\\Core\\Enums\\VersionStrategy#g'
 ```
 
-Then remove the now redundant import from files inside the `Modules\Core\Enums` namespace, if any, and run `vendor/bin/pint --dirty --format agent` to reorder imports.
+Then remove the now redundant import from files inside the `Modules\Core\Enums` namespace, if any, and run Pint on the touched files to reorder imports (`.ai/rules/modules.md`: from the root, explicit file list).
 
-- [ ] **Step 5: Run the test and the versioning suites**
+**Found at execution (2026-10-20):** the library's `Versionable::getVersionableAttributes()` is typed on the library enum and `VersionChange` calls it with Core's, so the swap alone fails with a `TypeError`. `getVersionableAttributes()` is therefore absorbed into `HasVersions` in this task (body as in Task 3, Step 3), not in Task 3. The detached test skips its own file, which names the symbol in its dataset, and locates `Modules/` from `__DIR__` because the Unit suite has no application.
+
+- [x] **Step 5: Run the test and the versioning suites**
 
 Run: `php artisan test --compact Modules/Core/tests/Unit/Versioning Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers`
 Expected: PASS. Then the touched ERP, MES and SAO test files: `php artisan test --compact` with the paths printed by `grep -rl 'Modules\\Core\\Enums\\VersionStrategy' Modules/{ERP,MES,SAO}/tests`.
 
-- [ ] **Step 6: Commit** in each touched module repository (`feat(core): absorb VersionStrategy enum (D14)` in Core; `refactor: import Core VersionStrategy` in ERP, MES, SAO).
+- [x] **Step 6: Commit** in each touched module repository (`feat(core): absorb VersionStrategy enum (D14)` in Core; `refactor: import Core VersionStrategy` in ERP, MES, SAO).
 
 ### Task 2: Make `Version` a Core model
 
@@ -146,7 +149,7 @@ Expected: PASS. Then the touched ERP, MES and SAO test files: `php artisan test 
 - Modify: `Modules/Core/tests/Unit/Versioning/VersioningLibraryDetachedTest.php`
 - Test: `Modules/Core/tests/Integration/Models/VersionModelTest.php`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Add the dataset row `'version model' => ['Overtrue\LaravelVersionable\Version']` to the detached test, and to `VersionModelTest`:
 
@@ -157,12 +160,14 @@ it('is a plain Core model without soft deletes', function (): void {
 });
 ```
 
-- [ ] **Step 2: Run them and see them fail**
+- [x] **Step 2: Run them and see them fail**
 
 Run: `php artisan test --compact Modules/Core/tests/Unit/Versioning/VersioningLibraryDetachedTest.php Modules/Core/tests/Integration/Models/VersionModelTest.php`
 Expected: FAIL (the parent is the library's `Version`, which uses `SoftDeletes`).
 
-- [ ] **Step 3: Absorb the members Core relies on**
+**Found at execution (2026-10-20):** the detached test matches a symbol only as a whole name (`Version` is a prefix of `Versionable`, still in use until Task 3). `HasVersions` imports the library's `Version` as the return type of `createVersion()`, so its import switches to `Modules\Core\Models\Version` in this task. The `#[Override]` attributes on `createForModel()`, `revertWithoutSaving()`, `previousVersions()` and `nextVersion()` go, since `Model` has no such methods, and `createForModel()` types `$time` as `DateTimeInterface|string|null`. In `VersionSetManagerTest` the soft-deleted extra row case becomes a hard delete that leaves nothing behind, and the soft-deleted confirmed row case a deleted one.
+
+- [x] **Step 3: Absorb the members Core relies on**
 
 In `Version.php` replace `use Overtrue\LaravelVersionable\Version as OvertrueVersion;` with `use Illuminate\Database\Eloquent\Model;` and `use Illuminate\Database\Eloquent\Relations\MorphTo;`, make the class `final class Version extends Model`, add the attribution to its docblock (`Parts absorbed from overtrue/laravel-versionable, MIT License, Copyright (c) 2019 overtrue.`) and add the members below unless the class already defines them. The library members Laraplate does not use (`Diff`, `user()`, the trashed-version methods, the timestamp-ordering toggles) are not absorbed.
 
@@ -235,7 +240,7 @@ In `Version.php` replace `use Overtrue\LaravelVersionable\Version as OvertrueVer
 
 If `Version` already has a `booted()`, merge the `creating` hook into it instead of adding a second method.
 
-- [ ] **Step 4: Replace the sequence check in `ActiveVersionSet::finish()`**
+- [x] **Step 4: Replace the sequence check in `ActiveVersionSet::finish()`**
 
 Without soft deletes every persisted row is visible, so one query suffices:
 
@@ -255,12 +260,12 @@ Without soft deletes every persisted row is visible, so one query suffices:
 
 and reduce the exception to `__construct(array $expected, array $persisted)` with the message `'Confirmed version sequences [%s] do not match persisted [%s] sequences.'`. Update the tests that construct or assert that message (`grep -rn VersionSequenceMismatchException Modules/Core/tests`).
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `php artisan test --compact Modules/Core/tests/Unit/Versioning Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models`
 Expected: PASS.
 
-- [ ] **Step 6: Commit** `feat(core): make Version a Core model without the library base (D14)`.
+- [x] **Step 6: Commit** `feat(core): make Version a Core model without the library base (D14)`.
 
 ### Task 3: Absorb the `Versionable` trait into `HasVersions`
 
@@ -270,7 +275,7 @@ Expected: PASS.
 - Modify: `Modules/Core/tests/Unit/Versioning/VersioningLibraryDetachedTest.php`
 - Test: `Modules/Core/tests/Integration/Helpers/HasVersionsTest.php`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace the dataset of the detached test with the whole namespace, `'library' => ['Overtrue\LaravelVersionable']`, and add to `HasVersionsTest` (schema as in the existing tests of that file):
 
@@ -297,14 +302,14 @@ it('exposes the first and latest versions without the library trait', function (
 });
 ```
 
-- [ ] **Step 2: Run them and see them fail**
+- [x] **Step 2: Run them and see them fail**
 
 Run: `php artisan test --compact Modules/Core/tests/Unit/Versioning/VersioningLibraryDetachedTest.php Modules/Core/tests/Integration/Helpers/HasVersionsTest.php`
 Expected: FAIL (the trait still uses `Versionable`).
 
-- [ ] **Step 3: Replace the trait use with the absorbed members**
+- [x] **Step 3: Replace the trait use with the absorbed members**
 
-In `HasVersions`: remove the `use Versionable { history as private untypedHistory; latestVersions as private untypedLatestVersions; oldestVersions as private untypedOldestVersions; }` block, its import and the no-op `bootVersionable()`; the three typed methods call those aliases, so their bodies become `return $this->latestVersions();` in `history()`, `return $this->versions()->orderLatestFirst();` in `latestVersions()` and `return $this->versions()->orderOldestFirst();` in `oldestVersions()`, as in the library; replace `use Overtrue\LaravelVersionable\Version;` with `use Modules\Core\Models\Version;`; add `use Illuminate\Database\Eloquent\Relations\MorphOne;` and the members below. Keep every other method `HasVersions` already defines (`createVersion()`, `createInitialVersion()`, `shouldBeVersioning()`, `getDontVersionable()`, `getVersionStrategy()`, `getVersionUserId()`, `revertToVersion()`). Add the attribution line to the trait docblock.
+In `HasVersions`: remove the `use Versionable { history as private untypedHistory; latestVersions as private untypedLatestVersions; oldestVersions as private untypedOldestVersions; }` block, its import and the no-op `bootVersionable()`; the three typed methods call those aliases, so their bodies become `return $this->latestVersions();` in `history()`, `return $this->versions()->orderLatestFirst();` in `latestVersions()` and `return $this->versions()->orderOldestFirst();` in `oldestVersions()`, as in the library; replace `use Overtrue\LaravelVersionable\Version;` with `use Modules\Core\Models\Version;`; add `use Illuminate\Database\Eloquent\Relations\MorphOne;` and the members below, except `getVersionableAttributes()`, already absorbed in Task 1. Keep every other method `HasVersions` already defines (`createVersion()`, `createInitialVersion()`, `shouldBeVersioning()`, `getDontVersionable()`, `getVersionStrategy()`, `getVersionUserId()`, `revertToVersion()`). Add the attribution line to the trait docblock.
 
 ```php
     protected static bool $versioning = true;
@@ -408,12 +413,14 @@ In `HasVersions`: remove the `use Versionable { history as private untypedHistor
 
 In `CrudService::hasHistory()` replace `Versionable::class` with `HasVersions::class` and fix the import.
 
-- [ ] **Step 4: Run the tests**
+**Found at execution (2026-10-20):** two anonymous test models (`CrudServiceTest`, `CrudServiceRequestScenariosTest`) used the library trait directly and now use `HasVersions`; the new `HasVersionsTest` case does not name the library, which the detached test would flag.
+
+- [x] **Step 4: Run the tests**
 
 Run: `php artisan test --compact Modules/Core/tests/Unit/Versioning Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers Modules/Core/tests/Integration/Services/CrudServiceTest.php`, then the seeding tests that call `disableVersioning()` (`grep -rln "disableVersioning\|enableVersioning" Modules/Core/tests`).
 Expected: PASS.
 
-- [ ] **Step 5: Commit** `feat(core): absorb the Versionable trait into HasVersions (D14)`.
+- [x] **Step 5: Commit** `feat(core): absorb the Versionable trait into HasVersions (D14)`.
 
 ### Task 4: Remove the package requirement
 
@@ -422,11 +429,11 @@ Expected: PASS.
 - Modify: `composer.lock` (laraplate root, through composer)
 - Modify: `Modules/Core/config/versionable.php` (drop the keys only the library read: `keep_versions`, `user_model`)
 
-- [ ] **Step 1: Confirm with the user** that the dependency may be removed now (dependency change, AGENTS.md).
-- [ ] **Step 2: Remove the requirement** from `Modules/Core/composer.json`, then from `laraplate/` run `composer update overtrue/laravel-versionable --no-interaction`, and check `composer why jfcherng/php-diff` prints nothing (it was needed only by the library's `Diff`).
-- [ ] **Step 3: Drop the dead config keys** `keep_versions` and `user_model` from `config/versionable.php`; Core's `ServiceProvider::registerConfig()` already merges the file under `versionable`, so the remaining keys keep working.
-- [ ] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Unit/Versioning Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers` and `php artisan about` (the application boots without the package's provider).
-- [ ] **Step 5: Commit** `chore(core): drop overtrue/laravel-versionable (D14)` in Core and the lock file in `laraplate/`.
+- [x] **Step 1: Confirm with the user** that the dependency may be removed now (dependency change, AGENTS.md). Confirmed on 2026-10-20. The update removed only the library and the `jfcherng/*` packages it pulled; `doctrine/dbal` stays, the root requires it directly.
+- [x] **Step 2: Remove the requirement** from `Modules/Core/composer.json`, then from `laraplate/` run `composer update overtrue/laravel-versionable --no-interaction`, and check `composer why jfcherng/php-diff` prints nothing (it was needed only by the library's `Diff`).
+- [x] **Step 3: Drop the dead config keys** `keep_versions` and `user_model` from `config/versionable.php`; Core's `ServiceProvider::registerConfig()` already merges the file under `versionable`, so the remaining keys keep working.
+- [x] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Unit/Versioning Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers` and `php artisan about` (the application boots without the package's provider).
+- [x] **Step 5: Commit** `chore(core): drop overtrue/laravel-versionable (D14)` in Core and the lock file in `laraplate/`.
 
 ### Task 5: Rename the tables
 
@@ -435,7 +442,7 @@ Expected: PASS.
 - Modify: every literal `vend_versions` in code, tests and docs (`grep -rn "vend_versions" Modules docs tests`)
 - Test: `Modules/Core/tests/Integration/Versioning/VersionSetSchemaTest.php`
 
-- [ ] **Step 1: Write the failing test** in `VersionSetSchemaTest`:
+- [x] **Step 1: Write the failing test** in `VersionSetSchemaTest`:
 
 ```php
 it('names the history tables core_versions and core_versions_sets', function (): void {
@@ -446,10 +453,10 @@ it('names the history tables core_versions and core_versions_sets', function ():
 });
 ```
 
-- [ ] **Step 2: Run it and see it fail.** Run: `php artisan test --compact Modules/Core/tests/Integration/Versioning/VersionSetSchemaTest.php`. Expected: FAIL (`vend_versions`).
-- [ ] **Step 3: Rename** `case VersionSets = 'core_versions_sets';` and `case Versions = 'core_versions';`, and replace the literals found by the grep.
-- [ ] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models` and the SAO timeline test (`Modules/SAO/tests/Feature/Services/TicketTimelineServiceTest.php`). Expected: PASS.
-- [ ] **Step 5: Commit** `feat(core): rename history tables to core_versions* (D15)`.
+- [x] **Step 2: Run it and see it fail.** Run: `php artisan test --compact Modules/Core/tests/Integration/Versioning/VersionSetSchemaTest.php`. Expected: FAIL (`vend_versions`).
+- [x] **Step 3: Rename** `case VersionSets = 'core_versions_sets';` and `case Versions = 'core_versions';`, and replace the literals found by the grep.
+- [x] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models` and the SAO timeline test (`Modules/SAO/tests/Feature/Services/TicketTimelineServiceTest.php`). Expected: PASS.
+- [x] **Step 5: Commit** `feat(core): rename history tables to core_versions* (D15)`.
 
 ### Task 6: Append-only history tables
 
@@ -460,7 +467,7 @@ it('names the history tables core_versions and core_versions_sets', function ():
 - Modify: `Modules/Core/app/Models/Version.php`, `Modules/Core/app/Models/VersionSet.php` (`UPDATED_AT = null`, casts)
 - Test: `Modules/Core/tests/Integration/Versioning/VersionSetSchemaTest.php`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 it('keeps the history tables append-only', function (): void {
@@ -475,12 +482,12 @@ it('keeps the history tables append-only', function (): void {
 });
 ```
 
-- [ ] **Step 2: Run it and see it fail.** Expected: FAIL (`updated_at` and `deleted_at` exist).
-- [ ] **Step 3: Add the flag to `MigrateUtils::timestamps()`** as the last parameter, `bool $hasUpdatedAt = true`, and guard the `updated_at` column with it: `if ($hasUpdatedAt && ! $schema->hasColumn($table_name, Model::UPDATED_AT))`. The default does not change.
-- [ ] **Step 4: Edit the create migrations.** Versions: `MigrateUtils::timestamps($table, hasCreateUpdate: true, hasUpdatedAt: false);` (no `hasSoftDelete`) and `$table->timestamp('compacted_at')->nullable()->comment('Set when a compaction rewrote the row (D18)');`. Sets: `MigrateUtils::timestamps($table, hasCreateUpdate: true, createdAtIndexName: 'vsets_created_IDX', hasUpdatedAt: false);`.
-- [ ] **Step 5: Models.** Add `public const UPDATED_AT = null;` to `Version` and `VersionSet`; remove `updated_at` (and `deleted_at` if present) from their `casts()`.
-- [ ] **Step 6: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models Modules/Core/tests/Feature/Services/PresetVersioningServiceTest.php` and the `MigrateUtils` tests (`grep -rln "MigrateUtils::timestamps\|timestamps(" Modules/Core/tests/Unit`). Expected: PASS; fix the tests that asserted `updated_at`/`deleted_at` on versions.
-- [ ] **Step 7: Commit** `feat(core): make the history tables append-only (D19)`.
+- [x] **Step 2: Run it and see it fail.** Expected: FAIL (`updated_at` and `deleted_at` exist).
+- [x] **Step 3: Add the flag to `MigrateUtils::timestamps()`** as the last parameter, `bool $hasUpdatedAt = true`, and guard the `updated_at` column with it: `if ($hasUpdatedAt && ! $schema->hasColumn($table_name, Model::UPDATED_AT))`. The default does not change.
+- [x] **Step 4: Edit the create migrations.** Versions: `MigrateUtils::timestamps($table, hasCreateUpdate: true, hasUpdatedAt: false);` (no `hasSoftDelete`) and `$table->timestamp('compacted_at')->nullable()->comment('Set when a compaction rewrote the row (D18)');`. Sets: `MigrateUtils::timestamps($table, hasCreateUpdate: true, createdAtIndexName: 'vsets_created_IDX', hasUpdatedAt: false);`.
+- [x] **Step 5: Models.** Add `public const UPDATED_AT = null;` to `Version` and `VersionSet`; remove `updated_at` (and `deleted_at` if present) from their `casts()`.
+- [x] **Step 6: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models Modules/Core/tests/Feature/Services/PresetVersioningServiceTest.php` and the `MigrateUtils` tests (`grep -rln "MigrateUtils::timestamps\|timestamps(" Modules/Core/tests/Unit`). Expected: PASS; fix the tests that asserted `updated_at`/`deleted_at` on versions.
+- [x] **Step 7: Commit** `feat(core): make the history tables append-only (D19)`.
 
 ### Task 7: `trashed` and `restored` change types
 
@@ -489,9 +496,9 @@ it('keeps the history tables append-only', function (): void {
 - Modify: `Modules/Core/app/Models/Concerns/HasVersions.php` (`capturePendingVersionUpdate()`, `writePendingVersionUpdate()`, `writePendingVersionDelete()`, `trashingVersions()`)
 - Test: `Modules/Core/tests/Integration/Versioning/DeleteVersioningStrategyTest.php`, `Modules/Core/tests/Integration/Versioning/VersionWriterCharacterizationTest.php`
 
-- [ ] **Step 1: Change the tests first.** In `DeleteVersioningStrategyTest` the soft-delete test expects `VersionChangeType::Trashed` (it replaces the `Updated` expectation of `83112c2`), and `trashingVersions()` still returns exactly the trashing row and not the restore. In `VersionWriterCharacterizationTest` the restore test expects `VersionChangeType::Restored`.
-- [ ] **Step 2: Run them and see them fail.** Run: `php artisan test --compact Modules/Core/tests/Integration/Versioning/DeleteVersioningStrategyTest.php Modules/Core/tests/Integration/Versioning/VersionWriterCharacterizationTest.php`. Expected: FAIL (`Trashed`/`Restored` undefined).
-- [ ] **Step 3: Extend the enum**
+- [x] **Step 1: Change the tests first.** In `DeleteVersioningStrategyTest` the soft-delete test expects `VersionChangeType::Trashed` (it replaces the `Updated` expectation of `83112c2`), and `trashingVersions()` still returns exactly the trashing row and not the restore. In `VersionWriterCharacterizationTest` the restore test expects `VersionChangeType::Restored`.
+- [x] **Step 2: Run them and see them fail.** Run: `php artisan test --compact Modules/Core/tests/Integration/Versioning/DeleteVersioningStrategyTest.php Modules/Core/tests/Integration/Versioning/VersionWriterCharacterizationTest.php`. Expected: FAIL (`Trashed`/`Restored` undefined).
+- [x] **Step 3: Extend the enum**
 
 ```php
 enum VersionChangeType: string
@@ -506,13 +513,13 @@ enum VersionChangeType: string
 
 The enum column of the create migration is built from `cases()`, so it follows.
 
-- [ ] **Step 4: Write the new types.**
+- [x] **Step 4: Write the new types.**
   - In `writePendingVersionDelete()` the soft-delete branch writes `type: VersionChangeType::Trashed` instead of `Updated`.
   - In `capturePendingVersionUpdate()` store a `type`: `Restored` when the model has a `deleted_at` column (`getVersionDeletedAtColumn()`), it is among the dirty keys, its raw original is not null and its new value is null; otherwise `Updated`.
   - In `writePendingVersionUpdate()` write `type: $pending['type']`.
   - `trashingVersions()` becomes `$this->versions()->getQuery()->where('change_type', VersionChangeType::Trashed)`, dropping the JSON search.
-- [ ] **Step 5: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers` and the SAO timeline test. Expected: PASS.
-- [ ] **Step 6: Commit** `feat(core): record trashed and restored change types (D20)`.
+- [x] **Step 5: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers` and the SAO timeline test. Expected: PASS.
+- [x] **Step 6: Commit** `feat(core): record trashed and restored change types (D20)`.
 
 ### Task 8: Columns and kinds for the later slices
 
@@ -523,7 +530,7 @@ The enum column of the create migration is built from `cases()`, so it follows.
 - Modify: `Modules/Core/app/Models/VersionSet.php` (fillable, cast)
 - Test: `Modules/Core/tests/Integration/Versioning/VersionSetSchemaTest.php`, `Modules/Core/tests/Unit/Versioning/VersionSetOptionsTest.php` (create if missing)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```php
 it('sets reverted_from_set_id to null when the target set is removed', function (): void {
@@ -556,8 +563,8 @@ it('allows a reverted-from set only on a revert', function (): void {
 });
 ```
 
-- [ ] **Step 2: Run them and see them fail.** Expected: FAIL (`Baseline`, `VersionCaptureQuality` and `capture` undefined; the FK restricts the delete).
-- [ ] **Step 3: Enums.** `VersionSetKind` gains `case Baseline = 'baseline';`. Create:
+- [x] **Step 2: Run them and see them fail.** Expected: FAIL (`Baseline`, `VersionCaptureQuality` and `capture` undefined; the FK restricts the delete).
+- [x] **Step 3: Enums.** `VersionSetKind` gains `case Baseline = 'baseline';`. Create:
 
 ```php
 <?php
@@ -577,7 +584,7 @@ enum VersionCaptureQuality: string
 }
 ```
 
-- [ ] **Step 4: Migration.** In the sets create migration add after `kind`:
+- [x] **Step 4: Migration.** In the sets create migration add after `kind`:
 
 ```php
             $table->enum(
@@ -587,9 +594,9 @@ enum VersionCaptureQuality: string
 ```
 
 and replace the `reverted_from_set_id` foreign key block (including the Oracle branch) with `$table->foreign('reverted_from_set_id', 'vsets_reverted_FK')->references('id')->on($table_name)->nullOnDelete();` (D58; Oracle supports `ON DELETE SET NULL`).
-- [ ] **Step 5: Model and options.** `VersionSet`: add `'capture'` to `$fillable` and `'capture' => VersionCaptureQuality::class` to `casts()`. `VersionSetOptions`: replace the check `$kind === VersionSetKind::Change && $revertedFrom !== null` with `$kind !== VersionSetKind::Revert && $revertedFrom !== null`, message `'Only a revert version set can reference a reverted set.'`.
-- [ ] **Step 6: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Unit/Versioning`. Expected: PASS.
-- [ ] **Step 7: Commit** `feat(core): add capture, baseline kind and SET NULL revert link (D52, D53, D58)`.
+- [x] **Step 5: Model and options.** `VersionSet`: add `'capture'` to `$fillable` and `'capture' => VersionCaptureQuality::class` to `casts()`. `VersionSetOptions`: replace the check `$kind === VersionSetKind::Change && $revertedFrom !== null` with `$kind !== VersionSetKind::Revert && $revertedFrom !== null`, message `'Only a revert version set can reference a reverted set.'`.
+- [x] **Step 6: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Unit/Versioning`. Expected: PASS.
+- [x] **Step 7: Commit** `feat(core): add capture, baseline kind and SET NULL revert link (D52, D53, D58)`.
 
 ### Task 9: Documentation and closing of the slice
 
@@ -599,10 +606,10 @@ and replace the `reverted_from_set_id` foreign key block (including the Oracle b
 - Modify: `docs/superpowers/specs/2026-08-04-revision-centric-aggregate-history-review.md` (status line: implemented D14, D15, D19, D20 and the schema of D52, D53, D58)
 - Modify: this plan (tick Slice 1)
 
-- [ ] **Step 1: Rewrite the stale parts of the versioning section of `MODULE.md`:** the writer is synchronous through `VersionWriterInterface` from the `HasVersions` boot hooks (there is no `ModelVersioningRequested`/`CreateVersionJob`); the tables are `core_versions` and `core_versions_sets`, append-only; `VersionStrategy` is a Core enum and the library is no longer a dependency; a soft delete is `trashed`, a restore `restored`, a hard delete still the `deleted` tombstone until the coordinator; sets carry `kind` (`change`, `revert`, `baseline`) and `capture`; `reverted_from_set_id` is set to null when its target is removed. Keep the description of `HasVersionedRelations` and mark the explicit methods as replaced in Slice 4.
-- [ ] **Step 2: README.** Replace the `overtrue/laravel-versionable` dependency line with a note that versioning is part of Core (D14), keeping the existing style.
-- [ ] **Step 3: Run** `php artisan test --compact tests/Unit/ClosedPlansPointToDocumentationTest.php` (the pointer of the superseded plan must still resolve) and the full versioning set: `php artisan test --compact Modules/Core/tests/Unit/Versioning Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers Modules/Core/tests/Integration/Models`. Ask the user to run the whole suite.
-- [ ] **Step 4: Commit** the docs in Core and in `laraplate/`; tick Slice 1 above.
+- [x] **Step 1: Rewrite the stale parts of the versioning section of `MODULE.md`:** the writer is synchronous through `VersionWriterInterface` from the `HasVersions` boot hooks (there is no `ModelVersioningRequested`/`CreateVersionJob`); the tables are `core_versions` and `core_versions_sets`, append-only; `VersionStrategy` is a Core enum and the library is no longer a dependency; a soft delete is `trashed`, a restore `restored`, a hard delete still the `deleted` tombstone until the coordinator; sets carry `kind` (`change`, `revert`, `baseline`) and `capture`; `reverted_from_set_id` is set to null when its target is removed. Keep the description of `HasVersionedRelations` and mark the explicit methods as replaced in Slice 4.
+- [x] **Step 2: README.** Replace the `overtrue/laravel-versionable` dependency line with a note that versioning is part of Core (D14), keeping the existing style. Done with the convention of the other derived libraries: `Modules/Core/LICENSES/laravel-versionable.md` with the upstream license and commit, a line under "Third-party code", and the derived files pointing at it in their header.
+- [x] **Step 3: Run** (2026-10-20: the whole regression is green per suite; `ClosedPlansPointToDocumentationTest` fails only on `2026-10-20-crm-module-extraction.md`, whose `Modules/CRM` docs are another work's) `php artisan test --compact tests/Unit/ClosedPlansPointToDocumentationTest.php` (the pointer of the superseded plan must still resolve) and the full versioning set: `php artisan test --compact Modules/Core/tests/Unit/Versioning Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers Modules/Core/tests/Integration/Models`. Ask the user to run the whole suite.
+- [x] **Step 4: Commit** the docs in Core and in `laraplate/`; tick Slice 1 above.
 
 ---
 
