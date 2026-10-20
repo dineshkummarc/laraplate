@@ -238,7 +238,7 @@ surface Laraplate UI consumes; `/api/v1` is the opt-in headless API. Domain acti
 |----|---------|--------|------|
 | 3-01 | `/app` | **done** | Domain-action route `POST /app/crud/{action}/{module}/{entity}` + registry; Core `f2935dd`…`7820067`, ERP `bb9cca3`…`c92cbb6` |
 | 3-02 | `/api/v1` | deferred | Opt-in external API + versioning |
-| 3-03 | `/api/v1` | deferred | Per-model CRUD/API exposure governance |
+| 3-03 | `/api/v1` | dropped 2026-10-20 | Per-model CRUD/API exposure governance: redundant with `RestrictsCrudWrites`, permissions/ACL and `core.expose_api`; see the plan's Delivery status |
 | 3-04 | both | **done** | `PermissionName` helper; Core `29a5177`, `fb63000`, ERP `d78894a` |
 | 3-05 | — | done | Revert/reverse processed return |
 | 3-06 | `/app` | **done** | HTTP behaviour matrix; ERP `5072200` |

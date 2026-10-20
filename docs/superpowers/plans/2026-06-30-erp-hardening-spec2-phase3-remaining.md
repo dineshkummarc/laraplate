@@ -23,7 +23,7 @@ and are not blocked by the API decision. Design:
 
 **Dependency on API access control:** the external `/api/v1` work (Tasks 2 and 11, `4-13`) is governed by [`2026-10-08-api-access-control.md`](2026-10-08-api-access-control.md). Do not start it here. When that plan closes, its Task 10 marks Task 11 `- [-]` (superseded: Sanctum, guards and the `expose_api` switch live there) and this plan is closed with a delivery status; Task 2 stays a later refinement on top of the new switch.
 
-**Current slice:** no active implementation slice. This plan is retained as completed implementation history. A new scope requires explicit approval. ERP external-source importers (`4-09`) remain independent in [`2026-07-22-erp-external-source-importers.md`](2026-07-22-erp-external-source-importers.md) and are outside Point 0.
+**Current slice:** none. The plan is closed (see Delivery status at the end) and retained as implementation history. A new scope requires explicit approval. ERP external-source importers (`4-09`) remain independent in [`2026-07-22-erp-external-source-importers.md`](2026-07-22-erp-external-source-importers.md) and are outside Point 0.
 
 **Goal:** Close the entire ERP master backlog: production e-invoice, Core domain-action HTTP layer + API governance, Tricount/commercial depth, operational console commands, and long-term architecture (FX, Money VO, dimensions, events).
 
@@ -202,11 +202,11 @@ php artisan test --compact Modules/ERP/tests/Feature/ErpModelPolicyTest.php
 
 ---
 
-### Task 2: Per-model CRUD/API exposure governance (3-03) — deferred
+### Task 2: Per-model CRUD/API exposure governance (3-03) — closed 2026-10-20, not built
 
 **Dependency:** build only after [`2026-10-08-api-access-control.md`](2026-10-08-api-access-control.md) is closed. Its gate is `expose_api` (config `core.expose_api`, middleware `AuthenticateApiRequest`); `EnsureCrudApiAreEnabled` and `core.expose_crud_api` named below no longer exist after that plan.
 
-**Point 0 decision:** do not implement until an external `/api/v1` consumer and its permitted entity/operation matrix are approved. The unchecked steps below describe the candidate implementation, not active work.
+**Point 0 decision:** do not implement until an external `/api/v1` consumer and its permitted entity/operation matrix are approved. The steps below describe the candidate implementation and are kept as history; they were closed `- [-]` on 2026-10-20, see Delivery status.
 
 **Modules:** Core  
 **Backlog:** `3-03`  
@@ -221,7 +221,7 @@ php artisan test --compact Modules/ERP/tests/Feature/ErpModelPolicyTest.php
 - Create: `Modules/Core/tests/Feature/Services/CrudExposureRegistryTest.php`
 - Modify: `Modules/ERP/app/Models/JournalEntry.php` (+ other immutable models) — implement exposure contract
 
-- [ ] **Step 1: Contract**
+- [-] **Step 1: Contract** — dropped, see Delivery status
 
 ```php
 <?php
@@ -244,25 +244,25 @@ interface ExposesCrudApi
 
 Default: if not implemented, all standard CRUD ops allowed when global `expose_crud_api` is true.
 
-- [ ] **Step 2: Registry** — resolves `{module}.{entity}` → model class; checks:
+- [-] **Step 2: Registry** — resolves `{module}.{entity}` → model class; checks: — dropped, see Delivery status
   1. Global `config('core.expose_crud_api')`
   2. Optional setting `core.crud_exposure.{module}.{entity}` (allowlist/denylist)
   3. Model `allowedCrudOperations()` if `ExposesCrudApi`
 
-- [ ] **Step 3: Integrate in `CrudService`** — before `list`/`detail`/`insert`/etc., call `CrudExposureRegistry::assertAllowed($model, $operation)`.
+- [-] **Step 3: Integrate in `CrudService`** — before `list`/`detail`/`insert`/etc., call `CrudExposureRegistry::assertAllowed($model, $operation)`. — dropped, see Delivery status
 
 **CMS safety:** gate at service entry (CrudService), not by removing routes — `ContentsController` extending `CrudController` for CMS-specific paths must not call blocked operations on ERP entities.
 
-- [ ] **Step 4: ERP models**
+- [-] **Step 4: ERP models** — dropped, see Delivery status
 
 | Model | Allowed via CRUD API |
 |-------|---------------------|
 | `JournalEntry`, `JournalEntryLine`, `VatRegisterEntry`, `StockMovement`, `StockCostLayer`, `StockLevel` | `select` only (or none) |
 | Draft `Invoice`, `Party`, `Quotation`, etc. | full CRUD per permissions |
 
-- [ ] **Step 5: Tests** — superadmin cannot `insert` on `JournalEntry` when exposure denies; `select` still works if allowed.
+- [-] **Step 5: Tests** — superadmin cannot `insert` on `JournalEntry` when exposure denies; `select` still works if allowed. — dropped, see Delivery status
 
-- [ ] **Step 6: Commit** Core `feat(core): per-model CRUD API exposure governance`
+- [-] **Step 6: Commit** Core `feat(core): per-model CRUD API exposure governance` — dropped, see Delivery status
 
 ---
 
@@ -1135,4 +1135,20 @@ php artisan test --compact Modules/ERP/tests/Feature/AccountingGoldenMasterTest.
 
 Plan saved to `docs/superpowers/plans/2026-06-30-erp-hardening-spec2-phase3-remaining.md`.
 
-No implementation wave is active. Select one of the four tracked but inactive rows (`3-02`, `3-03`, `4-08`, `4-13`) only after approving its consumer and scope. Importers remain outside this Point 0 handoff.
+No implementation wave is active. The inactive rows `3-02`, `4-08` and `4-13` need an approved consumer and scope before they start; `3-03` was dropped, see Delivery status. Importers remain outside this Point 0 handoff.
+
+---
+
+## Delivery status (2026-10-20): closed, Task 2 (3-03) dropped as redundant
+
+Every task is either delivered or resolved. Task 2 (`3-03`, per-model CRUD/API exposure governance) was the last open one and is closed `- [-]` without being built; its six steps stay in the plan as history of a candidate design.
+
+**Why `3-03` was not built.** The design of June no longer holds against the code:
+
+- **Writes on immutable ERP models are already denied.** `JournalEntry`, `JournalEntryLine`, `VatRegisterEntry`, `StockMovement`, `StockCostLayer`, `StockLevel` and `StockReservation` implement Core `RestrictsCrudWrites` (through `DeniesGenericCrudWrites`), and `CrudService::assertCrudWriteAllowed()` answers `403` on insert, update, delete, restore, approve, lock and the other generic writes (ERP `CrudWriteGuardTest`). That is the table of Step 4, built before the contract Step 1 proposed.
+- **Read access per entity is already governed.** The API access control plan (delivered 2026-10-09) gives one switch (`core.expose_api`) and permissions, row ACLs and token abilities per entity and operation on both guards; an operator who wants an entity unreadable on the API removes its `select` permission from the roles and tokens concerned.
+- **A registry inside `CrudService` cannot tell `/app` from `/api/v1`.** Both surfaces reach the same service through the same `crud.php` routes, so a per-entity `core.crud_exposure.*` registry would block the Laraplate UI as well. Splitting the surfaces is a product decision, and the Point 0 condition for this task (an approved external consumer and entity/operation matrix) is still unmet.
+
+**Divergences:** Steps 1 to 6 of Task 2 are `- [-]`; no `ExposesCrudApi` contract, `CrudExposureRegistry`, `core.crud_exposure` setting or `EnsureModelCrudExposed` middleware exists. If an external `/api/v1` consumer is approved, start from a new spec that decides whether exposure is per surface, instead of reviving these steps.
+
+**Documented in:** `Modules/Core/docs/CRUD_SYSTEM.md` (generic CRUD write restriction), `Modules/Core/docs/rag/MODULE.md`, `Modules/ERP/docs/rag/MODULE.md`, `Modules/ERP/docs/ERP_GUIDA_SEMPLICE.md` and `Modules/ERP/README.md`.
