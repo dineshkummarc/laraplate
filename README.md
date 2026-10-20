@@ -7,12 +7,12 @@
 <p>&nbsp;</p>
 <p align="center">
     <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel 12">
-    <img src="https://img.shields.io/badge/PHP-8.5+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.2+">
+    <img src="https://img.shields.io/badge/PHP-8.5+-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.5+">
     <img src="https://img.shields.io/badge/License-GNU_AGPL_v3-green?style=for-the-badge" alt="GNU AGPL v3 License">
 </p>
 <p>&nbsp;</p>
 
-> ⚠️ **Caution**: This package is a **work in progress**. **Don't use this in production or use at your own risk**—no guarantees are provided... or better yet, collaborate with me to create the definitive Laravel boilerplate; that's the right place to instroduce your ideas. Let me know your ideas...
+> ⚠️ **Caution**: This package is a **work in progress**. **Don't use this in production or use at your own risk**—no guarantees are provided... or better yet, collaborate with me to create the definitive Laravel boilerplate; that's the right place to introduce your ideas. Let me know your ideas...
 
 ## About Laraplate
 
@@ -57,18 +57,18 @@ class is auto-discovered by `coolsam/modules` and registers the module's resourc
 and widgets, plus its own navigation group and icon (`afterRegister()`). The admin panel
 provider therefore lists no module: it only declares the application's own groups.
 
-### Environment (principali variabili)
+### Environment (main variables)
 
--   `APP_*`: ambiente, URL, porta, localizzazione, logo.
--   `DB_*`: connessione (default `pgsql`), host/porta, credenziali.
--   `SESSION_*`: driver (default `redis`), lifetime e dominio.
--   `TRUSTED_PROXIES`: elenco separato da virgole degli IP proxy di cui fidarsi per gli header `X-Forwarded-*` (default `127.0.0.1,::1`). Obbligatorio quando l'app sta dietro un reverse proxy (nginx davanti a FrankenPHP/PHP-FPM), altrimenti l'app non riconosce lo schema HTTPS originale e genera URL `http` che il browser blocca come mixed content. Usare `*` per fidarsi dell'IP chiamante.
--   `CACHE_STORE`, `CACHE_PREFIX`, `QUEUE_CONNECTION`, `FILESYSTEM_DISK`, `BROADCAST_CONNECTION`: store/driver predefiniti (redis/redis/local/log).
--   `REDIS_*`, `MEMCACHED_HOST`: configurazioni cache/sessioni.
--   `LOG_*`: canale/stack/livello log.
--   `MAIL_*`, `AWS_*`: mail e S3 (commentati di default).
--   `ELASTIC_*`, `SCOUT_DRIVER`, `SCOUT_QUEUE`: ricerca avanzata (driver `elasticsearch`, indicizzazione in coda).
--   `OPENAI_API_KEY`: chiave AI (commentata).
+-   `APP_*`: environment, URL, port, localization, logo.
+-   `DB_*`: connection (default `pgsql`), host/port, credentials.
+-   `SESSION_*`: driver (default `redis`), lifetime and domain.
+-   `TRUSTED_PROXIES`: comma-separated list of proxy IPs trusted for the `X-Forwarded-*` headers (default `127.0.0.1,::1`). Required when the app runs behind a reverse proxy (nginx in front of FrankenPHP/PHP-FPM), otherwise the app does not recognise the original HTTPS scheme and generates `http` URLs that the browser blocks as mixed content. Use `*` to trust the calling IP.
+-   `CACHE_STORE`, `CACHE_PREFIX`, `QUEUE_CONNECTION`, `FILESYSTEM_DISK`, `BROADCAST_CONNECTION`: default stores/drivers (redis/redis/local/log).
+-   `REDIS_*`, `MEMCACHED_HOST`: cache/session configuration.
+-   `LOG_*`: log channel/stack/level.
+-   `MAIL_*`, `AWS_*`: mail and S3 (commented out by default).
+-   `ELASTIC_*`, `SCOUT_DRIVER`, `SCOUT_QUEUE`: advanced search (`elasticsearch` driver, queued indexing).
+-   `OPENAI_API_KEY`: AI key (commented out).
 -   Core env toggles: `FORCE_HTTPS`. User, CRUD, retention and search toggles (`auth.email_verification.enabled`, `auth.registration.enabled`, `auth.two_factor.enabled`, `auth.licenses.enabled`, `auth.social_login.enabled`, `crud.dynamic_entities`, `expose_api` (gates every `/api` route, Core and modules), `soft_deletes.expiration_days`, `search.vector.enabled`) are runtime settings managed from Filament > Settings. Settings are listed without the module prefix (the module is a column) and read from config as `core.<name>`.
 
 ### Deprecations
