@@ -1,0 +1,268 @@
+# Module Scaffolding Generator: One Source for Every New Module
+
+**Status:** Draft, direction agreed with the user on 2026-10-20 (option B of the conversation: extend
+the existing generator, no template repository for now). Nothing is implemented.
+
+**Scope:** backend only (`laraplate`). Touches `Modules/Core` (stubs, command, conformance test),
+`config/modules.php`, and the scaffolding of the existing official modules that fail the new
+conformance test.
+
+## 1. Goal
+
+A new module, official or custom, starts with the complete Laraplate scaffolding: metadata, licence,
+README, changelog, documentation skeleton, test harness and agent directives. The scaffolding has one
+source, the stubs consumed by the generator, and one executable definition, a conformance test that
+reads the same file list. A module that drifts from it fails a test instead of being found by hand.
+
+## 2. Why now
+
+- **The generator covers only code.** `config/modules.php` points `nwidart/laravel-modules` (v12.0.5)
+  at `Modules/Core/stubs`, which holds six stubs (providers, translations). Every other stub falls back
+  to the package defaults: Laravel boilerplate (`views/master`, `vite`, `package`, `assets/*`) that no
+  official module keeps, and no README, changelog, licence, documentation or agent directives.
+- **Bringing a module to compliance is manual and expensive.** SAO needed a dedicated plan
+  (`plans/2026-07-31-sao-phase-0-scaffolding.md`, 60 KB) to go from the bare `nwidart` stub to the
+  sibling modules' scaffolding.
+- **The modules already drift.** Observed on 2026-10-20:
+  - `CRM` has no `.cursor/rules/module-context.mdc` and an empty `docs/`;
+  - `MES` has no `.gitignore`;
+  - `Shop` has neither `docs/GLOSSARY.md` nor `docs/rag/GLOSSARY.md`, and no `tests/Integration` or
+    `tests/Support` although its `composer.json` autoloads them;
+  - `.superpowers/` exists in some modules only.
+- **The conformance check covers one module.** `Modules/SAO/tests/Unit/ScaffoldingComplianceTest.php`
+  asserts the right file list, the absence of the application toolchain and the agent rules, but only
+  for SAO.
+- **The vendor moved.** Composer packages became `getlaraplate/laraplate-*` on 2026-10-20, and
+  `is_laraplate_owned_module()` recognises official modules by that prefix. A generator that writes the
+  vendor and `laraplate_owned` keeps new modules from getting this wrong.
+
+## 3. Decisions
+
+### D1. Extend the generator, no template repository
+
+The stubs in `Modules/Core/stubs` are the single source. A GitHub template repository would be a
+static copy: it cannot substitute the module name, namespace or table prefix, and it would drift from
+the generator. It is deferred (section 8) and, if built, is produced from the same stubs.
+
+### D2. Two profiles: custom (default) and internal
+
+The generator serves two audiences, and some content must not reach the wrong one. The flag is
+`--internal`: "internal" is the word Core already uses for what Laraplate itself ships (the settings'
+`is_internal` flag, stamped from `is_laraplate_owned_module()`), so an internal module is an official
+one.
+
+| | Custom (default) | Internal (`--internal`) |
+|---|---|---|
+| Who | anyone building a module on Laraplate | the maintainer, for `getlaraplate` modules |
+| Composer name | `{vendor}/{lower-name}`, vendor from `MODULE_VENDOR` / `--author-vendor` | `getlaraplate/laraplate-{lower-name}` |
+| Licence | none written; `composer.json` `license` from an option, default `proprietary` | `AGPL-3.0-or-later`, `LICENSE` copied from the application's AGPL text |
+| `module.json` | `laraplate_owned` absent | `laraplate_owned: true` |
+| README | name, description, install, requirements | the same, plus Contributing (CONTRIBUTING and CLA of the organization) and Licence sections |
+| Agent directives | yes (D5) | yes (D5) |
+
+The custom profile is the default because `module:make` is also what users of Laraplate run, and the
+official content (AGPL, CLA, `getlaraplate` vendor) must never be stamped on their code by accident.
+
+### D3. Entry point: `module:make` itself, overridden by Core
+
+The command stays `module:make`, the one every Laraplate and `nwidart` user already knows. Core
+replaces it with a subclass of `Nwidart\Modules\Commands\Make\ModuleMakeCommand` (the class is not
+final) that adds `--internal`, `--requires=*`, `--description=` and `--color=`. Its `handle()`:
+
+1. sets the profile for the run;
+2. calls `parent::handle()`, so folders, `module.json`, stub files, activation and the final
+   `composer dump-autoload` stay the package's behaviour;
+3. applies what the stubs cannot express: copying `LICENSE` for the internal profile, writing
+   `requires`, `description` and `color` into `module.json`.
+
+The swap uses the package's own registration point. `config/modules.php` builds `commands` from
+`ConsoleServiceProvider::defaultCommands()`, and `ConsoleServiceProvider::register()` registers that
+list: replacing `ModuleMakeCommand::class` with the Core class in the collection is the whole
+override, with no provider ordering involved.
+
+Considered and rejected: a separate `module:make-laraplate` (or `make:laraplate-module`). It is
+decoupled from the package internals, but it leaves two commands that differ by a flag, and the plain
+`module:make` would still produce the Laraplate stubs without the profile handling.
+
+The override depends on `ModuleMakeCommand::handle()` and `getOptions()` staying compatible across
+`nwidart/laravel-modules` upgrades. The feature tests of section 6 run the real command, so an
+incompatible upgrade fails them.
+
+Custom placeholders use the package's own extension point: `stubs.replacements` accepts a
+`Nwidart\Modules\Support\ReplacementKeyCommand` subclass as a value, resolved with the running
+generator. New keys (for example `PACKAGE_NAME`, `LICENSE_SPDX`, `OWNED_FLAG`, `README_LICENSE_SECTION`)
+are such classes in Core reading the profile, so no generator class is overridden.
+
+### D4. The file list: what every module carries, and what it never carries
+
+**Generated for every profile** (added to `stubs.files`, stubs in `Modules/Core/stubs`):
+
+- `README.md`, `CHANGELOG.md` (git-cliff header and an empty `[unreleased]` section), `.gitignore`;
+- `composer.json` (Laraplate stub: `version`, `type: laravel-module`, PSR-4 for `app/`, factories,
+  seeders, and `autoload-dev` for `tests/Unit`, `tests/Feature`, `tests/Integration`, `tests/Support`);
+- `docs/GLOSSARY.md`, `docs/rag/MODULE.md`, `docs/rag/GLOSSARY.md`;
+- `tests/Pest.php`, `tests/TestCase.php`, and `.gitkeep` in `tests/Unit`, `tests/Feature`,
+  `tests/Integration`, `tests/Support`;
+- the agent directives of D5.
+
+**Removed from the default list:** `views/index`, `views/master`, `vite`, `package`, `assets/js/app`,
+`assets/sass/app`. UI lives in `laraplate-ui`, and no official module but `Core` and `ERP` carries a
+`package.json`. A module that needs Filament assets adds them when it needs them.
+
+**Never generated**, and asserted absent by the conformance test (the list SAO already enforces): the
+application toolchain, `phpunit.xml`, `phpstan.neon`, `pint.json`, `peck.json`, `rector.php`,
+`cliff.toml`, `scripts/version.sh`, `scripts/setup-hooks.sh`, `scripts/hooks/*`. The module carries
+functionality; the application carries the toolchain (module testing strategy, revised 2026-09-15).
+
+`.superpowers/` is not scaffolding and is neither generated nor required.
+
+### D5. Agent directives: one canonical file per module, thin pointers for each tool
+
+- `.cursor/rules/module-context.mdc` is the canonical module context, as today. The stub writes the
+  caveman header used by the siblings (path, "root rules = base law", dependencies from `--requires`,
+  table prefix `{lower-name}_`, the one-way dependency rule) and leaves the module-specific law to the
+  author.
+- `AGENTS.md` (Codex) and `CLAUDE.md` (Claude Code) at the module root are pointers of a few lines:
+  read the application rules, then `.cursor/rules/module-context.mdc`. They copy no rule. Claude Code
+  loads a nested `CLAUDE.md` when it works in that folder, which today it does not get for modules.
+- Common rules stay in `laraplate/AGENTS.md` and `.cursor/rules/`. Copying them into each module would
+  create nine copies that drift, the defect this spec removes.
+- `.cursor/mcp.json` is not generated: only `AI` has one, and module MCP servers are specific.
+
+### D6. One conformance test for every official module
+
+- The required and forbidden file lists move into one Core class (for example
+  `Modules\Core\Support\ModuleScaffold`), read by the generator's stub list and by the test, so the
+  two cannot diverge.
+- A Core architecture test (`Modules/Core/tests/Unit/Architecture/ModuleScaffoldingTest.php`) runs the
+  checks for every module whose `module.json` declares `laraplate_owned: true`: required files present,
+  toolchain absent, AGPL `LICENSE`, `composer.json` named `getlaraplate/laraplate-*` with a `version`,
+  README naming the module, `module-context.mdc` present.
+- `Modules/SAO/tests/Unit/ScaffoldingComplianceTest.php` keeps only its SAO-specific assertions (the
+  README mentions "Simply Another Orchestrator"); the generic ones move to Core.
+- Custom modules are not checked: their scaffolding is their authors' business.
+- **Forgetting `--internal` is caught.** Every `Modules/*` path registered in the application's
+  `.gitmodules` is an official module by construction: the AGPL repository's only submodules are its
+  own modules. The test reads `.gitmodules` and fails when such a module lacks
+  `laraplate_owned: true` or its scaffolding, so a module created without the flag is caught as soon
+  as it becomes a submodule, before it is released.
+- **The command asks first.** Run without `--internal` while the resolved vendor is `getlaraplate`
+  (the `MODULE_VENDOR` default of this repository), the command asks whether the module is an
+  internal one and, under `--no-interaction`, stops with that message instead of guessing.
+
+### D7. Existing modules are brought into conformance in the same work
+
+The first run of D6 fails on the drift listed in section 2. The plan backfills each module (missing
+`.gitignore`, glossaries, `module-context.mdc`, test folders, `AGENTS.md` and `CLAUDE.md` pointers) in
+the module's own repository, one commit per module, without touching domain code.
+
+### D8. Repository creation stays outside the generator
+
+The command does not create the GitHub repository, the submodule or the `modules_statuses.json`
+entry: those are git and GitHub operations with their own permissions. The Core documentation gives
+the sequence for an official module (create `getlaraplate/laraplate-{name}`, `git submodule add` with
+`url` and `pushurl` in `.gitmodules`, activation). A script can come later (section 8).
+
+## 4. Command behaviour
+
+```
+php artisan module:make Billing --internal --requires=Core --requires=ERP \
+    --description="Billing module" --color=bright-blue
+```
+
+### 4.1 Missing input is prompted
+
+Every value not passed on the command line is asked with Laravel Prompts, in this order. Under
+`--no-interaction` nothing is asked and the fallback column applies.
+
+| Value | Prompt | Asked when | Fallback under `--no-interaction` |
+|---|---|---|---|
+| name | text, validated StudlyCase and not an existing module | no name argument | error |
+| internal | confirm, default no | `--internal` not passed and the resolved vendor is `getlaraplate` (D6) | error: pass `--internal`, or `--author-vendor` for a custom module |
+| description | text | `--description` not passed | empty |
+| requires | multiselect of the existing modules, `Core` preselected | `--requires` not passed | `[]` |
+| color | select among the unused colours (4.2) | internal profile and `--color` not passed | error listing the unused colours |
+
+With `--internal` the command takes one module name, so that prompts and colour uniqueness apply to
+one module at a time; nwidart's multi-name form stays available for the custom profile.
+
+### 4.2 Colour: internal modules only, never one already taken
+
+- The colour is the module's identity in the CLI (`<fg=...>`) and in the backoffice, through
+  `Modules\Core\Support\ModuleColor`. Distinct colours are what makes it an identity, so the choice
+  is an internal-module concern: for the custom profile `--color` is ignored with a notice and never
+  prompted. An author can still declare a colour in `module.json` by hand.
+- The options are the terminal names that `ModuleColor` maps to a Filament palette, minus `black` and
+  `white` (both map to `Gray`, no identity), minus the colours already declared by an existing module.
+  The list comes from `ModuleColor`, which gains a public accessor for it, so the generator cannot
+  offer a colour the backoffice cannot render.
+- A `--color` that is unknown or already used is refused with the list of the free ones.
+- Colours in use on 2026-10-20: `green` (Core), `cyan` (CMS), `magenta` (AI), `yellow` (ERP), `blue`
+  (MES), `bright-red` (SAO), `bright-magenta` (Shop), `bright-green` (CRM). Free: `red`,
+  `bright-blue`, `bright-cyan`, `bright-yellow`. Four modules from now the palette is exhausted
+  (question 3 of section 9).
+
+### 4.3 Steps
+
+1. Collects and validates the input (4.1): each `--requires` is an existing module.
+2. Runs the nwidart generator with the profile set. `--plain` keeps its package meaning (no stub
+   files) for the custom profile and is refused together with `--internal`, which needs the stubs.
+3. Internal profile: copies the application `LICENSE`, sets `laraplate_owned: true` and `color`.
+4. Writes `requires` and `description` into `module.json`.
+5. Prints the next steps of D8.
+
+`--force` keeps nwidart's meaning (overwrite an existing module) and is passed through.
+
+## 5. Placeholders
+
+| Key | Value | Source |
+|---|---|---|
+| `STUDLY_NAME`, `LOWER_NAME`, `KEBAB_NAME`, `MODULE_NAMESPACE`, `PROVIDER_NAMESPACE`, `APP_FOLDER_NAME`, `VENDOR`, `AUTHOR_NAME`, `AUTHOR_EMAIL` | as today | nwidart generator |
+| `PACKAGE_NAME` | `getlaraplate/laraplate-{lower}` or `{vendor}/{lower}` | Core `ReplacementKeyCommand` |
+| `LICENSE_SPDX` | `AGPL-3.0-or-later` or the custom option | Core `ReplacementKeyCommand` |
+| `TABLE_PREFIX` | `{lower}_` | Core `ReplacementKeyCommand` |
+| `REQUIRES_LIST` | bullet list for `module-context.mdc` and README | Core `ReplacementKeyCommand` |
+| `README_LICENSE_SECTION` | internal licence and contributing text, empty for custom | Core `ReplacementKeyCommand` |
+
+`MODULE_VENDOR` already defaults to `getlaraplate` in `config/modules.php`. For the custom profile the
+command uses `--author-vendor` when given, and asks before going on when the vendor is still
+`getlaraplate` (D6).
+
+## 6. Testing
+
+- Feature test of the command for each profile in a temporary modules path: the generated tree
+  matches `ModuleScaffold`, placeholders are all substituted (no `$...$` left), `module.json` and
+  `composer.json` carry the expected values, the custom profile has no `LICENSE`, no
+  `laraplate_owned` and no `getlaraplate` vendor.
+- The architecture test of D6 over the real modules.
+- `--plain` with `--internal` is refused; an unknown `--requires` is refused.
+- Prompts: each missing value is asked in interactive mode and falls back as in 4.1 under
+  `--no-interaction`; the colour prompt offers only unused colours and is never shown for the custom
+  profile; a used or unknown `--color` is refused; `--color` without `--internal` is ignored.
+
+## 7. Documentation
+
+- `Modules/Core/docs/rag/MODULE.md` and `Modules/Core/README.md`: the command, the two profiles, the
+  conformance test, the D8 sequence for an official module.
+- `MODULE_VENDOR`, `MODULE_AUTHOR_NAME`, `MODULE_AUTHOR_EMAIL` documented in the Core README in the
+  existing env var style.
+
+## 8. Out of scope, possible later
+
+- **Template repository** `getlaraplate/laraplate-module-template`, generated from the same stubs, as
+  an entry point for third-party authors who do not clone Laraplate.
+- **Repository bootstrap script**: create the GitHub repository, add the submodule, push the first
+  commit.
+- **Community files per module** (CONTRIBUTING, CLA, security policy): they come from the
+  organization's `.github` repository, not from the module.
+
+## 9. Open questions
+
+1. Custom profile licence default: `proprietary`, or no `license` key at all.
+2. Whether `CHANGELOG.md` starts empty or with an "Initial scaffold" entry under `[unreleased]`.
+3. What happens when no colour is left: extend the palette (`ModuleColor` would need terminal
+   styles beyond the sixteen ANSI names, for example `#rrggbb` foregrounds), or allow reuse with an
+   explicit confirmation.
+
+Resolved on 2026-10-20: the entry point is `module:make` overridden with `--internal` (D3), not a
+separate command; missing input is prompted and the colour is internal-only and unique (section 4).
