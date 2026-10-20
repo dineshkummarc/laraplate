@@ -25,6 +25,9 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
+# The backend installs with npm; package-lock.json is the only lockfile.
+/pnpm-lock.yaml
+/yarn.lock
 /auth.json
 /.fleet
 /.idea
