@@ -32,7 +32,7 @@ Success: a product list or detail carries `title`, `slug` and the dynamic fields
 
 **M7. Where the code lives.** In `Product`, next to the `getAttribute()` and `setAttribute()` it completes. `ExtendsContentTrait` keeps the lifecycle and the save bridge. When a second extender exists, the merge (getAttribute, setAttribute, toArray, `isMountedAttribute`) moves into the trait.
 
-**M8. Out of scope.** Sorting and facets on mounted attributes; references to other modules (variant item to ERP item), which are links between independent records and stay a separate decision; `Contributor` and its `User`, whose merge was removed on purpose (2025-12-03) and which hides `user` and `user_id` today.
+**M8. Out of scope.** Sorting and facets on mounted attributes; `Contributor` and its `User`, whose merge was removed on purpose (2025-12-03) and which hides `user` and `user_id` today. There are no cross-module references to resolve: a client asks the call for the relations it needs (`items.item`) and the answer is a complete recordset, so nothing is opened in another module (owner decision, 2026-10-20).
 
 ## 3. Behaviour
 

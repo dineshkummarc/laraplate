@@ -61,5 +61,5 @@ Divergences:
 
 ## Out of scope
 
-- Sorting and facets on mounted attributes, references between modules, `Contributor` and `User` (spec M8).
+- Sorting and facets on mounted attributes, `Contributor` and `User` (spec M8). No cross-module references: the call requests the relations it needs.
 - The UI switch to the root keys: `docs/superpowers/plans/2026-10-14-palette-record-search.md` of the stack repository, Task 6a.
