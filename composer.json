@@ -3,7 +3,7 @@
   "name": "getlaraplate/laraplate",
   "vendor": "getlaraplate",
   "type": "project",
-  "description": "The full Laraplate boilerplate.",
+  "description": "Modular Laravel platform with a Filament backoffice: install only the modules you need (CMS, CRM, ERP, MES, Shop, AI).",
   "version": "v1.14.1",
   "keywords": [
     "laravel",
