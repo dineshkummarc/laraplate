@@ -2,9 +2,9 @@
 
 > **For agentic workers:** execute task by task. Steps use checkbox (`- [ ]`) syntax; tick each step when it is done, in the same work block (`.ai/rules/plans.md`). A step deliberately not done is `- [-]` with its reason.
 
-**Goal:** Implement the approved revision-centric aggregate history (decisions D1–D59) in Core, slice by slice, replacing the milestone-1 code where the design differs.
+**Goal:** Implement the approved revision-centric aggregate history (decisions D1–D60) in Core, slice by slice, replacing the milestone-1 code where the design differs.
 
-**Spec:** `docs/superpowers/specs/2026-07-29-revision-centric-aggregate-history-design.md` (approved 2026-10-20). **Decision ledger:** `docs/superpowers/specs/2026-08-04-revision-centric-aggregate-history-review.md` (D1–D59). Supersedes the plan `2026-08-06-core-versioned-relation-membership.md` and, for Core, `2026-07-21-core-version-set-foundation.md`.
+**Spec:** `docs/superpowers/specs/2026-07-29-revision-centric-aggregate-history-design.md` (approved 2026-10-20). **Decision ledger:** `docs/superpowers/specs/2026-08-04-revision-centric-aggregate-history-review.md` (D1–D60). Supersedes the plan `2026-08-06-core-versioned-relation-membership.md` and, for Core, `2026-07-21-core-version-set-foundation.md`.
 
 **Architecture:** The order follows the second recheck (2026-10-20): first one schema-and-absorption block applied with a single `migrate:fresh` (D12), then reconstruction, the version-set manager, the capture wrappers, epochs and baselines, revert, purge and recovery, compaction last. This file details **Slice 1** task by task; every later slice gets its own detailed plan when it starts, linked from its tracking item below, and this file closes when all slices are delivered.
 
@@ -24,7 +24,7 @@
 
 Commits in `Modules/Core` unless noted.
 
-- **Keep:** `1e9f471a` (D38, `versions:compact` refuses), `1aaef0d4` (D39, lock check of `revertToVersion()`), `2f4d58da`, `a0a2eb80` (D49, children without a foreign key), `3ae0f748` (D50), `c05cf32` (the `Revert` set with `reverted_from_set_id`, D16), `ac2114d`, `602f87a` (`RelationOwnership`, `RelationDescriptor`, `versionedRelations()`; the descriptor gains `coverage` in Slice 4, D57).
+- **Keep:** `1e9f471a` (D38, `versions:compact` refuses), `1aaef0d4` (D39, lock check of `revertToVersion()`), `2f4d58da`, `a0a2eb80` (D49, children without a foreign key), `3ae0f748` (D50), `17c6c81f` and CMS `605d946` (D30, D37, D51: `OwnerTimestamp` and `TouchesOwnerOnChange`, delivered ahead of Slice 4), `c05cf32` (the `Revert` set with `reverted_from_set_id`, D16), `ac2114d`, `602f87a` (`RelationOwnership`, `RelationDescriptor`, `versionedRelations()`; the descriptor gains `coverage` in Slice 4, D57).
 - **Change:**
   - `83112c2` (delete semantics): the soft delete becomes `trashed` and the restore `restored` in Task 7 (D20). The hard-delete tombstone stays until Slice 4 replaces it with the snapshot set of D29/D55.
   - `19e86c1` (`restoreToRevision()`): it becomes `revertToRevision()` with `RevertMode` and the checks under the lock in Slice 6 (D48, D56). Its membership replay and `MissingRestoreSubjectException`/`RestoreReport` stay (D2, D25).
@@ -37,11 +37,11 @@ Each slice is delivered, reviewed and closed before the next starts.
 
 - [ ] **Slice 1 — Schema and library absorption** (D14, D15, D19, D20, plus the columns of D47/D52, D53 and D58): this file, Tasks 1–9.
 - [ ] **Slice 2 — Reconstruction and complete anchors** (C08, C09, D53 creation set of kind `baseline`, D21 lock columns excluded, D8 comments and ratings never versioned, D10 translation models not versioned): own plan.
-- [ ] **Slice 3 — Version-set manager** (D34 `lockExistingRoot()` compares and keeps relations, D43 one set per root in one transaction, D52 capture recorded by the manager): own plan.
-- [ ] **Slice 4 — Capture wrappers** (D34 `save()`/`delete()` scope, D28 translation observer and `withinRevision()`, D42 relation subclasses and pivot trait replacing the explicit methods, D41, D57 coverage, D24 multi-root rejected, D30/D37/D51 `OwnerTimestamp`, then D44/D29 hard-delete coordinator with D54/D55): own plan.
-- [ ] **Slice 5 — Epochs and baselines** (D13, D32, D33, D45, D22 switching versioning off and on): own plan.
+- [ ] **Slice 3 — Version-set manager** (D34 `lockExistingRoot()` compares and keeps relations, D43 one set per root in one transaction, D52 capture recorded by the manager, counting the open transaction above the one `RefreshDatabase` wraps around each test; D60 the stored kind is decided when a root's set opens and is not part of the scope options): own plan.
+- [ ] **Slice 4 — Capture wrappers** (D34 `save()`/`delete()` scope, D28 translation observer and `withinRevision()`, D42 relation subclasses and pivot trait replacing the explicit methods, D41, D57 coverage, D24 multi-root rejected, then D44/D29 hard-delete coordinator with D54/D55): own plan.
+- [ ] **Slice 5 — Epochs and baselines** (D13, D32, D33, D45, D22 switching versioning off and on, D52 a `best_effort` set makes a baseline due, D60 never in a revert set): own plan.
 - [ ] **Slice 6 — Revert** (D48 both entry points under the lock, D56 `RevertMode` and the `revertToVersion()` shorthand, rename to `revertToRevision()`, D36 revert context, D26/D27 `history` and `revert` permissions, D40 compare-and-set of membership): own plan.
-- [ ] **Slice 7 — Purge and recovery** (D35 `versions:purge-deleted` and `hard_deletes.expiration_days`, D29 `recover()`): own plan.
+- [ ] **Slice 7 — Purge and recovery** (D35 `versions:purge-deleted` and `hard_deletes.expiration_days`, D29 `recover()` writing a `baseline` set, D60): own plan.
 - [ ] **Slice 8 — Compaction** (D18, D46, D59, the anchor check; replaces the D38 stub): own plan.
 - [ ] **Slice 9 — SAO ticket timeline** (`TicketTimelineService` after D18 and D20): own plan or a task of Slice 8.
 - [ ] **Slice 10 — CMS pilot** (`Content::versionedRelations()` for categories, tags, locations, contributors, D31): CMS-scoped plan, after Slice 6 passes review.
@@ -304,7 +304,7 @@ Expected: FAIL (the trait still uses `Versionable`).
 
 - [ ] **Step 3: Replace the trait use with the absorbed members**
 
-In `HasVersions`: remove `use Versionable;`, its import and the no-op `bootVersionable()`; replace `use Overtrue\LaravelVersionable\Version;` with `use Modules\Core\Models\Version;`; add `use Illuminate\Database\Eloquent\Relations\MorphOne;` and the members below. Keep every method `HasVersions` already overrides (`createVersion()`, `createInitialVersion()`, `shouldBeVersioning()`, `getDontVersionable()`, `getVersionStrategy()`, `getVersionUserId()`, `revertToVersion()`, `history()`, `latestVersions()`, `oldestVersions()`). Add the attribution line to the trait docblock.
+In `HasVersions`: remove the `use Versionable { history as private untypedHistory; latestVersions as private untypedLatestVersions; oldestVersions as private untypedOldestVersions; }` block, its import and the no-op `bootVersionable()`; the three typed methods call those aliases, so their bodies become `return $this->latestVersions();` in `history()`, `return $this->versions()->orderLatestFirst();` in `latestVersions()` and `return $this->versions()->orderOldestFirst();` in `oldestVersions()`, as in the library; replace `use Overtrue\LaravelVersionable\Version;` with `use Modules\Core\Models\Version;`; add `use Illuminate\Database\Eloquent\Relations\MorphOne;` and the members below. Keep every other method `HasVersions` already defines (`createVersion()`, `createInitialVersion()`, `shouldBeVersioning()`, `getDontVersionable()`, `getVersionStrategy()`, `getVersionUserId()`, `revertToVersion()`). Add the attribution line to the trait docblock.
 
 ```php
     protected static bool $versioning = true;

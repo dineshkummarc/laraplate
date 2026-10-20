@@ -3,7 +3,7 @@
 ## Status
 
 - Date: 2026-07-29, revised 2026-07-30, 2026-08-04, 2026-10-09, 2026-10-12, 2026-10-14, 2026-10-19 and 2026-10-20
-- Status: approved by the user on 2026-10-20, aligned with the decisions D1 to D59 of the review log, including the answers to the independent recheck of 2026-10-19 (D42 to D51) and to the second recheck of 2026-10-20 (D52 to D59). Implementation plan: `docs/superpowers/plans/2026-10-20-core-versioning-rebuild.md`. Implemented so far: D38 (`versions:compact` refuses), D39 (the lock check of `revertToVersion()`), D49 (children without a foreign key removed at a hard delete) and D50 (`Version` outside the generated permissions); everything else described as a rule here is still to be written
+- Status: approved by the user on 2026-10-20, aligned with the decisions D1 to D60 of the review log, including the answers to the independent recheck of 2026-10-19 (D42 to D51) and to the second recheck of 2026-10-20 (D52 to D59), and D60 from the check of the plan. Implementation plan: `docs/superpowers/plans/2026-10-20-core-versioning-rebuild.md`. Implemented so far: D30, D37 and D51 (the owner's `updated_at` follows its translations and relations), D38 (`versions:compact` refuses), D39 (the lock check of `revertToVersion()`), D49 (children without a foreign key removed at a hard delete) and D50 (`Version` outside the generated permissions); everything else described as a rule here is still to be written
 - Scope: generic Core versioning architecture; no module pilot is authorized by this draft
 - Relationship to the current design: successor to `2026-07-21-aggregate-version-sets-design.md`; the version-set and transaction machinery of that design stays as the carrier of atomic capture (D16)
 - Implementation gate: see "Review and approval gate"
@@ -160,7 +160,7 @@ The set of registered authoritative relations whose mutation and revert paths ha
 
 A revision can carry further labels that withhold "restore everything": `partial` (missing references, D25), `schema-mismatch` and `definition-mismatch` (the columns or the relations changed since, D13).
 
-Only capture quality is stored, in a `capture` column of `core_versions_sets`: `atomic` when the set was opened by `run()` before the business SQL (the wrappers of `save()`, `delete()`, `forceDelete()`, the relation mutators, `CrudService`, the Filament save, `withinRevision()`, the revert), `best_effort` when the writer opened it because no scope was active, `incomplete` when an atomic set met something it could not capture. The other labels are computed at revert time. "Restore everything" to R is offered only when every set of the root from its complete anchor set up to R is `atomic` and no computed label applies (D47).
+Only capture quality is stored, in a `capture` column of `core_versions_sets`: `atomic` when a transaction on the root's connection was open before the business SQL, opened by `run()` (the wrappers of `save()`, `delete()`, `forceDelete()`, the translation models, the relation mutators on both sides, `CrudService`, the Filament save, `withinRevision()`, the revert) or by an outer caller it joins (D52), `best_effort` otherwise, `incomplete` when an atomic set met something it could not capture (in the enum, not written in milestone 1). The transaction the test harness wraps around each test does not count. The other labels are computed at revert time. "Restore everything" to R is offered only when every set of the root from the latest set of kind `baseline` at or before R up to R is `atomic` and no computed label applies (D47, D53).
 
 ### Restore and revert
 
@@ -171,7 +171,7 @@ Only capture quality is stored, in a `capture` column of `core_versions_sets`: `
 1. One Core writer is the only production component allowed to persist record-version rows.
 2. Every aggregate revision has exactly one root type, root key, connection and table reference.
 3. Any authoritative scalar, owned-part or registered reference-membership mutation advances the root revision.
-4. A complete revert is allowed only for `coverage = complete`, capture quality `atomic`, and an epoch whose definition equals the current one.
+4. A complete revert to R is allowed only for `coverage = complete` (D57), capture quality `atomic` for every set from the latest `baseline` at or before R up to R (D47, D53), and an epoch whose definition equals the current one.
 5. A version set is required for operation-level grouping, but not for one atomic standalone revision scope.
 6. A history row without a version set must never be presented as operation-atomic.
 7. Membership contains only explicitly registered one-hop relations with exactly one authoritative root.
@@ -254,7 +254,7 @@ The hard-delete snapshot, the compaction rewrite and the forced snapshot at the 
 
 **Reconstruction (C08).** To rebuild the state as of revision R, walk back from R to the nearest anchor, then apply the following rows forward in revision order, last write wins per column, and write the result once. Nothing older than that anchor is read or merged. Example, newest first: `diff, diff, SNAPSHOT, diff, diff, diff, diff, SNAPSHOT, diff`. Reverting to the farthest row starts from the second `SNAPSHOT` and applies one row; reverting to the newest starts from the first `SNAPSHOT` and applies two. The walk is driven by each row's own `version_strategy`, because a history mixes `DIFF` and `SNAPSHOT` rows. If no anchor exists at or before R, the revision cannot be rebuilt and the revert is refused. `revertToVersion()` and `revertToRevision()` use this one function; the `DIFF` replay of the library, which merged each earlier row over the live row, is not used (D14).
 
-**Anchor invariant.** The earliest retained row of every versioned record is an anchor. It holds at creation, when versioning is switched on again (a forced snapshot at the record's first save, taken after that save, D22), at the first write after a schema epoch change (lazy baseline, D13), and after compaction (D18). A check reports every record whose earliest retained row is not an anchor. A stream with no row at or before a revision R is absent at R only when R is at or after a complete anchor set of the root in R's epoch, a set of kind `baseline` (the creation set is one, D53); otherwise a revert to R is refused (D45). The first row of a locale is always a `SNAPSHOT` read back, whatever the owner's strategy.
+**Anchor invariant.** The earliest retained row of every versioned record is an anchor. It holds at creation, when versioning is switched on again (a forced snapshot at the record's first save, taken after that save, D22), at the first write after a schema epoch change (lazy baseline, D13), and after compaction (D18). A check reports every record whose earliest retained row is not an anchor. A stream with no row at or before a revision R is absent at R only when R is at or after a complete anchor set of the root in R's epoch, a set of kind `baseline` (the creation set and the set written by `recover()` are ones, D53, D60); otherwise a revert to R is refused (D45). A `Revert` set never carries a baseline: one that is due waits for the next atomic write that is not a revert (D60). The first row of a locale is always a `SNAPSHOT` read back, whatever the owner's strategy.
 
 **Relation-only changes.** They advance the revision and write membership rows. When no scalar column changed, no fabricated scalar change is written.
 
@@ -457,7 +457,7 @@ Potentially reusable:
 - connection-aware contracts;
 - append-only revert history (`Revert` sets, `reverted_from_set_id`).
 
-To change, from the decisions (not done, except D38, D39, D49 and D50, implemented on 2026-10-19; the order and the commits kept, changed or reverted are in the plan `2026-10-20-core-versioning-rebuild.md`):
+To change, from the decisions (not done, except D30, D37, D38, D39, D49, D50 and D51, implemented on 2026-10-19; the order and the commits kept, changed or reverted are in the plan `2026-10-20-core-versioning-rebuild.md`):
 
 - detach from `overtrue/laravel-versionable` (D14): absorb the `VersionStrategy` enum and the base `Version` model with the MIT attribution, move the config keys `versionable.version_model` and `versionable.user_foreign_key` to a Core configuration, remove the requirement (with the user's approval), check whether `Diff` is used;
 - rename the tables to `core_versions` and `core_versions_sets` (D15) and drop `deleted_at`, `is_deleted`, `updated_at`, add `compacted_at` (D19); adjust the readers `CompactVersions` and the sequence-gap check of `ActiveVersionSet`;
@@ -467,7 +467,7 @@ To change, from the decisions (not done, except D38, D39, D49 and D50, implement
 - `createInitialVersion()` reads the row back after the insert (C09);
 - exclude the lock columns from the versionable columns of models with `HasLocks`; force versioning off on the comment and rating models; translation models are not versioned (D8, D10, D21);
 - the epoch (D13, D33), the whole-aggregate baseline (D22, D45), the compaction and its cut-off (D18, D46) and the hard-delete coordinator wrapping the delete, with the reworked `ClearExpiredModels` and the children without a foreign key (D17, D29, D44, D49);
-- membership capture from the pivot events with relation subclasses (D42), one version set per root (D43), the `capture` column of the sets (D47), the checks of both revert entry points under the lock (D48), `Version` excluded from the generated permissions (D50), `OwnerTimestamp` deduplicating per transaction (D37, D51);
+- membership capture from the pivot events with relation subclasses (D42), one version set per root (D43), the `capture` column of the sets (D47), the checks of both revert entry points under the lock (D48), `Version` excluded from the generated permissions (D50);
 - the `history` and `revert` permissions (D26, D27);
 - the SAO ticket timeline reads `change_type`, `contents`, `original_contents` and `created_at`, so it needs updating for D18 and D20.
 
@@ -482,7 +482,7 @@ No existing migration or commit is reverted until this draft is approved and a r
 3. Check the cost of a large purge and the order with the cascading observers of `Content` (D29, D35).
 4. Check the real cost of reading the schema per class and the clearing of the static caches when workers restart after a deploy (D33).
 5. Implement the revert context of D36 (`ActiveVersionSet::isRevert()`, the `fromRevert` field of `TranslatedModelSaved`, the check in the AI listener) with the tests listed there.
-6. Implement the touch of the owner's `updated_at` for relation changes with the events of the pivot models and the shared helper `OwnerTimestamp::touch()` (D37); `related()` is not touched.
+6. ~~Implement the touch of the owner's `updated_at` for relation changes with the events of the pivot models and the shared helper `OwnerTimestamp::touch()` (D37); `related()` is not touched.~~ Done on 2026-10-19, with the translations (D30) and the per-transaction dedupe (D51).
 
 Designed and no longer open: the hook for translation changes, the grouping of the writes of one operation and the representation of the translations (D28); the hard-delete coordinator, its callers and the recovery (D29); the schema epoch (D33).
 
@@ -526,11 +526,11 @@ Designed and no longer open: the hook for translation changes, the grouping of t
 - retention cannot delete a version set a retained `Revert` set points to without repointing it;
 - local ids from different connections cannot collide (while multi-connection is deferred, this guards against enabling it by accident);
 - cycles remain bounded to registered one-hop paths;
-- the tests listed under D42 to D59 in the review log, in particular: one set per root in the same transaction (D43), no revert before a compaction's cut-off (D46), the capture of D47 and D52, the checks under the lock (D48), the baseline kind (D53), the snapshot set without delete-triggered rows and with its row format (D54, D55), the two entry points (D56), coverage (D57), `SET NULL` (D58) and the refused compaction (D59).
+- the tests listed under D42 to D60 in the review log, in particular: one set per root in the same transaction (D43), no revert before a compaction's cut-off (D46), the capture of D47 and D52, the checks under the lock (D48), the baseline kind (D53), the snapshot set without delete-triggered rows and with its row format (D54, D55), the two entry points (D56), coverage (D57), `SET NULL` (D58), the baseline never carried by a revert set (D60) and the refused compaction (D59).
 
 ## Decisions
 
-The decisions recorded on 2026-07-29/30 and reopened by the findings are now settled; the full list (D1 to D59) is in the review log.
+The decisions recorded on 2026-07-29/30 and reopened by the findings are now settled; the full list (D1 to D60) is in the review log.
 
 **1. `lock_version` is not the aggregate revision.** Two separate logical values. `lock_version` keeps its current job, the user-facing conflict token of what a form edits (the root and its translations, D23); the aggregate revision is the restore coordinate. Reusing one column would make any relation change invalidate an open editing form: attaching a tag would fail Anna's save on a field Marco never touched. It would also leave the restore coordinate reachable from `request('lock_version')`.
 
