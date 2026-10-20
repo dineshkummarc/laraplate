@@ -110,9 +110,15 @@ If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Lar
 
 ## License
 
-Laraplate and its modules are open-sourced software licensed under the [GNU AGPL v3](https://www.gnu.org/licenses/agpl-3.0.html).
+Laraplate and its modules are free software, licensed under the
+[GNU AGPL v3](https://www.gnu.org/licenses/agpl-3.0.html). The full licence text is in [LICENSE](LICENSE).
 
-Copyright (c) 2025 Marco P. The full licence text is in [LICENSE](LICENSE).
+Laraplate is dual licensed: a commercial license is available to organisations that cannot accept
+the AGPL obligations. The AGPL edition is the project: every release is published under the AGPL
+at the same time and with the same code as any commercial release, with no commercial-only
+features. See [our licensing commitment](https://github.com/getlaraplate/.github/blob/main/CONTRIBUTING.md#our-licensing-commitment).
+
+Copyright (c) 2025 swolley
 
 ## TODO and FIXME
 
