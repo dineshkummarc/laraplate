@@ -242,7 +242,7 @@ return [
     |
     */
     'composer' => [
-        'vendor' => env('MODULE_VENDOR', 'swolley'),
+        'vendor' => env('MODULE_VENDOR', 'getlaraplate'),
         'author' => [
             'name' => env('MODULE_AUTHOR_NAME', 'Swolley'),
             'email' => env('MODULE_AUTHOR_EMAIL', 'myentity@inwind.it'),

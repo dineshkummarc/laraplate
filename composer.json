@@ -1,7 +1,7 @@
 {
   "$schema": "https://getcomposer.org/schema.json",
-  "name": "swolley/laraplate",
-  "vendor": "swolley",
+  "name": "getlaraplate/laraplate",
+  "vendor": "getlaraplate",
   "type": "project",
   "description": "The full Laraplate boilerplate.",
   "version": "v1.14.1",
