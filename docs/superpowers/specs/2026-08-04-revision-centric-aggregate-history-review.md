@@ -5,7 +5,7 @@
 - Date: 2026-08-04
 - Target: `2026-07-29-revision-centric-aggregate-history-design.md`
 - Target revision reviewed: `30b75b0` (first review, 2026-08-04); the spec as aligned with D1–D51 (independent recheck, 2026-10-19); the spec and this log as of 2026-10-20 (second recheck)
-- Status: every finding resolved by D1–D60. The independent recheck of 2026-10-19 found eight design gaps, answered by D42–D49, plus D50 and D51; the second recheck of 2026-10-20 found one critical and seven important gaps, answered by D52–D59 and approved by the user; the check of the plan against them added D60. An implementation plan may be written: `docs/superpowers/plans/2026-10-20-core-versioning-rebuild.md`. Implemented so far: D14, D15, D19, D20 (Slice 1 of the plan, 2026-10-20) and the schema of D52, D53 and D58 (the `capture` column, the `baseline` kind, `SET NULL`), D30, D37, D38, D39, D49, D50 and D51; D2 and D16 match code shipped before this design (commits `19e86c1`, `c05cf32`)
+- Status: every finding resolved by D1–D61. The independent recheck of 2026-10-19 found eight design gaps, answered by D42–D49, plus D50 and D51; the second recheck of 2026-10-20 found one critical and seven important gaps, answered by D52–D59 and approved by the user; the check of the plan against them added D60. An implementation plan may be written: `docs/superpowers/plans/2026-10-20-core-versioning-rebuild.md`. Implemented so far: D14, D15, D19, D20 (Slice 1 of the plan, 2026-10-20) and the schema of D52, D53 and D58 (the `capture` column, the `baseline` kind, `SET NULL`), D30, D37, D38, D39, D49, D50 and D51; D2 and D16 match code shipped before this design (commits `19e86c1`, `c05cf32`)
 - Scope: generic Core architecture, not the CMS pilot
 
 This log is the durable hand-off between reviewers. It records findings separately from design decisions so another agent can challenge the proposal without losing earlier reasoning.
@@ -400,6 +400,11 @@ The second independent recheck (2026-10-20) found one critical and seven importa
     - **The stored kind is not an option of the scope.** The options of the scope keep the ordinary kind; only the stored row says `baseline`. A nested `run()` with ordinary options therefore joins the set, and the option comparison of `runNested()` does not refuse it.
     - **The set written by `recover()` is a `baseline`** (D29): it is the new creation anchor of the recovered root.
     - **Tests, written first:** after a `best_effort` set, a scalar revert writes a `revert` set without baseline rows and the next save writes a `baseline` set; a complete revert to the revert set is refused and one to the baseline set is allowed; a nested `run()` with ordinary options inside a set stored as `baseline` joins it; the set written by `recover()` has kind `baseline`.
+
+61. **A revert never moves a record into or out of the bin (decided by Claude on the user's delegation, 2026-10-20; found while planning Slice 2; completes D20).**
+    - **The gap.** The state rebuilt at a revision (C08) holds the deleted-at column of that moment, because a model with no `$versionable` list versions every column but the excluded ones. A revert to a revision taken while the record was in the bin would trash a live record; a revert of a record in the bin to an earlier revision would take it out.
+    - **Rule.** The deleted-at column is outside what a revert writes: the record stays where it is. "Restore" is reserved for the bin (D20), so leaving it is the bin's own operation, with its own permission and its own `restored` row; a revert is an operation on the content.
+    - **Tests, written first:** a revert to a revision before a trash and a restore leaves `deleted_at` null; a revert of a record in the bin keeps it in the bin.
 
 ## Evidence verified in code (2026-10-09)
 
