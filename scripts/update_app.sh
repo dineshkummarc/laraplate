@@ -43,7 +43,7 @@ if [[ ! "$choice" =~ ^[Yy]$ ]]; then
     exit 0
 fi
 
-composer install
+composer install --ignore-platform-req=ext-oci8
 
 php artisan migrate
 php artisan db:seed
