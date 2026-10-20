@@ -45,12 +45,12 @@ php artisan module:seed --all
 
 ### Laraplate Modules
 
--   ⚡ **Core**: main common boilerplate functionalities. About [Core Module](https://github.com/swolley/laraplate-core).
--   ✎ **CMS**: common content management functionalities. About [CMS module](https://github.com/swolley/laraplate-cms).
--   ✨ **AI**: artificial intelligence capabilities (embeddings, vector search, automatic translation). About [AI Module](https://github.com/swolley/laraplate-ai).
--   📊 **ERP**: accounting and operations (multi-company, journal entries, tax codes, commercial scaffolding). About [ERP Module](https://github.com/swolley/laraplate-erp).
--   🏭 **MES**: manufacturing execution foundation (work orders, shop-floor events, traceability, KPIs). About [MES Module](https://github.com/swolley/laraplate-mes).
--   🔗 **SAO**: _Simply Another Orchestrator_ — a correlation engine between code, errors and work; a standalone ticketing core with optional VCS, log-source and issue-tracker integrations. About [SAO Module](https://github.com/swolley/laraplate-sao).
+-   ⚡ **Core**: main common boilerplate functionalities. About [Core Module](https://github.com/getlaraplate/laraplate-core).
+-   ✎ **CMS**: common content management functionalities. About [CMS module](https://github.com/getlaraplate/laraplate-cms).
+-   ✨ **AI**: artificial intelligence capabilities (embeddings, vector search, automatic translation). About [AI Module](https://github.com/getlaraplate/laraplate-ai).
+-   📊 **ERP**: accounting and operations (multi-company, journal entries, tax codes, commercial scaffolding). About [ERP Module](https://github.com/getlaraplate/laraplate-erp).
+-   🏭 **MES**: manufacturing execution foundation (work orders, shop-floor events, traceability, KPIs). About [MES Module](https://github.com/getlaraplate/laraplate-mes).
+-   🔗 **SAO**: _Simply Another Orchestrator_ — a correlation engine between code, errors and work; a standalone ticketing core with optional VCS, log-source and issue-tracker integrations. About [SAO Module](https://github.com/getlaraplate/laraplate-sao).
 
 Each module owns its backoffice presence: a `Modules/{Name}/app/Filament/{Name}Plugin.php`
 class is auto-discovered by `coolsam/modules` and registers the module's resources, pages
