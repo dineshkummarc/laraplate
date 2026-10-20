@@ -47,16 +47,16 @@
   - `CreateProductAction::handle(array $data): Product` — `$data` shape: product columns (`kind`, `is_published_in_shop`, `featured`, `release_date`, `metadata`), `content` => array of content fields (title, slug, components, valid_from/to), `variants` => list of `['is_default'=>bool, 'attributes'=>array, 'items'=>list of ['item_id'=>int,'quantity'=>string,'role'=>string]]`. Creates the full aggregate in one transaction derived from the owning models: build the Content via `newBackingContent()` + fill its fields, `setTempContent()` on a new `Product`, save (seam stamps `extended_type`/`content_id`), then create variants and their items. Returns the saved `Product`.
   - `UpdateProductAction::handle(Product $product, array $data): Product` — updates the product columns and the merged content fields, and syncs variants/composition (create/update/delete to match `$data`), preserving the invariants.
 
-- [ ] **Step 1: Write the failing tests** — `ProductWriteActionTest` (call `setupShopEntities()` first):
+- [x] **Step 1: Write the failing tests** — `ProductWriteActionTest` (call `setupShopEntities()` first):
   - `creates one content on the product entity and default preset`: `CreateProductAction::handle([...])` yields a `Product` whose `content` is one CMS `Content` on the seeded product entity + default preset (assert the entity type and presettable), and exactly one content row was created.
   - `persists the content title through the create action`: pass `content.title`; reload the product via a fresh query; the title is persisted on the content and reads back through the product root.
   - `a create with two default variants ends with one default`: pass two variants both `is_default=true`; after create, `variants()->where('is_default', true)->count() === 1`.
   - `rejects an invalid composition role and a missing item`: a variant item with `role='accessory'` or a non-existent/soft-deleted `item_id` throws `ValidationException`; nothing partial persists (transaction rolls back).
   - `updates columns, content and composition`: `UpdateProductAction::handle($product, [...])` changes a product column, the content title, and adds/removes a variant item; assert the resulting state and that removed rows are gone.
-- [ ] **Step 2: Run them, verify they fail.** `php artisan test --compact Modules/Shop/tests/Feature/ProductWriteActionTest.php`
-- [ ] **Step 3: Implement** `Product::newBackingContent()` (promote from the factory; refactor `ProductFactory` to call it), `CreateProductAction`, `UpdateProductAction`. Business logic in the actions (project convention); transaction from the owning model, no raw `DB::`. Reuse the model invariants (do not re-validate role/default in the action beyond passing data through; the models reject bad values).
-- [ ] **Step 4: Run them, verify they pass.**
-- [ ] **Step 5: Commit** — `feat(shop): product write actions and backing-content resolver`.
+- [x] **Step 2: Run them, verify they fail.** `php artisan test --compact Modules/Shop/tests/Feature/ProductWriteActionTest.php`
+- [x] **Step 3: Implement** `Product::newBackingContent()` (promote from the factory; refactor `ProductFactory` to call it), `CreateProductAction`, `UpdateProductAction`. Business logic in the actions (project convention); transaction from the owning model, no raw `DB::`. Reuse the model invariants (do not re-validate role/default in the action beyond passing data through; the models reject bad values).
+- [x] **Step 4: Run them, verify they pass.**
+- [x] **Step 5: Commit** — `feat(shop): product write actions and backing-content resolver`.
 
 ---
 
