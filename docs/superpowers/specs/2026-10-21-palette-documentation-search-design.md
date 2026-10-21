@@ -80,6 +80,7 @@ In `EmbeddingService::embedText()`:
 Rules:
 
 - Only the vector is cached, under a hashed key. The search text is not stored.
+- The key includes the signed-in user (a fixed shared partition when there is none), so a user cannot tell by timing whether someone else searched the same text; the parallel requests of one user's palette still share an entry.
 - The cache and the lock are an optimization: if the cache store is unavailable, `embedText()` computes the vector as it does today.
 - Every caller benefits (records, media, documentation retrieval, the assistant), so no route needs to know about it.
 - Documents are embedded through other methods (`embedDocument`, `embedDocumentsBatch`) and are not cached: this is for query text only.

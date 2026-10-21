@@ -189,7 +189,8 @@ Built in `Modules/AI` (commits on its master):
 Divergences from the plan:
 
 - No `where()` constraint on `{module}`: the controller's pattern answers 404 for a malformed module. The route therefore takes any segment before Core's `search/{module}/{entity?}`.
-- GET only: a POST to the same path still reaches Core.
+- GET only: a POST to the same path still reaches Core. Resolved afterwards (2026-10-21): the route is now `Route::match(['get', 'post'], ...)`, same middleware, name and position, and `q` is read with `input('q')`.
+- Added afterwards (2026-10-21): the query embedding cache key includes the signed-in user (shared partition when none).
 - The gate is `AssistantCapabilities::help()` (`features.faq.enabled`); a disabled feature answers `403 FEATURE_DISABLED`, as the assistant routes do.
 - The limiter is route middleware that runs after `auth` and before the controller, so every authenticated call counts against the 60 per minute whatever its outcome (403, `FEATURE_DISABLED`, 404, 422, 503, 200), not only a call with an invalid `q`. The controller checks guest, feature and module before validating `q`.
 - Plan Task 5 step 3 said the spec would be set to Delivered; it is set to "Built 2026-10-21 (one measurement pending)" because the measurement is still open.
