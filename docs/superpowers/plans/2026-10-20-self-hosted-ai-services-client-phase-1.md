@@ -1,12 +1,12 @@
 ---
-status: open
+status: closed
 created_on: 2026-10-20
 ---
 # Self-hosted AI services, client side, Phase 1. Implementation Plan
 
 > **For agentic workers:** execute task by task. Steps use checkbox (`- [ ]`) syntax; tick each step when it is done, in the same work block (`.ai/rules/plans.md`). A step deliberately not done is `- [-]` with its reason.
 
-**Status:** Open. Tasks 2 and 3 wait for Phase 1 of the services (their `X-Request-Id` and `openapi.json`); Task 1 does not.
+**Status:** Closed 2026-10-21, see *Delivery status*.
 
 **Goal:** every call Laraplate makes to `sentence-transformers-api` or `whisper-api` carries a request id that the failure log line repeats, and a contract test keeps the clients aligned with the services' OpenAPI documents.
 
@@ -45,9 +45,9 @@ created_on: 2026-10-20
 
 **Files:** create `Modules/AI/app/Ai/SelfHosted/ServiceRequestId.php`; modify `Modules/AI/app/Ai/Embeddings/SentenceTransformersEmbeddingsProvider.php`, `Modules/AI/app/Ai/Embeddings/EmbeddingServiceIdentity.php`, `Modules/AI/app/Services/CrossEncoderService.php`, `Modules/AI/app/Ai/MediaAnalysis/Transcription/WhisperTranscriber.php`; tests in `Modules/AI/tests/Integration/CrossEncoderServiceTest.php`, `Modules/AI/tests/Integration/SentenceTransformersEmbeddingsProviderTest.php`, `Modules/AI/tests/Feature/MediaAnalysis/WhisperTranscriberTest.php` and a new unit test of the helper.
 
-- [ ] **Failing tests.** Each client sends `X-Request-Id` of 32 hex characters; a `CrossEncoderService` call that fails twice then succeeds sends the same id three times; a `WhisperTranscriber` call answered `503` returns `null` and logs one warning with `service`, `endpoint`, `status`, `request_id` and no file name (`Log::spy()`); a `SentenceTransformersEmbeddingsProvider` batch answered `500` throws an exception whose message or context carries the request id.
-- [ ] **Implement** P1 and P2. Check whether the existing callers of `CrossEncoderService` already log the rerank failure; if so, add the request id to that line instead of a second one.
-- [ ] **Run** `php artisan test --compact Modules/AI/tests/Integration/CrossEncoderServiceTest.php Modules/AI/tests/Integration/SentenceTransformersEmbeddingsProviderTest.php Modules/AI/tests/Feature/MediaAnalysis/WhisperTranscriberTest.php` and the helper test; `vendor/bin/pint --dirty`; commit in `Modules/AI` `feat: send a request id to the self-hosted AI services`.
+- [x] **Failing tests.** Each client sends `X-Request-Id` of 32 hex characters; a `CrossEncoderService` call that fails twice then succeeds sends the same id three times; a `WhisperTranscriber` call answered `503` returns `null` and logs one warning with `service`, `endpoint`, `status`, `request_id` and no file name (`Log::spy()`); a `SentenceTransformersEmbeddingsProvider` batch answered `500` throws an exception whose message or context carries the request id.
+- [x] **Implement** P1 and P2. Check whether the existing callers of `CrossEncoderService` already log the rerank failure; if so, add the request id to that line instead of a second one.
+- [x] **Run** `php artisan test --compact Modules/AI/tests/Integration/CrossEncoderServiceTest.php Modules/AI/tests/Integration/SentenceTransformersEmbeddingsProviderTest.php Modules/AI/tests/Feature/MediaAnalysis/WhisperTranscriberTest.php` and the helper test; `vendor/bin/pint --dirty`; commit in `Modules/AI` `feat: send a request id to the self-hosted AI services`.
 
 ### Task 2: Contract fixtures and tests (R7)
 
@@ -55,10 +55,10 @@ Waits for Task 4 of the `sentence-transformers-api` plan and Task 5 of the `whis
 
 **Files:** create the fixtures of P4 and `Modules/AI/tests/Integration/SelfHostedServicesContractTest.php` with its helper in `Modules/AI/tests/Stubs/` (no class in the test file).
 
-- [ ] **Copy** the two `openapi.json` files and their `VERSION` values into the fixtures.
-- [ ] **Failing tests.** With `Http::fake()` recording requests: the bodies `SentenceTransformersEmbeddingsProvider` sends to `/embed` (single and batch) and `CrossEncoderService` sends to `/score` carry every required field of the request schema and no undeclared one; the multipart field of `WhisperTranscriber` is `file`. Fed the example answers of each schema, each client parses them without error; fed an example lacking a field the client reads, the test shows the client depends on it.
-- [ ] **Implement** whatever the tests reveal; nothing is expected beyond the helper.
-- [ ] **Run** the new test; pint; commit in `Modules/AI` `test: check the self-hosted AI clients against the service contracts`.
+- [x] **Copy** the two `openapi.json` files and their `VERSION` values into the fixtures.
+- [x] **Failing tests.** With `Http::fake()` recording requests: the bodies `SentenceTransformersEmbeddingsProvider` sends to `/embed` (single and batch) and `CrossEncoderService` sends to `/score` carry every required field of the request schema and no undeclared one; the multipart field of `WhisperTranscriber` is `file`. Fed the example answers of each schema, each client parses them without error; fed an example lacking a field the client reads, the test shows the client depends on it.
+- [x] **Implement** whatever the tests reveal; nothing is expected beyond the helper.
+- [x] **Run** the new test; pint; commit in `Modules/AI` `test: check the self-hosted AI clients against the service contracts`.
 
 ### Task 3: `api_version` check (R7)
 
@@ -66,14 +66,30 @@ Waits for the services to report `api_version` (Task 4 of the `sentence-transfor
 
 **Files:** modify `Modules/AI/app/Ai/Embeddings/EmbeddingServiceIdentity.php`; test next to its existing tests.
 
-- [ ] **Failing tests.** `/health` with `api_version: 1`: no warning; with `2`: one warning naming the expected and the received version, once per process; without the field (an older service): no warning.
-- [ ] **Implement** P3.
-- [ ] **Run** the test; pint; commit in `Modules/AI` `feat: warn when the embedding service speaks an unknown API version`.
+- [x] **Failing tests.** `/health` with `api_version: 1`: no warning; with `2`: one warning naming the expected and the received version, once per process; without the field (an older service): no warning.
+- [x] **Implement** P3.
+- [x] **Run** the test; pint; commit in `Modules/AI` `feat: warn when the embedding service speaks an unknown API version`.
 
 ### Task 4: Documentation and closing
 
 **Files:** modify `Modules/AI/docs/SENTENCE_TRANSFORMERS_INSTALLATION.md`, `Modules/AI/docs/WHISPER_INSTALLATION.md`, the relevant `Modules/AI/docs/rag/` developer page, `../specs/2026-10-20-self-hosted-ai-services-client-design.md`, `INDEX.md` files, this plan.
 
-- [ ] **Docs.** The request id in both guides (how to find a failed call in the service log); `/ready` as the healthcheck; the fixture update step for a service release in the developer docs; the guides' status lines follow the services' readiness.
-- [ ] **Spec.** Status line points to this plan and records Phase 1 delivered; note P3 against R7.
-- [ ] **Close.** Delivery status with divergences, `**Documented in:**`, ticks, `status: closed`; commit the plan in `laraplate` `docs: close the client phase 1 plan`.
+- [x] **Docs.** The request id in both guides (how to find a failed call in the service log); `/ready` as the healthcheck; the fixture update step for a service release in the developer docs; the guides' status lines follow the services' readiness.
+- [x] **Spec.** Status line points to this plan and records Phase 1 delivered; note P3 against R7.
+- [x] **Close.** Delivery status with divergences, `**Documented in:**`, ticks, `status: closed`; commit the plan in `laraplate` `docs: close the client phase 1 plan`.
+
+## Delivery status (2026-10-21): shipped
+
+All four tasks are built, in `Modules/AI` (`laraplate-ai` 248591b, b617ddc, 2635abf, 8135f69, and 10ba448 from the final review), against Phase 1 of `sentence-transformers-api` and `whisper-api` (both `VERSION` 0.1.0, `api_version` 1). Divergences from the plan, each with its reason:
+
+- **P1, retries.** `retry(2, 200)` is two attempts in Laravel, not three: the test sends a `503` then a `200` and checks the two requests carry the same id. The id is set once on the pending request, so every attempt shares it.
+- **P2, the failure.** A failure is a call that cannot reach the service or gets an error status. `SentenceTransformersEmbeddingsProvider`, `EmbeddingServiceIdentity` and `CrossEncoderService` throw a new `Ai/SelfHosted/SelfHostedServiceException` (a `RuntimeException` whose previous is the HTTP exception), with the id at the start of its message and in its `context()`. `CrossEncoderService` therefore no longer throws `RequestException`; its only caller, Core's `EnsembleSearchService`, catches `Throwable`. A `2xx` answer the client cannot use keeps its own exception without an id: the service log shows that call as a success.
+- **P2, the cross-encoder log.** `EnsembleSearchService` already logs the rerank failure with the exception message, so the id rides in that message and the client adds no second line. Core is not changed: the id sits in the line's `error` text, not as its own key.
+- **P2, the endpoint.** The log line names the full URL of the call without credentials, query or fragment (spec R4 asks for the service URL), not the path alone.
+- **P3, once per process.** Laravel `once()` keys the warning on its call site, the endpoint and the received version: one warning per process for each unknown version a service reports.
+- **Task 1 test of the embeddings provider.** The `500` case drives `embedText()`: it takes the same call as a batch, without the adaptive batcher's retries and their real sleeps.
+- **Task 2 contract test.** The schema helper (`tests/Stubs/SelfHostedServiceContract`) treats an object schema without `additionalProperties` as closed, so an undeclared field the client sends fails. Dependence on a field is proven for the fields a client cannot do without (`embeddings`, `scores`, `text`); the optional reads (`model`, `api_version`) are checked as declared in the answer schemas. The `.version` files are `<service>.version`, next to `<service>.openapi.json`.
+- **Final review fixes (10ba448).** The contract test also feeds each client an answer reduced to its schema's required fields and checks every example against its own schema, so a client that needs a field the service does not promise fails; `WhisperTranscriber` returns `null` even when the log cannot be written; the embeddings provider logs the URL Guzzle really calls (a base URL with a path and no trailing slash loses its last segment, as before this plan). Deferred: the exception message still repeats the HTTP exception's message (a Guzzle message carries the request URI, and a Laravel one a summary of the answer body), and Core's rerank failure line carries the id only in its `error` text.
+- **Task 3 tests** live in a new `tests/Unit/Ai/Embeddings/EmbeddingServiceIdentityTest.php`: the class had no direct test before.
+
+**Documented in:** `Modules/AI/docs/SENTENCE_TRANSFORMERS_INSTALLATION.md` (Verify the embedding host, Tracing a failed call), `Modules/AI/docs/WHISPER_INSTALLATION.md` (HTTP contract, Tracing a failed call), `Modules/AI/docs/rag/MODULE.md` (Self-hosted AI services: request id, API version, contract test and the fixture update of a service release), `Modules/AI/docs/rag/MEDIA_ANALYSIS_DEVELOPER.md` (Failure).
