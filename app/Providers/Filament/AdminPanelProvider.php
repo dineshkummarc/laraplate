@@ -73,6 +73,11 @@ final class AdminPanelProvider extends PanelProvider
 
                 return is_string($logo) ? $logo : null;
             })
+            ->favicon(static function (): ?string {
+                $favicon = config('app.favicon');
+
+                return is_string($favicon) ? $favicon : null;
+            })
             // Prefetching is deliberately off: every row in a resource table links to
             // the record's edit page, and Filament asks Livewire to preload those links
             // on hover. Preloading builds the edit page server-side, which takes the

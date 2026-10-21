@@ -1,6 +1,6 @@
 # Self-hosted AI services: the Laraplate client side
 
-**Status:** Draft, 2026-10-20. Phase 1 plan: `../plans/2026-10-20-self-hosted-ai-services-client-phase-1.md` (open). Phase 0 delivered on 2026-10-20 (`laraplate-ai` c2530f0).
+**Status:** Draft, 2026-10-20. Phase 0 delivered on 2026-10-20 (`laraplate-ai` c2530f0). Phase 1 (R4, R7) delivered on 2026-10-21: `../plans/2026-10-20-self-hosted-ai-services-client-phase-1.md` (closed). The `api_version` check of R7 runs only where Laraplate already reads `/health`, `EmbeddingServiceIdentity` (plan decision P3); the cross-encoder and Whisper clients get it with the Filament panel (E6).
 **Scope:** `Modules/AI`: `SentenceTransformersEmbeddingsProvider`, `EmbeddingServiceIdentity`, `CrossEncoderService`, `WhisperTranscriber`, the embeddings provider factory, the install guides and a Filament status panel.
 **Siblings:** the services own the rest of the work: [`sentence-transformers-api`](https://github.com/getlaraplate/sentence-transformers-api/blob/master/docs/superpowers/specs/2026-10-20-production-readiness-design.md) and [`whisper-api`](https://github.com/getlaraplate/whisper-api/blob/master/docs/superpowers/specs/2026-10-20-production-readiness-design.md). The three specs share the decision and requirement numbers (D, R, E), so a number means the same thing in each.
 **History:** split on 2026-10-20 from one spec at the root of the Laraplate workspace, so that each repository owns the design of its own work.
@@ -83,7 +83,7 @@ synchronous call.
 | Phase | Content | Depends on |
 |---|---|---|
 | 0 | Readiness status in the guides. **Delivered 2026-10-20** (`laraplate-ai` c2530f0) | Phase 0 of the services |
-| 1 | R4, R7 | R4 and R7 in the services |
+| 1 | R4, R7. **Delivered 2026-10-21** (`laraplate-ai` 248591b..10ba448; `api_version` narrowed by P3) | R4 and R7 in the services |
 | 4 | E1 | E1 in the services, or a third-party server for testing |
 | 5 | E2 | E2 in `whisper-api` |
 | 6 | E6 | R2 and R7 in the services |
