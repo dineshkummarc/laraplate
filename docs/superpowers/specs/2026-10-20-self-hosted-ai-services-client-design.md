@@ -83,7 +83,7 @@ synchronous call.
 | Phase | Content | Depends on |
 |---|---|---|
 | 0 | Readiness status in the guides. **Delivered 2026-10-20** (`laraplate-ai` c2530f0) | Phase 0 of the services |
-| 1 | R4, R7. **Delivered 2026-10-21** (`laraplate-ai` 248591b..10ba448; `api_version` narrowed by P3) | R4 and R7 in the services |
+| 1 | R4, R7. **Delivered 2026-10-21** (`laraplate-ai` 248591b..9f7b206, `laraplate-core` c0a4292d; `api_version` narrowed by P3) | R4 and R7 in the services |
 | 4 | E1 | E1 in the services, or a third-party server for testing |
 | 5 | E2 | E2 in `whisper-api` |
 | 6 | E6 | R2 and R7 in the services |
