@@ -34,10 +34,10 @@ reads the same file list. A module that drifts from it fails a test instead of b
   for SAO.
 - **The generator stamps the maintainer's identity on every module.** Verified on 2026-10-21:
   `config/modules.php` defaults `composer.vendor` to `getlaraplate` and `composer.author` to
-  `Swolley <myentity@inwind.it>` (`MODULE_VENDOR`, `MODULE_AUTHOR_NAME`, `MODULE_AUTHOR_EMAIL`, none
-  documented), and the package `composer.stub` writes them into `composer.json`. Anyone who runs
-  `module:make` for their own module gets the maintainer's vendor, name and email, unless they know to
-  override three environment variables. Defect to fix first (D9).
+  `Swolley <myentity@inwind.it>` through three environment variables (`MODULE_VENDOR`,
+  `MODULE_AUTHOR_NAME`, `MODULE_AUTHOR_EMAIL`, none documented), and the package `composer.stub` writes
+  them into `composer.json`. Anyone who runs `module:make` for their own module gets the maintainer's
+  vendor, name and email, unless they know to override those variables. Defect to fix first (D9).
 - **The vendor moved.** Composer packages became `getlaraplate/lara*` on 2026-10-21 (first
   `getlaraplate/laraplate-*` on 2026-10-20), and
   `is_laraplate_owned_module()` recognises official modules by that prefix. A generator that writes the
@@ -61,7 +61,7 @@ one.
 | | Custom (default) | Internal (`--internal`) |
 |---|---|---|
 | Who | anyone building a module on Laraplate | the maintainer, for `getlaraplate` modules |
-| Composer name | `{vendor}/{lower-name}`, vendor from `MODULE_VENDOR` / `--author-vendor` | `getlaraplate/lara{lower-name}` |
+| Composer name | `{vendor}/{lower-name}`, vendor from `--author-vendor` or its prompt | `getlaraplate/lara{lower-name}` |
 | Licence | none written; `composer.json` `license` from an option, default `proprietary` | `AGPL-3.0-or-later`, `LICENSE` copied from the application's AGPL text |
 | `module.json` | `laraplate_owned` absent | `laraplate_owned: true` |
 | README | name, description, install, requirements | the same, plus Contributing (CONTRIBUTING and CLA of the organization) and Licence sections |
@@ -153,9 +153,9 @@ functionality; the application carries the toolchain (module testing strategy, r
   own modules. The test reads `.gitmodules` and fails when such a module lacks
   `laraplate_owned: true` or its scaffolding, so a module created without the flag is caught as soon
   as it becomes a submodule, before it is released.
-- **The command asks first.** Run without `--internal` while the resolved vendor is `getlaraplate`
-  (the `MODULE_VENDOR` default of this repository), the command asks whether the module is an
-  internal one and, under `--no-interaction`, stops with that message instead of guessing.
+- **The command asks first.** Run without `--internal` while the vendor given or typed is
+  `getlaraplate`, the command asks whether the module is an internal one and, under
+  `--no-interaction`, stops with that message instead of guessing.
 
 ### D7. Existing modules are brought into conformance in the same work
 
@@ -165,9 +165,11 @@ the module's own repository, one commit per module, without touching domain code
 
 ### D9. Identity is never defaulted to the maintainer's
 
-- `config/modules.php` no longer carries the maintainer's identity: `MODULE_VENDOR`,
-  `MODULE_AUTHOR_NAME` and `MODULE_AUTHOR_EMAIL` default to empty, and are documented in the Core
-  README in the existing env var style.
+- **No environment variables.** `config/modules.php` no longer reads `MODULE_VENDOR`,
+  `MODULE_AUTHOR_NAME` or `MODULE_AUTHOR_EMAIL` and carries no identity at all: `composer.vendor` and
+  `composer.author` are left empty. Every value comes from an option or from the prompt, which the
+  override command hands to `parent::handle()` through the same options (`--author-vendor`,
+  `--author-name`, `--author-email`). Nothing to document, nothing to set up on a new machine.
 - **Custom profile:** vendor, author name and email are prompted when not passed (`--author-vendor`,
   `--author-name`, `--author-email`, already options of `module:make`). Name and email are prefilled
   from `git config user.name` and `git config user.email` and editable (section 4.1); the vendor has
@@ -205,7 +207,7 @@ asked and the fallback column applies.
 | # | Value | Prompt, with its prefilled default | Asked when | Fallback under `--no-interaction` |
 |---|---|---|---|---|
 | 1 | name | text, validated StudlyCase and not an existing module | no name argument | error |
-| 2 | internal | confirm, default no | `--internal` not passed and the resolved vendor is `getlaraplate` (D6) | error: pass `--internal`, or `--author-vendor` for a custom module |
+| 2 | internal | confirm, default no | `--internal` not passed and the vendor is `getlaraplate` (D6) | error: pass `--internal`, or `--author-vendor` for a custom module |
 | 3 | vendor | text, validated as a composer vendor | custom profile, `--author-vendor` not passed | error |
 | 4 | author name | text, default `git config user.name` | `--author-name` not passed | `git config user.name` when set, otherwise error |
 | 5 | author email | text, default `git config user.email`, validated as an email | `--author-email` not passed | `git config user.email` when set, otherwise error |
@@ -287,8 +289,8 @@ it also asks before going on when the vendor is `getlaraplate` (D6).
 
 - `Modules/Core/docs/rag/MODULE.md` and `Modules/Core/README.md`: the command, the two profiles, the
   conformance test, the D8 sequence for an official module.
-- `MODULE_VENDOR`, `MODULE_AUTHOR_NAME`, `MODULE_AUTHOR_EMAIL` documented in the Core README in the
-  existing env var style.
+- The removal of `MODULE_VENDOR`, `MODULE_AUTHOR_NAME` and `MODULE_AUTHOR_EMAIL` is noted in the Core
+  README, for anyone who had set them.
 
 ## 8. Out of scope, possible later
 
