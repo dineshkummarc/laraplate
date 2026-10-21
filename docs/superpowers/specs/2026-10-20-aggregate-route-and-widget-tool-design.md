@@ -21,7 +21,7 @@ Add one CRUD route, `aggregate`, that answers "how much, how many, how it change
 | Time zone | Days are the days of the application time zone, reported in `meta`. A per-user time zone is out of scope. |
 | Measurable columns | Cast first, schema type second, keys excluded. |
 | Currency | A currency column beside the amount is detected by convention. Mixed currencies give a `null` value and a warning, never a sum. |
-| Labels | Relation groups reuse the facet label source. |
+| Labels | A to-one relation column is its own label; a foreign-key group takes an optional `label`, resolved through the facet label source. |
 | Limits | A config block, a named rate limiter, structured errors. No hard timeout in v1. |
 | Assistant | `summarize` delegates. `show_widget` is a tool of a new policy capability, `widget_objects`, and objects travel in `message.metadata.objects[]`. |
 
@@ -77,7 +77,7 @@ The row-level ACL and the list filters therefore bound every sum, count and aver
 ### 4.3 Queries
 
 - **Total.** One query over the base query: the measures, plus `count(*)` for `meta.row_count`.
-- **Grouped by a column.** One query grouped by the column, ordered by `sort` (default: the first measure, descending), with `limit`. The group key is the value of the own column, or the primary key of the related row for a to-one relation, joined as the facets do. The group count is `count(distinct key)` and goes to `meta.group_count`. The measures are computed by SQL (`avg` included).
+- **Grouped by a column.** One query grouped by the column, ordered by `sort` (default: the first measure, descending), with `limit`. The group key is the value of the column: an own column, or a column of a single-hop to-one relation (`customer.name`), reached with the join of `facetRelatedColumnValues` (a `BelongsTo` gives at most one related row, so no parent is counted twice). The group count is `count(distinct key)` and goes to `meta.group_count`. The measures are computed by SQL (`avg` included).
 - **Grouped by a time bucket.** One query grouped by the truncated day (4.4) returning **partials** per day: for `count`, `count(*)` or `count(field)`; for `sum`, the sum; for `avg`, the sum and `count(field)`; for `min` and `max`, the value. PHP sums the days into the requested bucket: sums are added with decimal-safe arithmetic (the plan picks the library the Core already uses for money), `avg` is the sum over the count of non-null values, `min` and `max` are taken over the days. Empty buckets of the period are filled (contract 5.1). The number of rows is bounded by `max_period_days`.
 - **`other`.** With `limit` and `other: true`, one more query over the base query excluding the groups that were shown, so `avg`, `min` and `max` of the rest are correct, not derived by subtraction. `other.groups` is `group_count` minus the groups shown.
 - **`compare`.** The same total (and, for a bucketed request, the same series) over the previous period. `compare.series` exists only for a bucketed request and is aligned to the current one by position.
@@ -129,7 +129,7 @@ When the aggregated table has a column named `currency`, or for an amount named 
 
 ### 4.7 Labels of groups
 
-A group through a to-one relation takes its label from the facet label source (`FacetLabelSource`, `resolveFacetLabels`), falling back to the key. A group on an own column has no label: its key is the stored value, and the client translates enums and booleans. A group whose value is `null` has the key `null` and no label.
+A group on a column has no label of its own: its key is the stored value, and the client translates enums and booleans. A group through a to-one relation column (`customer.name`) is its own label, as in the facets. To label a group on a foreign-key column (`customer_id`), `group_by` may carry `label`, a single-hop to-one relation column (`customer.name`): the labels of the groups shown are resolved in one bounded read through `resolveFacetLabels` (a `FacetLabelSource` the model declares, or the `BelongsTo` whose foreign key is the group key), under the permission and ACL of the related entity, falling back to the key. A group whose value is `null` has the key `null` and no label. `label` is an addition to the request shape of the contract (section 5.1 there).
 
 ### 4.8 Limits, rate limit, errors
 
@@ -148,14 +148,14 @@ Every field is checked against the model and the caller's readable columns befor
 
 ### 5.1 `summarize` delegates
 
-`summarize` keeps its name, its allowlist (`ai.features.tools.crud.entities`), its `select` permission check and the compact shape of the answer for the model. It builds an `AggregateQuery` from its `group_by` and `metrics` and calls `CrudService::aggregate()`, instead of fetching up to 5000 rows and summing in PHP. `SUMMARIZE_ROW_CAP` goes away. It gains `bucket`, `period`, the `total` and `other` of the result, and the warning `MIXED_CURRENCY`, which it reports to the model in words. The behavior pinned by `CrudToolProviderTest` stays green; where the two engines disagree (the old one grouped by exact value in PHP and capped rows) the test is updated to the exact result and the change is noted in the plan.
+`summarize` keeps its name, its allowlist (`ai.features.tools.crud.entities`), its `select` permission check and the compact shape of the answer for the model. It builds an `AggregateQuery` from its `group_by` and `metrics` and calls `CrudService::aggregate()`, instead of fetching up to 5000 rows and summing in PHP. The engine has one grouping dimension: a `group_by` with more than one column is answered with the tool's usual error shape, saying that one column is allowed. A `sum` or `avg` over a primary or foreign key is `NOT_MEASURABLE` (the existing test sums `id`: it moves to a numeric column that is not a key). `SUMMARIZE_ROW_CAP` goes away. It gains `bucket`, `period`, the `total` and `other` of the result, and the warning `MIXED_CURRENCY`, which it reports to the model in words. The behavior pinned by `CrudToolProviderTest` stays green; where the two engines disagree (the old one grouped by exact value in PHP and capped rows) the test is updated to the exact result and the change is noted in the plan.
 
 ### 5.2 Tool `show_widget`
 
 - **Class and capability.** `ShowWidgetTool`, next to `ProposeViewStateTool`, with `NAME = 'show_widget'`. It belongs to a new capability of `AssistantPolicyCatalog`, `widget_objects`, whose instruction says that an object shows data the backend computes, that the model states what it shows and never invents the numbers, and that the object is rendered by the application. The in-app profile allows the tool. The tool is built for a run only when the compiled policy allows it, when at least one entity is allowlisted for the user, and when the page declared at least one type it can render.
 - **Parameters.** `type` (`kpi`, `chart`, `graph`), `title`, `request` (the structured request of the contract as JSON text, as the proposal tools pass their value), and `variant` or `format`.
 - **What it does.**
-  1. The entity must be in the allowlist and the caller must hold `select` on it.
+  1. The entity must offer the `summarize` operation to the caller: it is in `ai.features.tools.crud.entities` with `summarize`, which is the operator's opt-in to aggregation for the assistant, and the caller holds `select` (`CrudToolProvider::offeredOperations()` already says both).
   2. The type must be among the types the client declared in `context.page.objects` (a closed list, at most three entries).
   3. The request is parsed into an `AggregateQuery` (or a graph request, 5.5), which is the same validator as the route.
   4. It is run once through `CrudService::aggregate()`, bounded by the same limits. An `AggregateException` is returned to the model as a refusal that names the code and the field, so the model can correct and retry.
