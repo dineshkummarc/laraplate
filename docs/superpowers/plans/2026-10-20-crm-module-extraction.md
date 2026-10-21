@@ -188,7 +188,7 @@ Fresh whole-branch review (one pass, each fix with a test that fails when revert
 - Fixed: a soft-deleted counterparty with the same VAT number was ignored and duplicated; it is now matched and restored. Same for a trashed counterparty bank account with the same IBAN. Restoring a party restores its trashed counterparty.
 - Fixed: fiscal identifiers are normalised (upper case, no spaces) on save and on lookup, so `it 0123` and `IT0123` are one subject.
 - Fixed: D10 was not implemented; the lead create page now takes a typed company and attaches to the counterparty with the same fiscal identity or name (suppliers included), creating one only when nothing matches.
-- Deferred minors: moving a party between counterparties leaves the old counterparty's flags stale; the party observer runs three queries on every save; D12 is enforced one way; the counterparty select of a lead or opportunity is empty when the subject is in the trash.
+- Minors, fixed right after (each with a test that failed first): a party that moves to another counterparty refreshes the flags of the one it leaves; the party observer recomputes the aggregates only on create, delete, restore or when a flag or the counterparty changes; D12 is now enforced in both directions (an ERP listener refuses a group parent without identifiers that already has a party). The fourth minor, an empty counterparty select when the subject of a lead is in the trash, could not be reproduced: the select shows the trashed subject and the lead saves; the test that proves it stays.
 
 Version bumps are left to the user (ERP major, CRM first release).
 
