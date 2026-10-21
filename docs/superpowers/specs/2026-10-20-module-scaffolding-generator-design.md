@@ -1,7 +1,8 @@
 # Module Scaffolding Generator: One Source for Every New Module
 
 **Status:** Draft, direction agreed with the user on 2026-10-20 (option B of the conversation: extend
-the existing generator, no template repository for now). Nothing is implemented.
+the existing generator, no template repository for now). All design questions are decided (D1-D10).
+Nothing is implemented. Plan: `docs/superpowers/plans/2026-10-21-module-scaffolding-generator.md`.
 
 **Scope:** backend only (`laraplate`). Touches `Modules/Core` (stubs, command, conformance test),
 `config/modules.php`, and the scaffolding of the existing official modules that fail the new
