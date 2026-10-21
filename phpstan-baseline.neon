@@ -9241,26 +9241,8 @@ parameters:
 			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
 
 		-
-			rawMessage: 'Call to an undefined method Illuminate\Database\Eloquent\Model::searchableUsing().'
-			identifier: method.notFound
-			count: 2
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
 			rawMessage: 'Call to an undefined static method Illuminate\Database\Eloquent\Model::search().'
 			identifier: staticMethod.notFound
-			count: 1
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
-			rawMessage: 'Cannot call method getName() on class-string|object.'
-			identifier: method.nonObject
-			count: 1
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
-			rawMessage: 'Cannot call method textMatchCapabilities() on class-string|object.'
-			identifier: method.nonObject
 			count: 1
 			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
 
