@@ -111,10 +111,10 @@
 - Modify: `Modules/Shop/README.md` if any env/config was introduced (none expected)
 - Test: run the module suite once green.
 
-- [ ] **Step 1: Write the `MODULE.md` admin section** (present behaviour, not the plan).
-- [ ] **Step 2: Run `php artisan test --compact Modules/Shop/tests`** and confirm green; then Pint from the root on all PHP touched by the plan.
-- [ ] **Step 3: Add this plan's `## Delivery status` + a `**Documented in:** Modules/Shop/docs/rag/MODULE.md` line** (enforced by `tests/Unit/ClosedPlansPointToDocumentationTest.php`).
-- [ ] **Step 4: Commit** — `docs(shop): document the product admin write-surface`.
+- [x] **Step 1: Write the `MODULE.md` admin section** (present behaviour, not the plan).
+- [x] **Step 2: Run `php artisan test --compact Modules/Shop/tests`** and confirm green; then Pint from the root on all PHP touched by the plan.
+- [x] **Step 3: Add this plan's `## Delivery status` + a `**Documented in:** Modules/Shop/docs/rag/MODULE.md` line** (enforced by `tests/Unit/ClosedPlansPointToDocumentationTest.php`).
+- [x] **Step 4: Commit** — `docs(shop): document the product admin write-surface`.
 
 ---
 
@@ -124,3 +124,23 @@
 - Storefront categories, per-category presets, facets, browse price/stock snapshot, `/app` read endpoints -> plan #3.
 - A programmatic `/app` product-write API and the generic `fill()` mass-assignment routing of content keys on `Product` -> deferred; the wizard sidesteps it (spec PA3). The `CreateProductAction`/`UpdateProductAction` are the reusable write path a future API would call.
 - Generalising the wizard into a shared multi-extender framework -> deferred until a second production content-extender exists (likely CRM/ERP, per the brainstorm).
+
+---
+
+## Delivery status (2026-10-21)
+
+**Documented in:** `Modules/Shop/docs/rag/MODULE.md` (admin write-surface section — the write actions, the create wizard, the edit tabs, the permissions, the default-preset limit, and the known optimistic-locking gap).
+
+All four tasks shipped on the Shop submodule and were reviewed (per-task spec + quality review, then a final whole-branch review that found the branch shippable with no blockers). Shop suite: 134 Pest tests green (613 assertions); phpstan clean on `Modules/Shop/app`. Each task was executed with subagent-driven development on `master` (the user's standing isolation choice), committed and pushed per task; the laraplate submodule pointer and the stack-root pointer were bumped per task.
+
+Shop submodule commits (`8f5a300..508f5c4`): `34008f1`/`446e582` (Task 1 — `CreateProductAction`/`UpdateProductAction`/`SyncProductVariantsAction` + `Product::newBackingContent()` + allowlist hardening), `c9b096e`/`33b838a` (Task 2 — `ProductResource` + 4-step create wizard; phantom-variant fix via an identity `mutateDehydratedStateUsing` on the step-3 repeater), `a44bcf1`/`d47b2bd` (Task 3 — tabbed edit, products table, `ProductPolicy`; discontinued-item `withTrashed()` label and URL-only table edit action), `6744cae` (Task 4 — MODULE.md admin section), `508f5c4` (final review follow-up — the create wizard now surfaces a model write refusal through a shared `HandlesProductWriteErrors` trait, at parity with edit).
+
+**Divergences from the plan (recorded here as the single source of truth):**
+- **Actions live under `app/Actions/Products/`, not `app/Actions/`** (the plan's file list wrote `app/Actions/CreateProductAction.php`). A `Products/` subfolder was added for the three actions; no behavioural difference.
+- **A third action, `SyncProductVariantsAction`, was extracted** (not named in the plan). It holds the variant/composition desired-final-state sync so both `CreateProductAction` and `UpdateProductAction` share one implementation. This is a factoring of the plan's stated behaviour, not new scope.
+- **Shared schema is `Schemas/ProductForm.php` plus `Schemas/ProductWizard.php`** (the plan foresaw a `ProductForm` for edit and `ProductWizard` for create): `ProductForm` holds the four concern-component builders, the edit tab layout, the form-state loader and the payload reshapers; `ProductWizard` lays the same four builders out as steps. The create wizard and the edit tabs therefore share one state shape.
+- **`ShopPlugin` was created** (not in the plan's file list): Shop had no Filament plugin, so its resources were not discovered. Registering the plugin was required for the resource to exist at all.
+
+**Known gap, shipped deliberately (not a defect):** the product edit has no aggregate optimistic locking. `Product` has no `lock_version`, the edit takes no lease on the backing `Content`, and the variant sync writes the desired final state, so a stale concurrent save can silently drop a variant another admin added after the form was opened. Acceptable for a superadmin-only backoffice at v1 (low concurrency); it is a feature of its own and is recorded in `EditProduct`'s docblock and in MODULE.md. If merchant-facing editing lands in laraplate-ui, locking the aggregate must come with it.
+
+**Deliberately deferred (not built here):** storefront categories, per-category presets, facets, the browse price/stock snapshot and the `/app` read endpoints (plan #3); the merchant-facing catalog management UX (laraplate-ui, proprietary); a programmatic `/app` product-write API and the generic `fill()` mass-assignment routing of content keys on `Product` (the wizard sidesteps it per PA3; the actions are the reusable write path a future API calls); generalising the wizard into a shared multi-extender framework (deferred until a second production content-extender exists, likely CRM/ERP).
