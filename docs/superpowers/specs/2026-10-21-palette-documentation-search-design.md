@@ -24,7 +24,7 @@ Records and files need no new route: `/app/crud/search/{module}/{entity?}` alrea
 | # | Decision |
 |---|---|
 | D1 | The group exists only when the documentation feature is on: the setting `features.faq.enabled`, read as `AssistantCapabilities::help()` and reported to clients as `features.help` by `GET /app/ai/capabilities`. It is the same switch under which the assistant reads documentation. The route calls no chat model, so the assistant's own switch (`features.chat.enabled`) and the chat provider being configured do not gate it. Switched off, the route answers as the assistant routes do for a disabled feature. With the AI module disabled the route does not exist. |
-| D2 | One new route, registered by the AI module under the `crud` prefix: `GET /app/crud/search/{module}/documentation?q=`. `{module}` is the module whose documentation is asked for (`cms`, `erp`, `mes`, `sao`), the same `{module}/{entity}` shape as the other `crud/search` routes. `documentation` is a reserved entity name. |
+| D2 | One new route, registered by the AI module under the `crud` prefix: `GET` or `POST /app/crud/search/{module}/documentation` (`q` in the query string or in the body), like Core's own `crud/search` route. `{module}` is the module whose documentation is asked for (`cms`, `erp`, `mes`, `sao`), the same `{module}/{entity}` shape as the other `crud/search` routes. `documentation` is a reserved entity name. |
 | D3 | No embedding route, and no route that fans out to the others. The client keeps calling the existing search routes, in parallel. |
 | D4 | The shared cost is removed inside `EmbeddingService::embedText()`: a cache of query embeddings and a lock so that concurrent requests for the same text compute it once. Core is not changed: it reaches embeddings only through `ITextEmbedder`, which `SearchEmbedder` implements on top of `embedText()`. |
 | D5 | Documentation scope follows the assistant. The module in the path is resolved through `AssistantScopeResolver`: the result is that module's guides plus the guides marked cross-cutting (`metadata.cross_cutting_user`). Core is not included wholesale. Every UI app belongs to a module, so the palette always knows which one to ask for; there is no application-wide variant on this route. |
@@ -32,12 +32,12 @@ Records and files need no new route: `/app/crud/search/{module}/{entity?}` alrea
 
 ## The route
 
-`GET /app/crud/search/{module}/documentation`
+`GET` or `POST /app/crud/search/{module}/documentation`
 
 | Parameter | Rule |
 |---|---|
 | `{module}` | Path segment. It must match `AssistantScope::MODULE_KEY_PATTERN` and name a module that is installed and enabled on the instance; anything else answers 404, as an unknown module does on the other `crud` routes. It narrows the result to that module (plus cross-cutting guides) and never widens access: audience, permission and tenant filters apply as for any call. |
-| `q` | Required, trimmed. Minimum length and maximum length are fixed in the plan (proposed: 3 and 200 characters). Shorter input answers 422, no embedding is computed. |
+| `q` | Required, trimmed; read from the query string (GET) or from the query string or body (POST). Minimum length and maximum length are fixed in the plan (proposed: 3 and 200 characters). Shorter input answers 422, no embedding is computed. |
 
 Response, inside the usual `ResponseBuilder` envelope. The item is the projection the assistant already builds for a documentation citation (`InAppAssistanceService::promptContext()`), so the client's `AssistantCitation` type fits it:
 
