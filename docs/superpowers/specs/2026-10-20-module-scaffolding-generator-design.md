@@ -32,6 +32,12 @@ reads the same file list. A module that drifts from it fails a test instead of b
 - **The conformance check covers one module.** `Modules/SAO/tests/Unit/ScaffoldingComplianceTest.php`
   asserts the right file list, the absence of the application toolchain and the agent rules, but only
   for SAO.
+- **The generator stamps the maintainer's identity on every module.** Verified on 2026-10-21:
+  `config/modules.php` defaults `composer.vendor` to `getlaraplate` and `composer.author` to
+  `Swolley <myentity@inwind.it>` through three environment variables (`MODULE_VENDOR`,
+  `MODULE_AUTHOR_NAME`, `MODULE_AUTHOR_EMAIL`, none documented), and the package `composer.stub` writes
+  them into `composer.json`. Anyone who runs `module:make` for their own module gets the maintainer's
+  vendor, name and email, unless they know to override those variables. Defect to fix first (D9).
 - **The vendor moved.** Composer packages became `getlaraplate/lara*` on 2026-10-21 (first
   `getlaraplate/laraplate-*` on 2026-10-20), and
   `is_laraplate_owned_module()` recognises official modules by that prefix. A generator that writes the
@@ -55,8 +61,8 @@ one.
 | | Custom (default) | Internal (`--internal`) |
 |---|---|---|
 | Who | anyone building a module on Laraplate | the maintainer, for `getlaraplate` modules |
-| Composer name | `{vendor}/{lower-name}`, vendor from `MODULE_VENDOR` / `--author-vendor` | `getlaraplate/lara{lower-name}` |
-| Licence | none written; `composer.json` `license` from an option, default `proprietary` | `AGPL-3.0-or-later`, `LICENSE` copied from the application's AGPL text |
+| Composer name | `{vendor}/{lower-name}`, vendor from `--author-vendor` or its prompt | `getlaraplate/lara{lower-name}` |
+| Licence | the application's licence by default (D10), editable; `LICENSE` copied when it is unchanged | the application's licence (D10), `LICENSE` copied from the application |
 | `module.json` | `laraplate_owned` absent | `laraplate_owned: true` |
 | README | name, description, install, requirements | the same, plus Contributing (CONTRIBUTING and CLA of the organization) and Licence sections |
 | Agent directives | yes (D5) | yes (D5) |
@@ -98,7 +104,7 @@ are such classes in Core reading the profile, so no generator class is overridde
 
 **Generated for every profile** (added to `stubs.files`, stubs in `Modules/Core/stubs`):
 
-- `README.md`, `CHANGELOG.md` (git-cliff header and an empty `[unreleased]` section), `.gitignore`;
+- `README.md`, `CHANGELOG.md` (git-cliff header and an `[unreleased]` section holding one "Initial scaffold" entry), `.gitignore`;
 - `composer.json` (Laraplate stub: `version`, `type: laravel-module`, PSR-4 for `app/`, factories,
   seeders, and `autoload-dev` for `tests/Unit`, `tests/Feature`, `tests/Integration`, `tests/Support`);
 - `docs/GLOSSARY.md`, `docs/rag/MODULE.md`, `docs/rag/GLOSSARY.md`;
@@ -147,15 +153,49 @@ functionality; the application carries the toolchain (module testing strategy, r
   own modules. The test reads `.gitmodules` and fails when such a module lacks
   `laraplate_owned: true` or its scaffolding, so a module created without the flag is caught as soon
   as it becomes a submodule, before it is released.
-- **The command asks first.** Run without `--internal` while the resolved vendor is `getlaraplate`
-  (the `MODULE_VENDOR` default of this repository), the command asks whether the module is an
-  internal one and, under `--no-interaction`, stops with that message instead of guessing.
+- **The command asks first.** Run without `--internal` while the vendor given or typed is
+  `getlaraplate`, the command asks whether the module is an internal one and, under
+  `--no-interaction`, stops with that message instead of guessing.
 
 ### D7. Existing modules are brought into conformance in the same work
 
 The first run of D6 fails on the drift listed in section 2. The plan backfills each module (missing
 `.gitignore`, glossaries, `module-context.mdc`, test folders, `AGENTS.md` and `CLAUDE.md` pointers) in
 the module's own repository, one commit per module, without touching domain code.
+
+### D9. Identity is never defaulted to the maintainer's
+
+- **No environment variables.** `config/modules.php` no longer reads `MODULE_VENDOR`,
+  `MODULE_AUTHOR_NAME` or `MODULE_AUTHOR_EMAIL` and carries no identity at all: `composer.vendor` and
+  `composer.author` are left empty. Every value comes from an option or from the prompt, which the
+  override command hands to `parent::handle()` through the same options (`--author-vendor`,
+  `--author-name`, `--author-email`). Nothing to document, nothing to set up on a new machine.
+- **Custom profile:** vendor, author name and email are prompted when not passed (`--author-vendor`,
+  `--author-name`, `--author-email`, already options of `module:make`). Name and email are prefilled
+  from `git config user.name` and `git config user.email` and editable (section 4.1); the vendor has
+  no default. Under `--no-interaction` the command stops if the vendor is missing or if no author
+  can be resolved from the options or from `git config`. The composer stub omits `authors` when no author is given,
+  instead of writing empty values.
+- **Internal profile:** vendor `getlaraplate`; the author is prefilled from `git config` like any
+  other profile, so the maintainer's identity comes from the maintainer's machine, not from a shipped
+  default.
+- A conformance check for the generator output: a module generated for the custom profile contains
+  neither `getlaraplate` nor the maintainer's name or email.
+
+### D10. The licence of a module is the licence of the project, whatever it is
+
+- The default licence of a generated module is the `license` of the **application's own
+  `composer.json`**, read at run time and never hardcoded: today `AGPL-3.0-or-later`, and it follows the
+  project if that ever changes.
+- Both profiles use it. For the custom profile it is the prefilled text of the prompt, editable (any
+  SPDX identifier) and `--license` overrides it; under `--no-interaction` the application's licence
+  applies. For the internal profile it is not asked: official modules are always the project's licence.
+- The module `LICENSE` file is copied from the application when the module's licence equals the
+  application's; for any other licence no file is written and the README says where the text must go.
+- Reason: a module runs inside the application and is, in general, covered by its licence once it is
+  distributed or offered over a network. Defaulting to the same licence is the compatible choice; a
+  different one is a deliberate decision of the author. The generated README states the default and
+  its meaning in two lines.
 
 ### D8. Repository creation stays outside the generator
 
@@ -171,18 +211,33 @@ php artisan module:make Billing --internal --requires=Core --requires=ERP \
     --description="Billing module" --color=bright-blue
 ```
 
-### 4.1 Missing input is prompted
+### 4.1 Missing input is prompted, prefilled and revisable
 
-Every value not passed on the command line is asked with Laravel Prompts, in this order. Under
-`--no-interaction` nothing is asked and the fallback column applies.
+Every value not passed on the command line is asked with Laravel Prompts, in this order, as one
+**form** (`Laravel\Prompts\form()`, available in the installed `laravel/prompts` v0.3.26): the user
+can press Ctrl+U to go back to the previous question and change it, and a **summary with a
+confirmation** closes the sequence before anything is written. Under `--no-interaction` nothing is
+asked and the fallback column applies.
 
-| Value | Prompt | Asked when | Fallback under `--no-interaction` |
-|---|---|---|---|
-| name | text, validated StudlyCase and not an existing module | no name argument | error |
-| internal | confirm, default no | `--internal` not passed and the resolved vendor is `getlaraplate` (D6) | error: pass `--internal`, or `--author-vendor` for a custom module |
-| description | text | `--description` not passed | empty |
-| requires | multiselect of the existing modules, `Core` preselected | `--requires` not passed | `[]` |
-| color | select among the unused colours (4.2) | internal profile and `--color` not passed | error listing the unused colours |
+| # | Value | Prompt, with its prefilled default | Asked when | Fallback under `--no-interaction` |
+|---|---|---|---|---|
+| 1 | name | text, validated StudlyCase and not an existing module | no name argument | error |
+| 2 | internal | confirm, default no | `--internal` not passed and the vendor is `getlaraplate` (D6) | error: pass `--internal`, or `--author-vendor` for a custom module |
+| 3 | vendor | text, validated as a composer vendor | custom profile, `--author-vendor` not passed | error |
+| 4 | author name | text, default `git config user.name` | `--author-name` not passed | `git config user.name` when set, otherwise error |
+| 5 | author email | text, default `git config user.email`, validated as an email | `--author-email` not passed | `git config user.email` when set, otherwise error |
+| 6 | licence | text with the SPDX identifier read from the application's `composer.json` as prefilled default (D10) | custom profile, `--license` not passed | the application's licence |
+| 7 | description | text | `--description` not passed | empty |
+| 8 | requires | multiselect of the existing modules, `Core` preselected | `--requires` not passed | `[]` |
+| 9 | color | select among the unused colours (4.2) | internal profile and `--color` not passed | error listing the unused colours |
+| 10 | confirmation | summary of every value, confirm | always in interactive mode | none |
+
+**Defaults, never silent.** The author defaults come from the `git config` of the person running the
+command: their own identity, not the maintainer's (D9). In interactive mode they are only the
+prefilled text of the prompt, editable before confirming. Under `--no-interaction` they are used
+only when set, and the command prints the identity it used. When `git config` has no value, the
+prompt starts empty. The vendor has no default: the application's own `composer.json` vendor is not
+a safe guess (a copy of Laraplate still says `getlaraplate`).
 
 With `--internal` the command takes one module name, so that prompts and colour uniqueness apply to
 one module at a time; nwidart's multi-name form stays available for the custom profile.
@@ -193,15 +248,34 @@ one module at a time; nwidart's multi-name form stays available for the custom p
   `Modules\Core\Support\ModuleColor`. Distinct colours are what makes it an identity, so the choice
   is an internal-module concern: for the custom profile `--color` is ignored with a notice and never
   prompted. An author can still declare a colour in `module.json` by hand.
-- The options are the terminal names that `ModuleColor` maps to a Filament palette, minus `black` and
-  `white` (both map to `Gray`, no identity), minus the colours already declared by an existing module.
-  The list comes from `ModuleColor`, which gains a public accessor for it, so the generator cannot
-  offer a colour the backoffice cannot render.
+- **The palette is extended (decided 2026-10-21).** `ModuleColor` keeps the terminal names it maps today
+  and gains five named colours that have a Filament palette and no module yet. Each one is declared
+  once, with its terminal representation and its Filament palette:
+
+  | Name in `module.json` | Terminal (`<fg=...>`) | Filament palette |
+  |---|---|---|
+  | `orange` | `#f97316` | `Orange` |
+  | `emerald` | `#10b981` | `Emerald` |
+  | `indigo` | `#6366f1` | `Indigo` |
+  | `violet` | `#8b5cf6` | `Violet` |
+  | `pink` | `#ec4899` | `Pink` |
+
+  The hexadecimal values are the 500 shade of the matching Tailwind palette. A terminal that cannot show
+  24-bit colour degrades them by itself: Symfony Console reads `COLORTERM` and `TERM`
+  (`Terminal::getColorMode()`) and converts the hexadecimal to the nearest 256 or 16-colour code, so
+  the text stays readable and only the exact hue changes. `ModuleColor::terminal()` returns the string
+  to put in a tag, which for these five is the hexadecimal, and `ModuleColor::filament()` the palette.
+  `indigo` and `violet` can look alike on a 16-colour terminal: the identity that must stay distinct is
+  the Filament one, and the unique-name rule below applies to the names.
+- The options offered are the names `ModuleColor` knows, minus `black` and `white` (both map to `Gray`,
+  no identity), minus the colours already declared by an existing module. The list comes from
+  `ModuleColor`, which gains a public accessor for it, so the generator cannot offer a colour the
+  backoffice cannot render.
 - A `--color` that is unknown or already used is refused with the list of the free ones.
-- Colours in use on 2026-10-20: `green` (Core), `cyan` (CMS), `magenta` (AI), `yellow` (ERP), `blue`
-  (MES), `bright-red` (SAO), `bright-magenta` (Shop), `bright-green` (CRM). Free: `red`,
-  `bright-blue`, `bright-cyan`, `bright-yellow`. Four modules from now the palette is exhausted
-  (question 3 of section 9).
+- Colours in use on 2026-10-21: `green` (Core), `cyan` (CMS), `magenta` (AI), `yellow` (ERP), `blue`
+  (MES), `bright-red` (SAO), `bright-magenta` (Shop), `bright-green` (CRM). Free: `red`, `bright-blue`,
+  `bright-cyan`, `bright-yellow`, and the five new names, nine in all. When none is left the generator
+  stops and says so: reuse is not offered, a new colour is added to `ModuleColor` first.
 
 ### 4.3 Steps
 
@@ -225,9 +299,9 @@ one module at a time; nwidart's multi-name form stays available for the custom p
 | `REQUIRES_LIST` | bullet list for `module-context.mdc` and README | Core `ReplacementKeyCommand` |
 | `README_LICENSE_SECTION` | internal licence and contributing text, empty for custom | Core `ReplacementKeyCommand` |
 
-`MODULE_VENDOR` already defaults to `getlaraplate` in `config/modules.php`. For the custom profile the
-command uses `--author-vendor` when given, and asks before going on when the vendor is still
-`getlaraplate` (D6).
+Vendor and author never default to the maintainer's identity (D9). For the custom profile the command
+uses `--author-vendor`, `--author-name` and `--author-email` when given and prompts for them otherwise;
+it also asks before going on when the vendor is `getlaraplate` (D6).
 
 ## 6. Testing
 
@@ -240,13 +314,17 @@ command uses `--author-vendor` when given, and asks before going on when the ven
 - Prompts: each missing value is asked in interactive mode and falls back as in 4.1 under
   `--no-interaction`; the colour prompt offers only unused colours and is never shown for the custom
   profile; a used or unknown `--color` is refused; `--color` without `--internal` is ignored.
+- Author prefill: with `git config user.name` and `user.email` set, the author prompts start with them
+  and accept an edit; with neither set they start empty; under `--no-interaction` the configured values
+  are used and printed, and missing ones stop the command. The generated custom module carries the
+  identity that was confirmed, never the maintainer's.
 
 ## 7. Documentation
 
 - `Modules/Core/docs/rag/MODULE.md` and `Modules/Core/README.md`: the command, the two profiles, the
   conformance test, the D8 sequence for an official module.
-- `MODULE_VENDOR`, `MODULE_AUTHOR_NAME`, `MODULE_AUTHOR_EMAIL` documented in the Core README in the
-  existing env var style.
+- The removal of `MODULE_VENDOR`, `MODULE_AUTHOR_NAME` and `MODULE_AUTHOR_EMAIL` is noted in the Core
+  README, for anyone who had set them.
 
 ## 8. Out of scope, possible later
 
@@ -259,11 +337,13 @@ command uses `--author-vendor` when given, and asks before going on when the ven
 
 ## 9. Open questions
 
-1. Custom profile licence default: `proprietary`, or no `license` key at all.
-2. Whether `CHANGELOG.md` starts empty or with an "Initial scaffold" entry under `[unreleased]`.
-3. What happens when no colour is left: extend the palette (`ModuleColor` would need terminal
-   styles beyond the sixteen ANSI names, for example `#rrggbb` foregrounds), or allow reuse with an
-   explicit confirmation.
+None at the moment.
+
+Resolved: the colour palette is extended with five named colours (4.2, 2026-10-21).
+
+Resolved: the module licence defaults to the application's (D10, 2026-10-21).
+
+Resolved: `CHANGELOG.md` starts with an "Initial scaffold" entry under `[unreleased]` (2026-10-21).
 
 Resolved on 2026-10-20: the entry point is `module:make` overridden with `--internal` (D3), not a
 separate command; missing input is prompted and the colour is internal-only and unique (section 4).
