@@ -2,7 +2,7 @@
 
 **Status:** Draft, 2026-10-20. Phase 1 plan: `../plans/2026-10-20-self-hosted-ai-services-client-phase-1.md` (open). Phase 0 delivered on 2026-10-20 (`laraplate-ai` c2530f0).
 **Scope:** `Modules/AI`: `SentenceTransformersEmbeddingsProvider`, `EmbeddingServiceIdentity`, `CrossEncoderService`, `WhisperTranscriber`, the embeddings provider factory, the install guides and a Filament status panel.
-**Siblings:** the services own the rest of the work: [`sentence-transformers-api`](https://github.com/getlaraplate/sentence-transformers-api/blob/main/docs/superpowers/specs/2026-10-20-production-readiness-design.md) and [`whisper-api`](https://github.com/getlaraplate/whisper-api/blob/main/docs/superpowers/specs/2026-10-20-production-readiness-design.md). The three specs share the decision and requirement numbers (D, R, E), so a number means the same thing in each.
+**Siblings:** the services own the rest of the work: [`sentence-transformers-api`](https://github.com/getlaraplate/sentence-transformers-api/blob/master/docs/superpowers/specs/2026-10-20-production-readiness-design.md) and [`whisper-api`](https://github.com/getlaraplate/whisper-api/blob/master/docs/superpowers/specs/2026-10-20-production-readiness-design.md). The three specs share the decision and requirement numbers (D, R, E), so a number means the same thing in each.
 **History:** split on 2026-10-20 from one spec at the root of the Laraplate workspace, so that each repository owns the design of its own work.
 
 ## 1. Goal
