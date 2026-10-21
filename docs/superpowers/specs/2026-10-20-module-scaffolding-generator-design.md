@@ -32,6 +32,12 @@ reads the same file list. A module that drifts from it fails a test instead of b
 - **The conformance check covers one module.** `Modules/SAO/tests/Unit/ScaffoldingComplianceTest.php`
   asserts the right file list, the absence of the application toolchain and the agent rules, but only
   for SAO.
+- **The generator stamps the maintainer's identity on every module.** Verified on 2026-10-21:
+  `config/modules.php` defaults `composer.vendor` to `getlaraplate` and `composer.author` to
+  `Swolley <myentity@inwind.it>` (`MODULE_VENDOR`, `MODULE_AUTHOR_NAME`, `MODULE_AUTHOR_EMAIL`, none
+  documented), and the package `composer.stub` writes them into `composer.json`. Anyone who runs
+  `module:make` for their own module gets the maintainer's vendor, name and email, unless they know to
+  override three environment variables. Defect to fix first (D9).
 - **The vendor moved.** Composer packages became `getlaraplate/lara*` on 2026-10-21 (first
   `getlaraplate/laraplate-*` on 2026-10-20), and
   `is_laraplate_owned_module()` recognises official modules by that prefix. A generator that writes the
@@ -157,6 +163,20 @@ The first run of D6 fails on the drift listed in section 2. The plan backfills e
 `.gitignore`, glossaries, `module-context.mdc`, test folders, `AGENTS.md` and `CLAUDE.md` pointers) in
 the module's own repository, one commit per module, without touching domain code.
 
+### D9. Identity is never defaulted to the maintainer's
+
+- `config/modules.php` no longer carries the maintainer's identity: `MODULE_VENDOR`,
+  `MODULE_AUTHOR_NAME` and `MODULE_AUTHOR_EMAIL` default to empty, and are documented in the Core
+  README in the existing env var style.
+- **Custom profile:** vendor, author name and email are prompted when not passed (`--author-vendor`,
+  `--author-name`, `--author-email`, already options of `module:make`) and the command stops under
+  `--no-interaction` if one is missing. The composer stub omits `authors` when no author is given,
+  instead of writing empty values.
+- **Internal profile:** vendor `getlaraplate` and the author come from the maintainer's own
+  environment (`.env`), not from a shipped default.
+- A conformance check for the generator output: a module generated for the custom profile contains
+  neither `getlaraplate` nor the maintainer's name or email.
+
 ### D8. Repository creation stays outside the generator
 
 The command does not create the GitHub repository, the submodule or the `modules_statuses.json`
@@ -225,9 +245,9 @@ one module at a time; nwidart's multi-name form stays available for the custom p
 | `REQUIRES_LIST` | bullet list for `module-context.mdc` and README | Core `ReplacementKeyCommand` |
 | `README_LICENSE_SECTION` | internal licence and contributing text, empty for custom | Core `ReplacementKeyCommand` |
 
-`MODULE_VENDOR` already defaults to `getlaraplate` in `config/modules.php`. For the custom profile the
-command uses `--author-vendor` when given, and asks before going on when the vendor is still
-`getlaraplate` (D6).
+Vendor and author never default to the maintainer's identity (D9). For the custom profile the command
+uses `--author-vendor`, `--author-name` and `--author-email` when given and prompts for them otherwise;
+it also asks before going on when the vendor is `getlaraplate` (D6).
 
 ## 6. Testing
 
