@@ -184,11 +184,13 @@ Divergences from the plan, all ruled in the ledger:
 Fresh whole-branch review (one pass, each fix with a test that fails when reverted):
 
 - Fixed: the party column of eight ERP document lists searched and sorted on `erp_parties.name` (a crash on sort, an empty result on search); it now goes through `party.counterparty.name`.
-- Fixed: the Core CRUD API could not filter parties by identity attributes (`Party` now implements `IMountsRelatedAttributes`) nor create one from identity attributes (create rules accept them without `counterparty_id`). Sorting and selecting columns by identity attributes through the CRUD query builder stay unsupported: the Core seam documents filters only.
+- Fixed: the Core CRUD API could not filter parties by identity attributes (`Party` now implements `IMountsRelatedAttributes`) nor create one from identity attributes (create rules accept them without `counterparty_id`). Sorting and selecting columns by identity attributes were added afterwards in Core (see below).
 - Fixed: a soft-deleted counterparty with the same VAT number was ignored and duplicated; it is now matched and restored. Same for a trashed counterparty bank account with the same IBAN. Restoring a party restores its trashed counterparty.
 - Fixed: fiscal identifiers are normalised (upper case, no spaces) on save and on lookup, so `it 0123` and `IT0123` are one subject.
 - Fixed: D10 was not implemented; the lead create page now takes a typed company and attaches to the counterparty with the same fiscal identity or name (suppliers included), creating one only when nothing matches.
 - Minors, fixed right after (each with a test that failed first): a party that moves to another counterparty refreshes the flags of the one it leaves; the party observer recomputes the aggregates only on create, delete, restore or when a flag or the counterparty changes; D12 is now enforced in both directions (an ERP listener refuses a group parent without identifiers that already has a party). The fourth minor, an empty counterparty select when the subject of a lead is in the trash, could not be reproduced: the select shows the trashed subject and the lead saves; the test that proves it stays.
+
+- Core, afterwards: the CRUD query builder orders the rows of the main model by a column of a to-one relation (`sort=relation.column`, through a correlated subquery, honouring the related-entity read permission; a to-many relation keeps ordering its loaded records) and, for a model that implements `IMountsRelatedAttributes`, turns a mounted attribute (`name`) into that relation column for sorting and for requested columns, so a client of `Party` does not need to know where the identity lives. Only mounted attributes that are real columns of the related table are covered; translated or dynamic fields of a mounted record (a `Product` title) are not.
 
 Version bumps are left to the user (ERP major, CRM first release).
 
