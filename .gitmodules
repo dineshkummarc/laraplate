@@ -1,40 +1,40 @@
 [submodule "Modules/Core"]
 	path = Modules/Core
-	url = https://github.com/getlaraplate/laraplate-core.git
-	pushurl = git@github.com:getlaraplate/laraplate-core.git
+	url = https://github.com/getlaraplate/laracore.git
+	pushurl = git@github.com:getlaraplate/laracore.git
 	branch = master
 [submodule "Modules/CMS"]
 	path = Modules/CMS
-	url = https://github.com/getlaraplate/laraplate-cms.git
-	pushurl = git@github.com:getlaraplate/laraplate-cms.git
+	url = https://github.com/getlaraplate/laracms.git
+	pushurl = git@github.com:getlaraplate/laracms.git
 	branch = master
 [submodule "Modules/AI"]
 	path = Modules/AI
-	url = https://github.com/getlaraplate/laraplate-ai.git
-	pushurl = git@github.com:getlaraplate/laraplate-ai.git
+	url = https://github.com/getlaraplate/laraai.git
+	pushurl = git@github.com:getlaraplate/laraai.git
 	branch = master
 [submodule "Modules/ERP"]
 	path = Modules/ERP
-	url = https://github.com/getlaraplate/laraplate-erp.git
-	pushurl = git@github.com:getlaraplate/laraplate-erp.git
+	url = https://github.com/getlaraplate/laraerp.git
+	pushurl = git@github.com:getlaraplate/laraerp.git
 	branch = master
 [submodule "Modules/MES"]
 	path = Modules/MES
-	url = https://github.com/getlaraplate/laraplate-mes.git
-	pushurl = git@github.com:getlaraplate/laraplate-mes.git
+	url = https://github.com/getlaraplate/larames.git
+	pushurl = git@github.com:getlaraplate/larames.git
 	branch = master
 [submodule "Modules/SAO"]
 	path = Modules/SAO
-	url = https://github.com/getlaraplate/laraplate-sao.git
-	pushurl = git@github.com:getlaraplate/laraplate-sao.git
+	url = https://github.com/getlaraplate/larasao.git
+	pushurl = git@github.com:getlaraplate/larasao.git
 	branch = master
 [submodule "Modules/Shop"]
 	path = Modules/Shop
-	url = https://github.com/getlaraplate/laraplate-shop.git
-	pushurl = git@github.com:getlaraplate/laraplate-shop.git
+	url = https://github.com/getlaraplate/larashop.git
+	pushurl = git@github.com:getlaraplate/larashop.git
 	branch = master
 [submodule "Modules/CRM"]
 	path = Modules/CRM
-	url = https://github.com/getlaraplate/laraplate-crm.git
+	url = https://github.com/getlaraplate/laracrm.git
 	branch = master
-	pushurl = git@github.com:getlaraplate/laraplate-crm.git
+	pushurl = git@github.com:getlaraplate/laracrm.git

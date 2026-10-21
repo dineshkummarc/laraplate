@@ -47,16 +47,16 @@
   - `CreateProductAction::handle(array $data): Product` — `$data` shape: product columns (`kind`, `is_published_in_shop`, `featured`, `release_date`, `metadata`), `content` => array of content fields (title, slug, components, valid_from/to), `variants` => list of `['is_default'=>bool, 'attributes'=>array, 'items'=>list of ['item_id'=>int,'quantity'=>string,'role'=>string]]`. Creates the full aggregate in one transaction derived from the owning models: build the Content via `newBackingContent()` + fill its fields, `setTempContent()` on a new `Product`, save (seam stamps `extended_type`/`content_id`), then create variants and their items. Returns the saved `Product`.
   - `UpdateProductAction::handle(Product $product, array $data): Product` — updates the product columns and the merged content fields, and syncs variants/composition (create/update/delete to match `$data`), preserving the invariants.
 
-- [ ] **Step 1: Write the failing tests** — `ProductWriteActionTest` (call `setupShopEntities()` first):
+- [x] **Step 1: Write the failing tests** — `ProductWriteActionTest` (call `setupShopEntities()` first):
   - `creates one content on the product entity and default preset`: `CreateProductAction::handle([...])` yields a `Product` whose `content` is one CMS `Content` on the seeded product entity + default preset (assert the entity type and presettable), and exactly one content row was created.
   - `persists the content title through the create action`: pass `content.title`; reload the product via a fresh query; the title is persisted on the content and reads back through the product root.
   - `a create with two default variants ends with one default`: pass two variants both `is_default=true`; after create, `variants()->where('is_default', true)->count() === 1`.
   - `rejects an invalid composition role and a missing item`: a variant item with `role='accessory'` or a non-existent/soft-deleted `item_id` throws `ValidationException`; nothing partial persists (transaction rolls back).
   - `updates columns, content and composition`: `UpdateProductAction::handle($product, [...])` changes a product column, the content title, and adds/removes a variant item; assert the resulting state and that removed rows are gone.
-- [ ] **Step 2: Run them, verify they fail.** `php artisan test --compact Modules/Shop/tests/Feature/ProductWriteActionTest.php`
-- [ ] **Step 3: Implement** `Product::newBackingContent()` (promote from the factory; refactor `ProductFactory` to call it), `CreateProductAction`, `UpdateProductAction`. Business logic in the actions (project convention); transaction from the owning model, no raw `DB::`. Reuse the model invariants (do not re-validate role/default in the action beyond passing data through; the models reject bad values).
-- [ ] **Step 4: Run them, verify they pass.**
-- [ ] **Step 5: Commit** — `feat(shop): product write actions and backing-content resolver`.
+- [x] **Step 2: Run them, verify they fail.** `php artisan test --compact Modules/Shop/tests/Feature/ProductWriteActionTest.php`
+- [x] **Step 3: Implement** `Product::newBackingContent()` (promote from the factory; refactor `ProductFactory` to call it), `CreateProductAction`, `UpdateProductAction`. Business logic in the actions (project convention); transaction from the owning model, no raw `DB::`. Reuse the model invariants (do not re-validate role/default in the action beyond passing data through; the models reject bad values).
+- [x] **Step 4: Run them, verify they pass.**
+- [x] **Step 5: Commit** — `feat(shop): product write actions and backing-content resolver`.
 
 ---
 
@@ -72,11 +72,11 @@
 - Consumes: `CreateProductAction` (Task 1); CMS `ContentForm` (step 2); `Product` (Task 1 resolver).
 - Produces: a registered Filament resource (slug `shop/products`), its create page using a `Wizard` whose submit calls `CreateProductAction::handle()`.
 
-- [ ] **Step 1: Write the failing test** — `ProductResourceTest` (mirror CMS `ContentResourceTest`, `setupShopEntities()` first): `a product is created through the wizard` — using Filament's testing helpers, fill step 1 (Product columns), step 2 (Content: title/slug/components/validity, via the reused `ContentForm` fields), step 3 (one default variant), step 4 (one `main` item referencing an `Item::factory()`), submit; assert a `Product` with its content, one default variant, and one composition row exist.
-- [ ] **Step 2: Run it, verify it fails.**
-- [ ] **Step 3: Implement** `ProductResource` (extend `Coolsam\Modules\Resource`, `$model = Product::class`, slug `shop/products`, navigation group/icon like `ContentResource`, `HasTranslatedResourceLabels`), `CreateProduct` page rendering `ProductWizard` and calling `CreateProductAction` on submit, and `ProductWizard` with 4 `Step`s: (1) Product fields; (2) the CMS `ContentForm` schema; (3) a `Repeater` of variants with an `is_default` toggle; (4) per-variant `VariantItem` rows (`item_id` select from `erp_items`, `quantity`, `role` select `main`/`component`) — choose the cleanest Filament 5 nesting (items nested in the step-3 variant repeater, or a step-4 repeater keyed on step-3 variants). Follow the `filament-development` skill and verify Filament 5 wizard/repeater APIs via `search-docs`; do not assume. `ListProducts`/`EditProduct` may be stubs until Task 3.
-- [ ] **Step 4: Run it, verify it passes.**
-- [ ] **Step 5: Commit** — `feat(shop): product resource with a create wizard`.
+- [x] **Step 1: Write the failing test** — `ProductResourceTest` (mirror CMS `ContentResourceTest`, `setupShopEntities()` first): `a product is created through the wizard` — using Filament's testing helpers, fill step 1 (Product columns), step 2 (Content: title/slug/components/validity, via the reused `ContentForm` fields), step 3 (one default variant), step 4 (one `main` item referencing an `Item::factory()`), submit; assert a `Product` with its content, one default variant, and one composition row exist.
+- [x] **Step 2: Run it, verify it fails.**
+- [x] **Step 3: Implement** `ProductResource` (extend `Coolsam\Modules\Resource`, `$model = Product::class`, slug `shop/products`, navigation group/icon like `ContentResource`, `HasTranslatedResourceLabels`), `CreateProduct` page rendering `ProductWizard` and calling `CreateProductAction` on submit, and `ProductWizard` with 4 `Step`s: (1) Product fields; (2) the CMS `ContentForm` schema; (3) a `Repeater` of variants with an `is_default` toggle; (4) per-variant `VariantItem` rows (`item_id` select from `erp_items`, `quantity`, `role` select `main`/`component`) — choose the cleanest Filament 5 nesting (items nested in the step-3 variant repeater, or a step-4 repeater keyed on step-3 variants). Follow the `filament-development` skill and verify Filament 5 wizard/repeater APIs via `search-docs`; do not assume. `ListProducts`/`EditProduct` may be stubs until Task 3.
+- [x] **Step 4: Run it, verify it passes.**
+- [x] **Step 5: Commit** — `feat(shop): product resource with a create wizard`.
 
 ---
 
@@ -93,14 +93,14 @@
 - Consumes: `UpdateProductAction` (Task 1), `ProductResource` (Task 2).
 - Produces: the edit page (tabbed sections Product/Content/Variants/Composition driven by `UpdateProductAction`), the products table, and the product permissions wired to the resource.
 
-- [ ] **Step 1: Write the failing tests** — add to `ProductResourceTest`:
+- [x] **Step 1: Write the failing tests** — add to `ProductResourceTest`:
   - `a product is edited through the tabbed form`: edit an existing product's column, content title and a variant item; assert persisted via `UpdateProductAction`.
   - `the table scopes to the active company and excludes trashed`: with products in two companies and one soft-deleted, the list shows only the active company's live products (query `Product`, not `Content`).
   - `an unauthorized user cannot access the resource`: a user without the product permission is denied (403/redirect) on list/create/edit.
-- [ ] **Step 2: Run them, verify they fail.**
-- [ ] **Step 3: Implement** `ProductsTable` (columns: title from merged content, `kind`, `is_published_in_shop`, `featured`, company), the tabbed `EditProduct` form calling `UpdateProductAction`, `ProductPolicy` + the product permission names (mirror how CMS `Content` ties to `PermissionName`), and wire authorization on `ProductResource`.
-- [ ] **Step 4: Run them, verify they pass.**
-- [ ] **Step 5: Commit** — `feat(shop): product edit, table and permissions`.
+- [x] **Step 2: Run them, verify they fail.**
+- [x] **Step 3: Implement** `ProductsTable` (columns: title from merged content, `kind`, `is_published_in_shop`, `featured`, company), the tabbed `EditProduct` form calling `UpdateProductAction`, `ProductPolicy` + the product permission names (mirror how CMS `Content` ties to `PermissionName`), and wire authorization on `ProductResource`.
+- [x] **Step 4: Run them, verify they pass.**
+- [x] **Step 5: Commit** — `feat(shop): product edit, table and permissions`.
 
 ---
 
@@ -111,10 +111,10 @@
 - Modify: `Modules/Shop/README.md` if any env/config was introduced (none expected)
 - Test: run the module suite once green.
 
-- [ ] **Step 1: Write the `MODULE.md` admin section** (present behaviour, not the plan).
-- [ ] **Step 2: Run `php artisan test --compact Modules/Shop/tests`** and confirm green; then Pint from the root on all PHP touched by the plan.
-- [ ] **Step 3: Add this plan's `## Delivery status` + a `**Documented in:** Modules/Shop/docs/rag/MODULE.md` line** (enforced by `tests/Unit/ClosedPlansPointToDocumentationTest.php`).
-- [ ] **Step 4: Commit** — `docs(shop): document the product admin write-surface`.
+- [x] **Step 1: Write the `MODULE.md` admin section** (present behaviour, not the plan).
+- [x] **Step 2: Run `php artisan test --compact Modules/Shop/tests`** and confirm green; then Pint from the root on all PHP touched by the plan.
+- [x] **Step 3: Add this plan's `## Delivery status` + a `**Documented in:** Modules/Shop/docs/rag/MODULE.md` line** (enforced by `tests/Unit/ClosedPlansPointToDocumentationTest.php`).
+- [x] **Step 4: Commit** — `docs(shop): document the product admin write-surface`.
 
 ---
 
@@ -124,3 +124,23 @@
 - Storefront categories, per-category presets, facets, browse price/stock snapshot, `/app` read endpoints -> plan #3.
 - A programmatic `/app` product-write API and the generic `fill()` mass-assignment routing of content keys on `Product` -> deferred; the wizard sidesteps it (spec PA3). The `CreateProductAction`/`UpdateProductAction` are the reusable write path a future API would call.
 - Generalising the wizard into a shared multi-extender framework -> deferred until a second production content-extender exists (likely CRM/ERP, per the brainstorm).
+
+---
+
+## Delivery status (2026-10-21)
+
+**Documented in:** `Modules/Shop/docs/rag/MODULE.md` (admin write-surface section — the write actions, the create wizard, the edit tabs, the permissions, the default-preset limit, and the known optimistic-locking gap).
+
+All four tasks shipped on the Shop submodule and were reviewed (per-task spec + quality review, then a final whole-branch review that found the branch shippable with no blockers). Shop suite: 134 Pest tests green (613 assertions); phpstan clean on `Modules/Shop/app`. Each task was executed with subagent-driven development on `master` (the user's standing isolation choice), committed and pushed per task; the laraplate submodule pointer and the stack-root pointer were bumped per task.
+
+Shop submodule commits (`8f5a300..508f5c4`): `34008f1`/`446e582` (Task 1 — `CreateProductAction`/`UpdateProductAction`/`SyncProductVariantsAction` + `Product::newBackingContent()` + allowlist hardening), `c9b096e`/`33b838a` (Task 2 — `ProductResource` + 4-step create wizard; phantom-variant fix via an identity `mutateDehydratedStateUsing` on the step-3 repeater), `a44bcf1`/`d47b2bd` (Task 3 — tabbed edit, products table, `ProductPolicy`; discontinued-item `withTrashed()` label and URL-only table edit action), `6744cae` (Task 4 — MODULE.md admin section), `508f5c4` (final review follow-up — the create wizard now surfaces a model write refusal through a shared `HandlesProductWriteErrors` trait, at parity with edit).
+
+**Divergences from the plan (recorded here as the single source of truth):**
+- **Actions live under `app/Actions/Products/`, not `app/Actions/`** (the plan's file list wrote `app/Actions/CreateProductAction.php`). A `Products/` subfolder was added for the three actions; no behavioural difference.
+- **A third action, `SyncProductVariantsAction`, was extracted** (not named in the plan). It holds the variant/composition desired-final-state sync so both `CreateProductAction` and `UpdateProductAction` share one implementation. This is a factoring of the plan's stated behaviour, not new scope.
+- **Shared schema is `Schemas/ProductForm.php` plus `Schemas/ProductWizard.php`** (the plan foresaw a `ProductForm` for edit and `ProductWizard` for create): `ProductForm` holds the four concern-component builders, the edit tab layout, the form-state loader and the payload reshapers; `ProductWizard` lays the same four builders out as steps. The create wizard and the edit tabs therefore share one state shape.
+- **`ShopPlugin` was created** (not in the plan's file list): Shop had no Filament plugin, so its resources were not discovered. Registering the plugin was required for the resource to exist at all.
+
+**Known gap, shipped deliberately (not a defect):** the product edit has no aggregate optimistic locking. `Product` has no `lock_version`, the edit takes no lease on the backing `Content`, and the variant sync writes the desired final state, so a stale concurrent save can silently drop a variant another admin added after the form was opened. Acceptable for a superadmin-only backoffice at v1 (low concurrency); it is a feature of its own and is recorded in `EditProduct`'s docblock and in MODULE.md. If merchant-facing editing lands in laraplate-ui, locking the aggregate must come with it.
+
+**Deliberately deferred (not built here):** storefront categories, per-category presets, facets, the browse price/stock snapshot and the `/app` read endpoints (plan #3); the merchant-facing catalog management UX (laraplate-ui, proprietary); a programmatic `/app` product-write API and the generic `fill()` mass-assignment routing of content keys on `Product` (the wizard sidesteps it per PA3; the actions are the reusable write path a future API calls); generalising the wizard into a shared multi-extender framework (deferred until a second production content-extender exists, likely CRM/ERP).

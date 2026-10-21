@@ -1,7 +1,7 @@
 <p>&nbsp;</p>
 <p align="center">
-	<a href="https://github.com/swolley" target="_blank">
-		<img src="https://raw.githubusercontent.com/swolley/images/refs/heads/master/logo_laraplate.png?raw=true" width="300" alt="Laraplate Logo" />
+	<a href="https://github.com/getlaraplate" target="_blank">
+		<img src="https://raw.githubusercontent.com/getlaraplate/brand/main/logos/blueprint/laraplate.svg" width="160" alt="Laraplate" />
     </a>
 </p>
 <p>&nbsp;</p>
@@ -45,12 +45,12 @@ php artisan module:seed --all
 
 ### Laraplate Modules
 
--   ⚡ **Core**: main common boilerplate functionalities. About [Core Module](https://github.com/getlaraplate/laraplate-core).
--   ✎ **CMS**: common content management functionalities. About [CMS module](https://github.com/getlaraplate/laraplate-cms).
--   ✨ **AI**: artificial intelligence capabilities (embeddings, vector search, automatic translation). About [AI Module](https://github.com/getlaraplate/laraplate-ai).
--   📊 **ERP**: accounting and operations (multi-company, journal entries, tax codes, commercial scaffolding). About [ERP Module](https://github.com/getlaraplate/laraplate-erp).
--   🏭 **MES**: manufacturing execution foundation (work orders, shop-floor events, traceability, KPIs). About [MES Module](https://github.com/getlaraplate/laraplate-mes).
--   🔗 **SAO**: _Simply Another Orchestrator_ — a correlation engine between code, errors and work; a standalone ticketing core with optional VCS, log-source and issue-tracker integrations. About [SAO Module](https://github.com/getlaraplate/laraplate-sao).
+-   ⚡ **Core**: main common boilerplate functionalities. About [Core Module](https://github.com/getlaraplate/laracore).
+-   ✎ **CMS**: common content management functionalities. About [CMS module](https://github.com/getlaraplate/laracms).
+-   ✨ **AI**: artificial intelligence capabilities (embeddings, vector search, automatic translation). About [AI Module](https://github.com/getlaraplate/laraai).
+-   📊 **ERP**: accounting and operations (multi-company, journal entries, tax codes, commercial scaffolding). About [ERP Module](https://github.com/getlaraplate/laraerp).
+-   🏭 **MES**: manufacturing execution foundation (work orders, shop-floor events, traceability, KPIs). About [MES Module](https://github.com/getlaraplate/larames).
+-   🔗 **SAO**: _Simply Another Orchestrator_ — a correlation engine between code, errors and work; a standalone ticketing core with optional VCS, log-source and issue-tracker integrations. About [SAO Module](https://github.com/getlaraplate/larasao).
 
 Each module owns its backoffice presence: a `Modules/{Name}/app/Filament/{Name}Plugin.php`
 class is auto-discovered by `coolsam/modules` and registers the module's resources, pages
