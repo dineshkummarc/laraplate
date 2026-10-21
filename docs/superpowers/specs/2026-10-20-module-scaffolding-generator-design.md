@@ -104,7 +104,7 @@ are such classes in Core reading the profile, so no generator class is overridde
 
 **Generated for every profile** (added to `stubs.files`, stubs in `Modules/Core/stubs`):
 
-- `README.md`, `CHANGELOG.md` (git-cliff header and an empty `[unreleased]` section), `.gitignore`;
+- `README.md`, `CHANGELOG.md` (git-cliff header and an `[unreleased]` section holding one "Initial scaffold" entry), `.gitignore`;
 - `composer.json` (Laraplate stub: `version`, `type: laravel-module`, PSR-4 for `app/`, factories,
   seeders, and `autoload-dev` for `tests/Unit`, `tests/Feature`, `tests/Integration`, `tests/Support`);
 - `docs/GLOSSARY.md`, `docs/rag/MODULE.md`, `docs/rag/GLOSSARY.md`;
@@ -241,7 +241,7 @@ one module at a time; nwidart's multi-name form stays available for the custom p
 - Colours in use on 2026-10-20: `green` (Core), `cyan` (CMS), `magenta` (AI), `yellow` (ERP), `blue`
   (MES), `bright-red` (SAO), `bright-magenta` (Shop), `bright-green` (CRM). Free: `red`,
   `bright-blue`, `bright-cyan`, `bright-yellow`. Four modules from now the palette is exhausted
-  (question 3 of section 9).
+  (question 2 of section 9).
 
 ### 4.3 Steps
 
@@ -304,10 +304,11 @@ it also asks before going on when the vendor is `getlaraplate` (D6).
 ## 9. Open questions
 
 1. Custom profile licence default: `proprietary`, or no `license` key at all.
-2. Whether `CHANGELOG.md` starts empty or with an "Initial scaffold" entry under `[unreleased]`.
-3. What happens when no colour is left: extend the palette (`ModuleColor` would need terminal
+2. What happens when no colour is left: extend the palette (`ModuleColor` would need terminal
    styles beyond the sixteen ANSI names, for example `#rrggbb` foregrounds), or allow reuse with an
    explicit confirmation.
+
+Resolved: `CHANGELOG.md` starts with an "Initial scaffold" entry under `[unreleased]` (2026-10-21).
 
 Resolved on 2026-10-20: the entry point is `module:make` overridden with `--internal` (D3), not a
 separate command; missing input is prompted and the colour is internal-only and unique (section 4).
