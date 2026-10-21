@@ -248,15 +248,34 @@ one module at a time; nwidart's multi-name form stays available for the custom p
   `Modules\Core\Support\ModuleColor`. Distinct colours are what makes it an identity, so the choice
   is an internal-module concern: for the custom profile `--color` is ignored with a notice and never
   prompted. An author can still declare a colour in `module.json` by hand.
-- The options are the terminal names that `ModuleColor` maps to a Filament palette, minus `black` and
-  `white` (both map to `Gray`, no identity), minus the colours already declared by an existing module.
-  The list comes from `ModuleColor`, which gains a public accessor for it, so the generator cannot
-  offer a colour the backoffice cannot render.
+- **The palette is extended (decided 2026-10-21).** `ModuleColor` keeps the terminal names it maps today
+  and gains five named colours that have a Filament palette and no module yet. Each one is declared
+  once, with its terminal representation and its Filament palette:
+
+  | Name in `module.json` | Terminal (`<fg=...>`) | Filament palette |
+  |---|---|---|
+  | `orange` | `#f97316` | `Orange` |
+  | `emerald` | `#10b981` | `Emerald` |
+  | `indigo` | `#6366f1` | `Indigo` |
+  | `violet` | `#8b5cf6` | `Violet` |
+  | `pink` | `#ec4899` | `Pink` |
+
+  The hexadecimal values are the 500 shade of the matching Tailwind palette. A terminal that cannot show
+  24-bit colour degrades them by itself: Symfony Console reads `COLORTERM` and `TERM`
+  (`Terminal::getColorMode()`) and converts the hexadecimal to the nearest 256 or 16-colour code, so
+  the text stays readable and only the exact hue changes. `ModuleColor::terminal()` returns the string
+  to put in a tag, which for these five is the hexadecimal, and `ModuleColor::filament()` the palette.
+  `indigo` and `violet` can look alike on a 16-colour terminal: the identity that must stay distinct is
+  the Filament one, and the unique-name rule below applies to the names.
+- The options offered are the names `ModuleColor` knows, minus `black` and `white` (both map to `Gray`,
+  no identity), minus the colours already declared by an existing module. The list comes from
+  `ModuleColor`, which gains a public accessor for it, so the generator cannot offer a colour the
+  backoffice cannot render.
 - A `--color` that is unknown or already used is refused with the list of the free ones.
-- Colours in use on 2026-10-20: `green` (Core), `cyan` (CMS), `magenta` (AI), `yellow` (ERP), `blue`
-  (MES), `bright-red` (SAO), `bright-magenta` (Shop), `bright-green` (CRM). Free: `red`,
-  `bright-blue`, `bright-cyan`, `bright-yellow`. Four modules from now the palette is exhausted
-  (question 1 of section 9).
+- Colours in use on 2026-10-21: `green` (Core), `cyan` (CMS), `magenta` (AI), `yellow` (ERP), `blue`
+  (MES), `bright-red` (SAO), `bright-magenta` (Shop), `bright-green` (CRM). Free: `red`, `bright-blue`,
+  `bright-cyan`, `bright-yellow`, and the five new names, nine in all. When none is left the generator
+  stops and says so: reuse is not offered, a new colour is added to `ModuleColor` first.
 
 ### 4.3 Steps
 
@@ -318,9 +337,9 @@ it also asks before going on when the vendor is `getlaraplate` (D6).
 
 ## 9. Open questions
 
-1. What happens when no colour is left: extend the palette (`ModuleColor` would need terminal
-   styles beyond the sixteen ANSI names, for example `#rrggbb` foregrounds), or allow reuse with an
-   explicit confirmation.
+None at the moment.
+
+Resolved: the colour palette is extended with five named colours (4.2, 2026-10-21).
 
 Resolved: the module licence defaults to the application's (D10, 2026-10-21).
 
