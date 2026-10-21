@@ -93,14 +93,14 @@
 - Consumes: `UpdateProductAction` (Task 1), `ProductResource` (Task 2).
 - Produces: the edit page (tabbed sections Product/Content/Variants/Composition driven by `UpdateProductAction`), the products table, and the product permissions wired to the resource.
 
-- [ ] **Step 1: Write the failing tests** — add to `ProductResourceTest`:
+- [x] **Step 1: Write the failing tests** — add to `ProductResourceTest`:
   - `a product is edited through the tabbed form`: edit an existing product's column, content title and a variant item; assert persisted via `UpdateProductAction`.
   - `the table scopes to the active company and excludes trashed`: with products in two companies and one soft-deleted, the list shows only the active company's live products (query `Product`, not `Content`).
   - `an unauthorized user cannot access the resource`: a user without the product permission is denied (403/redirect) on list/create/edit.
-- [ ] **Step 2: Run them, verify they fail.**
-- [ ] **Step 3: Implement** `ProductsTable` (columns: title from merged content, `kind`, `is_published_in_shop`, `featured`, company), the tabbed `EditProduct` form calling `UpdateProductAction`, `ProductPolicy` + the product permission names (mirror how CMS `Content` ties to `PermissionName`), and wire authorization on `ProductResource`.
-- [ ] **Step 4: Run them, verify they pass.**
-- [ ] **Step 5: Commit** — `feat(shop): product edit, table and permissions`.
+- [x] **Step 2: Run them, verify they fail.**
+- [x] **Step 3: Implement** `ProductsTable` (columns: title from merged content, `kind`, `is_published_in_shop`, `featured`, company), the tabbed `EditProduct` form calling `UpdateProductAction`, `ProductPolicy` + the product permission names (mirror how CMS `Content` ties to `PermissionName`), and wire authorization on `ProductResource`.
+- [x] **Step 4: Run them, verify they pass.**
+- [x] **Step 5: Commit** — `feat(shop): product edit, table and permissions`.
 
 ---
 
