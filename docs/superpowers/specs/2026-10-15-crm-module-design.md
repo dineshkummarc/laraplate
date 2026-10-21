@@ -1,6 +1,6 @@
 # CRM Module: Extraction from ERP and the Counterparty / Party Split
 
-**Status:** Draft, decisions taken in conversation with the user on 2026-10-15. Nothing is implemented beyond an empty module skeleton: `Modules/CRM` is a submodule of `laraplate` (repository `swolley/laraplate-crm`, initial commit `64f1ca8`), not yet listed in `modules_statuses.json`.
+**Status:** Approved 2026-10-20, implemented 2026-10-21 (see the plan `plans/2026-10-20-crm-module-extraction.md` for the divergences). Decisions taken in conversation with the user on 2026-10-15. Nothing is implemented beyond an empty module skeleton: `Modules/CRM` is a submodule of `laraplate` (repository `swolley/laraplate-crm`, initial commit `64f1ca8`), not yet listed in `modules_statuses.json`.
 
 **Scope:** backend only (`laraplate`). Touches the new `CRM` module, `ERP` (M3.1 extraction, `Party` split), `Core` (nothing new in phase 1) and, for the dependency check, `Shop`, `MES`, `SAO`.
 
@@ -53,7 +53,7 @@ The relationship between a `Counterparty` and one `Company`.
 | `Lead` | ERP | CRM | `crm_leads` | `party_id` becomes `counterparty_id` (nullable). Loses `company_id`. |
 | `Opportunity` | ERP | CRM | `crm_opportunities` | `party_id` becomes `counterparty_id` (NOT NULL). Loses `company_id`. |
 | `OpportunityStage` | ERP | CRM | Core taxonomy | A `Taxonomy` subclass bound to the module `Entity`, `Presettable` and `EntityType`. The CRM gets its own `Entity`, `Pivot\Presettable` and `Casts\EntityType` (case `OpportunityStages`), the per-module pattern Shop already follows. |
-| `SalesPipelineService` | ERP | CRM | service | Pure reporting over `Opportunity`; check whether its local-currency value uses ERP exchange rates before moving. |
+| `SalesPipelineService` | ERP | ERP (stays) | service | Reads the CRM `Opportunity` without a company filter. It stays in the ERP together with the page and the CSV exporter because the exporter is ERP-only and the CRM must not import ERP classes. |
 | `LeadStatus`, `OpportunityStatus` | ERP | CRM | casts | Namespace change only. |
 | `OpportunityLifecycleService` | ERP | CRM | service | Called by the ERP `QuotationObserver`. |
 | Filament `Leads`, `Opportunities` resources | ERP | CRM | | `Parties` and `Contacts` resources are split or reviewed. |
@@ -79,7 +79,7 @@ Every table name is prefixed by the lowercase module name (`crm_`) and declared 
 Rules that follow:
 
 - Migrations, models, factories and tests reference `CRMTables`, never a literal table name.
-- The cases `Leads`, `Opportunities`, `Contacts`, `Contactables` and `PartyBankAccounts` are removed from `ERPTables`, since those tables leave the ERP. `Parties` stays (`erp_parties`).
+- The cases `Leads`, `Opportunities`, `Contacts` and `Contactables` are removed from `ERPTables`, since those tables leave the ERP. `Parties` stays (`erp_parties`), and so does `PartyBankAccounts` (`erp_party_bank_accounts`): it is the per-company link to the counterparty bank account, because it carries the company, the default flag and the direct debit mandate.
 - The stage nodes stay in Core `taxonomies`. `Entity`, `Presettable` and the preset tables are the shared `core_entities`, `core_presets`, `core_presettables`, discriminated by the module `EntityType`, as in Shop; the CRM adds no table for them and its `EntityType` has the case `OpportunityStages`.
 - `crm_counterparty_bank_accounts` is 30 characters and derived foreign key and index names are longer. The repository supports Oracle, so check the identifier length limit in force before fixing the names (not verified; `MigrateUtils` does not enforce a length).
 - Foreign key and index names follow the existing style (`{table}_{column}_FK`).
@@ -89,7 +89,7 @@ Rules that follow:
 Each module with a backoffice owns a plugin (`CMSPlugin`, `CorePlugin`, `ERPPlugin`, `MESPlugin`, `SAOPlugin`); the panel auto-registers module plugins (`config/filament-modules.php`, `auto-register-plugins`). The CRM follows the same shape:
 
 - `Modules\CRM\Filament\CRMPlugin` with `ModuleFilamentPlugin`, id `crm`, which in `afterRegister` registers the module colour (from the `color` key of `module.json`) and the CRM navigation groups.
-- Navigation group keys are translation keys prefixed by the module, as in the ERP (`erp.navigation.sales`). Proposal: `crm.navigation.master_data` (`Counterparty`, `Contact`) and `crm.navigation.pipeline` (`Lead`, `Opportunity`, and the sales pipeline page that follows `SalesPipelineService`). Labels live in `Modules/CRM/lang/{de,en,es,it,sl}/crm.php`, the locales the ERP ships.
+- Navigation group keys are translation keys prefixed by the module, as in the ERP (`erp.navigation.sales`). Proposal: `crm.navigation.master_data` (`Counterparty`, `Contact`) and `crm.navigation.pipeline` (`Lead`, `Opportunity`; the sales pipeline report page stays in the ERP). Labels live in `Modules/CRM/lang/{de,en,es,it,sl}/crm.php`, the locales the ERP ships.
 - Resources move with their entities: `Leads` and `Opportunities` leave the ERP group `erp.navigation.sales`; a new `Counterparties` resource and the `Contacts` resource live in the CRM. The ERP `Parties` resource stays in `erp.navigation.master_data` and keeps editing the identity fields through the transparent proxy (D15), so its form does not change.
 - A `CRMPluginTest` mirrors `ERPPluginTest`: the plugin exposes its id and module name, and every `navigationGroup` used by a CRM resource or page is registered.
 

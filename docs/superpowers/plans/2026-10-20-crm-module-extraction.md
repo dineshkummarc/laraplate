@@ -1,10 +1,10 @@
 ---
-status: open
+status: closed
 created_on: 2026-10-20
 ---
 # CRM module extraction (parity phase). Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax. Tick each step when it is done, in the same work block.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax. Tick each step when it is done, in the same work block.
 
 **Goal:** `Modules/CRM` owns `Counterparty`, `Contact`, `Lead`, `Opportunity` and the pipeline stages; the ERP `Party` becomes `Counterparty x Company`; the application behaves as ERP M3.1 does today.
 
@@ -47,11 +47,11 @@ created_on: 2026-10-20
 **Interfaces:**
 - Produces: `CRMTables::Counterparties = 'crm_counterparties'`; `CounterpartyKind` backed enum `Company = 'company'` (default), `Person = 'person'`; `Counterparty` with fillable `name, kind, tax_id, vat_number, fiscal_country, address_line, postal_code, city, province, country, einvoice_recipient_code, einvoice_pec_email, parent_counterparty_id, is_customer, is_supplier` (the two flags are not mass-assignable from CRM forms, written by the ERP); `parent(): BelongsTo`, `children(): HasMany`; `static findByFiscalIdentity(?string $fiscalCountry, ?string $vatNumber, ?string $taxId): ?self` (returns `null` when both `vatNumber` and `taxId` are null or blank; matches `fiscal_country` + `vat_number`, else `tax_id`); soft delete; `CounterpartyFactory` with states `company()`, `person()`.
 
-- [ ] **Step 1: Failing tests** in `CounterpartyTest`: `it('defaults kind to company')`; `it('finds by country and vat number')`; `it('finds by tax id when there is no vat number')`; `it('returns null for blank identifiers')` (two blanks never match); `it('refuses to be its own ancestor')` (setting `parent_counterparty_id` to itself or a descendant throws `ValidationException`).
-- [ ] **Step 2: Run** `php artisan test --compact Modules/CRM/tests/Feature/CounterpartyTest.php`. Expected: FAIL, class not found.
-- [ ] **Step 3: Implement** enum, cast, model (validation rules in `getRules()` per the Laraplate model standard, ancestor check in a `saving` hook), migration (`MigrateUtils::timestamps` with soft delete, indexes on `vat_number`, `tax_id`, `parent_counterparty_id` named `{table}_{column}_idx`/`_FK`), factory.
-- [ ] **Step 4: Run** the same test. Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/CRM`: `feat(crm): Counterparty with legal identity and hierarchy`.
+- [x] **Step 1: Failing tests** in `CounterpartyTest`: `it('defaults kind to company')`; `it('finds by country and vat number')`; `it('finds by tax id when there is no vat number')`; `it('returns null for blank identifiers')` (two blanks never match); `it('refuses to be its own ancestor')` (setting `parent_counterparty_id` to itself or a descendant throws `ValidationException`).
+- [x] **Step 2: Run** `php artisan test --compact Modules/CRM/tests/Feature/CounterpartyTest.php`. Expected: FAIL, class not found.
+- [x] **Step 3: Implement** enum, cast, model (validation rules in `getRules()` per the Laraplate model standard, ancestor check in a `saving` hook), migration (`MigrateUtils::timestamps` with soft delete, indexes on `vat_number`, `tax_id`, `parent_counterparty_id` named `{table}_{column}_idx`/`_FK`), factory.
+- [x] **Step 4: Run** the same test. Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/CRM`: `feat(crm): Counterparty with legal identity and hierarchy`.
 
 ### Task 2: Party over Counterparty (proxy, attach, schema)
 
@@ -64,11 +64,11 @@ created_on: 2026-10-20
 - Consumes: `Counterparty`, `Counterparty::findByFiscalIdentity`.
 - Produces: trait `ProxiesCounterparty` giving `Party` `counterparty(): BelongsTo`, an always-loaded relation (`$with`), an explicit constant list `COUNTERPARTY_ATTRIBUTES` (the identity columns of Task 1 except flags and hierarchy) read and written through the relation, and `scopeSearchIdentity(Builder $query, string $term): Builder` and `scopeOrderByName(Builder $query, string $direction = 'asc'): Builder` (join on `crm_counterparties`, qualified columns). `Party` keeps `company_id`, `is_customer`, `is_supplier` and gains `counterparty_id` NOT NULL, unique (`counterparty_id`, `company_id`), `restrictOnDelete`.
 
-- [ ] **Step 1: Failing tests** in `PartyCounterpartyTest`: `it('creates a counterparty on first save')`; `it('reads and writes identity attributes through the party')`; `it('attaches to the existing counterparty with the same vat number and keeps its stored name')` (D16); `it('does not attach two parties with no identifier to one counterparty')` (Review Focus 1); `it('allows one party per company for a counterparty but not two')`; `it('refuses a party for an organisational counterparty')` (D12: a counterparty that has children and neither `vat_number` nor `tax_id`; a childless counterparty without identifiers is fine); `it('refuses to delete a counterparty that has a party')`; `it('recomputes the counterparty flags when a party is saved or deleted')` (D7); `it('loads parties with their counterparty without one query per row')` (query count constant for 10 parties).
-- [ ] **Step 2: Run** the test file. Expected: FAIL.
-- [ ] **Step 3: Implement** the trait (reads/writes in `getAttribute`/`setAttribute`, `save()` resolves the counterparty then saves it if dirty, in one transaction on the party connection), the `deleting` listener on `Counterparty` registered in `ERPServiceProvider::boot` (ERP depends on CRM, not the reverse), the `PartyObserver::saved/deleted` that recomputes `is_customer`/`is_supplier` of the counterparty with `exists` queries on `Party`; rewrite the parties migration (identity columns removed, `counterparty_id` added); update `PartyFactory` to build a `Counterparty` and keep the same states `customer()` and `supplier()`.
-- [ ] **Step 4: Run** the test file. Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/ERP`: `feat(erp): Party over Counterparty`.
+- [x] **Step 1: Failing tests** in `PartyCounterpartyTest`: `it('creates a counterparty on first save')`; `it('reads and writes identity attributes through the party')`; `it('attaches to the existing counterparty with the same vat number and keeps its stored name')` (D16); `it('does not attach two parties with no identifier to one counterparty')` (Review Focus 1); `it('allows one party per company for a counterparty but not two')`; `it('refuses a party for an organisational counterparty')` (D12: a counterparty that has children and neither `vat_number` nor `tax_id`; a childless counterparty without identifiers is fine); `it('refuses to delete a counterparty that has a party')`; `it('recomputes the counterparty flags when a party is saved or deleted')` (D7); `it('loads parties with their counterparty without one query per row')` (query count constant for 10 parties).
+- [x] **Step 2: Run** the test file. Expected: FAIL.
+- [x] **Step 3: Implement** the trait (reads/writes in `getAttribute`/`setAttribute`, `save()` resolves the counterparty then saves it if dirty, in one transaction on the party connection), the `deleting` listener on `Counterparty` registered in `ERPServiceProvider::boot` (ERP depends on CRM, not the reverse), the `PartyObserver::saved/deleted` that recomputes `is_customer`/`is_supplier` of the counterparty with `exists` queries on `Party`; rewrite the parties migration (identity columns removed, `counterparty_id` added); update `PartyFactory` to build a `Counterparty` and keep the same states `customer()` and `supplier()`.
+- [x] **Step 4: Run** the test file. Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/ERP`: `feat(erp): Party over Counterparty`.
 
 ### Task 3: Party consumers that use identity columns in SQL
 
@@ -76,11 +76,11 @@ created_on: 2026-10-20
 - Modify: Filament forms and tables that select, search or order parties by identity columns: `Projects/Schemas/ProjectForm.php`, `PaymentRequests/Schemas/PaymentRequestForm.php`, `Payments/Schemas/PaymentForm.php`, `Quotations/Schemas/QuotationForm.php`, `SalesOrders/Schemas/SalesOrderForm.php`, `PurchaseOrders/Schemas/PurchaseOrderForm.php`, `Contacts/Schemas/ContactForm.php`, `Parties/Schemas/PartyForm.php`, `Parties/Tables/PartiesTable.php`, `PartyResource.php` (global search), `app/Import/PartyImporter.php`
 - Test: `Modules/ERP/tests/Feature/Filament/PartyIdentityQueriesTest.php`
 
-- [ ] **Step 1: Audit.** Run `grep -rnE "relationship\('party'|Party::query\(\)|query\(Party::class\)|orderBy\('name'\)|pluck\('name'" Modules/ERP/app Modules/MES/app Modules/Shop/app` and list every hit that touches `name`, `vat_number`, `tax_id`, `city` or `fiscal_country` in SQL; the list goes into the task's commit message.
-- [ ] **Step 2: Failing tests**: `it('searches parties by name in the sales order form')`, `it('orders party options by name')`, `it('searches parties by vat number in the party table')`, `it('imports parties by creating or attaching counterparties')` (importer: same VAT twice gives one counterparty). Expected: FAIL with an unknown-column error.
-- [ ] **Step 3: Implement** with the `searchIdentity` and `orderByName` scopes of Task 2; `getOptionLabelFromRecordUsing` replaces `relationship('party', 'name')`; the importer builds a `Party` with identity attributes and lets D16 attach.
-- [ ] **Step 4: Run** `php artisan test --compact Modules/ERP/tests/Feature/Filament Modules/ERP/tests/Feature/Import`. Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/ERP`: `refactor(erp): party identity queries through the counterparty`.
+- [x] **Step 1: Audit.** Run `grep -rnE "relationship\('party'|Party::query\(\)|query\(Party::class\)|orderBy\('name'\)|pluck\('name'" Modules/ERP/app Modules/MES/app Modules/Shop/app` and list every hit that touches `name`, `vat_number`, `tax_id`, `city` or `fiscal_country` in SQL; the list goes into the task's commit message.
+- [x] **Step 2: Failing tests**: `it('searches parties by name in the sales order form')`, `it('orders party options by name')`, `it('searches parties by vat number in the party table')`, `it('imports parties by creating or attaching counterparties')` (importer: same VAT twice gives one counterparty). Expected: FAIL with an unknown-column error.
+- [x] **Step 3: Implement** with the `searchIdentity` and `orderByName` scopes of Task 2; `getOptionLabelFromRecordUsing` replaces `relationship('party', 'name')`; the importer builds a `Party` with identity attributes and lets D16 attach.
+- [x] **Step 4: Run** `php artisan test --compact Modules/ERP/tests/Feature/Filament Modules/ERP/tests/Feature/Import`. Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/ERP`: `refactor(erp): party identity queries through the counterparty`.
 
 ### Task 4: Contact and Contactable move to the CRM
 
@@ -91,11 +91,11 @@ created_on: 2026-10-20
 
 **Interfaces:** `Contact` keeps `name`, `email`, `phone`, the `User` link and `counterparties(): BelongsToMany` through `Contactable` (composite primary key `counterparty_id`, `contact_id`, no extra attributes, D17). `Counterparty::contacts(): BelongsToMany`.
 
-- [ ] **Step 1: Failing tests**: `it('links a contact to several counterparties')`; `it('keeps the user link and hides user_id')`; `it('removes the link rows when a counterparty is hard deleted')`.
-- [ ] **Step 2: Run** `php artisan test --compact Modules/CRM/tests/Feature/ContactTest.php`. Expected: FAIL.
-- [ ] **Step 3: Implement** the models and migrations by moving the ERP ones (read the ERP `Contact` first for the `User` temp-user logic and keep it), update every ERP reference with `grep -rn "Models\\\\Contact" Modules`.
-- [ ] **Step 4: Run** the CRM test and `php artisan test --compact Modules/ERP/tests/Feature/Models`. Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/CRM` and `Modules/ERP`: `feat(crm): Contact moves from ERP`.
+- [x] **Step 1: Failing tests**: `it('links a contact to several counterparties')`; `it('keeps the user link and hides user_id')`; `it('removes the link rows when a counterparty is hard deleted')`.
+- [x] **Step 2: Run** `php artisan test --compact Modules/CRM/tests/Feature/ContactTest.php`. Expected: FAIL.
+- [x] **Step 3: Implement** the models and migrations by moving the ERP ones (read the ERP `Contact` first for the `User` temp-user logic and keep it), update every ERP reference with `grep -rn "Models\\\\Contact" Modules`.
+- [x] **Step 4: Run** the CRM test and `php artisan test --compact Modules/ERP/tests/Feature/Models`. Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/CRM` and `Modules/ERP`: `feat(crm): Contact moves from ERP`.
 
 ### Task 5: Lead, Opportunity, stages and lifecycle move to the CRM
 
@@ -108,11 +108,11 @@ created_on: 2026-10-20
 - Produces: `Lead` (`counterparty_id` nullable, `contact_id` nullable, no `company_id`), `Opportunity` (`counterparty_id` NOT NULL `restrictOnDelete`, `lead_id` nullOnDelete, `stage_taxonomy_id`, no `company_id`), `OpportunityLifecycleService::markWonFromQuotation(int $opportunityId): void` (derives its connection from the loaded `Opportunity`, no `ConnectionScopedModels`).
 - Consumes: `Counterparty`. ERP `QuotationObserver` calls the service.
 
-- [ ] **Step 1: Failing tests** in the CRM: `it('creates a lead without a counterparty')`; `it('requires a counterparty for an opportunity')`; `it('keeps the opportunity when its counterparty is soft deleted')` (D19). In the ERP: `it('accepts a quotation for a party that is not a customer')`; `it('sets the party as customer and marks the opportunity won when the quotation is accepted')`; `it('rejects an opportunity of another counterparty')` (`opportunity.counterparty_id` equals `quotation->party->counterparty_id`); `it('allows quotations of different companies on one opportunity')`; `it('still requires a customer for a sales order')`.
-- [ ] **Step 2: Run** both test files. Expected: FAIL.
-- [ ] **Step 3: Implement** by moving the code; in `Quotation::booted` remove the `is_customer` and `company_id` checks and rewrite the opportunity check per D8; the observer promotes the party on acceptance. Remove the `is_customer` check from `Lead::booted` and the customers-only filters of the lead, opportunity and quotation forms (Task 6 moves the forms).
-- [ ] **Step 4: Run** the CRM test, `Modules/ERP/tests/Feature/QuotationOpportunityAlignmentTest.php` and `Modules/ERP/tests/Feature/CrmLeadsAndOpportunitiesSchemaTest.php` (moved to the CRM). Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/CRM` and `Modules/ERP`: `feat(crm): Lead, Opportunity and stages move from ERP`.
+- [x] **Step 1: Failing tests** in the CRM: `it('creates a lead without a counterparty')`; `it('requires a counterparty for an opportunity')`; `it('keeps the opportunity when its counterparty is soft deleted')` (D19). In the ERP: `it('accepts a quotation for a party that is not a customer')`; `it('sets the party as customer and marks the opportunity won when the quotation is accepted')`; `it('rejects an opportunity of another counterparty')` (`opportunity.counterparty_id` equals `quotation->party->counterparty_id`); `it('allows quotations of different companies on one opportunity')`; `it('still requires a customer for a sales order')`.
+- [x] **Step 2: Run** both test files. Expected: FAIL.
+- [x] **Step 3: Implement** by moving the code; in `Quotation::booted` remove the `is_customer` and `company_id` checks and rewrite the opportunity check per D8; the observer promotes the party on acceptance. Remove the `is_customer` check from `Lead::booted` and the customers-only filters of the lead, opportunity and quotation forms (Task 6 moves the forms).
+- [x] **Step 4: Run** the CRM test, `Modules/ERP/tests/Feature/QuotationOpportunityAlignmentTest.php` and `Modules/ERP/tests/Feature/CrmLeadsAndOpportunitiesSchemaTest.php` (moved to the CRM). Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/CRM` and `Modules/ERP`: `feat(crm): Lead, Opportunity and stages move from ERP`.
 
 ### Task 6: Filament, pipeline report, language
 
@@ -123,11 +123,11 @@ created_on: 2026-10-20
 
 **Interfaces:** `CRMPlugin` implements `Filament\Contracts\Plugin` with `ModuleFilamentPlugin`, id `crm`, module name `CRM`; navigation group keys `crm.navigation.master_data` (`Counterparty`, `Contact`) and `crm.navigation.pipeline` (`Lead`, `Opportunity`, pipeline page). `CounterpartyResource` exposes identity fields and the two flags read-only.
 
-- [ ] **Step 1: Failing tests** mirroring `ERPPluginTest`: `it('exposes crm plugin metadata and boots without error')`; `it('registers every navigation group used by the crm resources and pages')`; moved `SalesPipelineServiceTest` cases; `it('lists counterparties with customer and supplier badges')`; `it('attaches a new lead to the counterparty that already has the same vat number')` (D10, in the create-lead page, matching suppliers too); `it('filters pure suppliers out by default and lets the user clear the filter')` (D9).
-- [ ] **Step 2: Run** `php artisan test --compact Modules/CRM/tests/Feature/Filament`. Expected: FAIL.
-- [ ] **Step 3: Implement.** Read `Modules/ERP/routes/api.php` and move any route that concerns a moved entity to `Modules/CRM/routes/api.php` (D25: same generic CRUD routes, none new). Before moving `SalesPipelineService`, check whether `expected_value_local` uses ERP exchange rates; if it does, keep the service in the ERP and record the decision in the plan's delivery status.
-- [ ] **Step 4: Run** the CRM Filament tests and `php artisan test --compact Modules/ERP/tests/Feature/Filament`. Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/CRM` and `Modules/ERP`: `feat(crm): Filament plugin and resources`.
+- [x] **Step 1: Failing tests** mirroring `ERPPluginTest`: `it('exposes crm plugin metadata and boots without error')`; `it('registers every navigation group used by the crm resources and pages')`; moved `SalesPipelineServiceTest` cases; `it('lists counterparties with customer and supplier badges')`; `it('attaches a new lead to the counterparty that already has the same vat number')` (D10, in the create-lead page, matching suppliers too); `it('filters pure suppliers out by default and lets the user clear the filter')` (D9).
+- [x] **Step 2: Run** `php artisan test --compact Modules/CRM/tests/Feature/Filament`. Expected: FAIL.
+- [x] **Step 3: Implement.** Read `Modules/ERP/routes/api.php` and move any route that concerns a moved entity to `Modules/CRM/routes/api.php` (D25: same generic CRUD routes, none new). Before moving `SalesPipelineService`, check whether `expected_value_local` uses ERP exchange rates; if it does, keep the service in the ERP and record the decision in the plan's delivery status.
+- [x] **Step 4: Run** the CRM Filament tests and `php artisan test --compact Modules/ERP/tests/Feature/Filament`. Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/CRM` and `Modules/ERP`: `feat(crm): Filament plugin and resources`.
 
 ### Task 7: Seeders and permissions
 
@@ -136,11 +136,11 @@ created_on: 2026-10-20
 - Modify: `Modules/ERP/database/seeders/{ERPDatabaseSeeder,DevERPDatabaseSeeder}.php`, `Modules/ERP/tests/Feature/Seeders/DevERPDatabaseSeederTest.php`
 - Test: `Modules/CRM/tests/Feature/Seeders/CRMDatabaseSeederTest.php`
 
-- [ ] **Step 1: Failing tests**: `it('seeds the opportunity stage entity and preset once')` (idempotent: run twice, same counts); `it('seeds crud permissions for the crm entities')`; `it('seeds demo prospects without a party and demo leads')` (dev); ERP dev test: `it('creates customer parties whose counterparties exist and quotations on crm opportunities')`.
-- [ ] **Step 2: Run** the two files. Expected: FAIL.
-- [ ] **Step 3: Implement** per D24: the CRM seeder takes the `opportunity_stage` entity and preset and the permissions from `ERPDatabaseSeeder`; the ERP dev seeder creates `Party` from identity attributes; `priority` stays 10 for CRM and 20 for ERP. The moved entities use the generic Core policy (the ERP `ERPModelPolicy` list names none of them).
-- [ ] **Step 4: Run** the same files. Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/CRM` and `Modules/ERP`: `feat(crm): seeders and permissions`.
+- [x] **Step 1: Failing tests**: `it('seeds the opportunity stage entity and preset once')` (idempotent: run twice, same counts); `it('seeds crud permissions for the crm entities')`; `it('seeds demo prospects without a party and demo leads')` (dev); ERP dev test: `it('creates customer parties whose counterparties exist and quotations on crm opportunities')`.
+- [x] **Step 2: Run** the two files. Expected: FAIL.
+- [x] **Step 3: Implement** per D24: the CRM seeder takes the `opportunity_stage` entity and preset and the permissions from `ERPDatabaseSeeder`; the ERP dev seeder creates `Party` from identity attributes; `priority` stays 10 for CRM and 20 for ERP. The moved entities use the generic Core policy (the ERP `ERPModelPolicy` list names none of them).
+- [x] **Step 4: Run** the same files. Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/CRM` and `Modules/ERP`: `feat(crm): seeders and permissions`.
 
 ### Task 8: Bank accounts split
 
@@ -151,11 +151,11 @@ created_on: 2026-10-20
 
 **Interfaces:** `CounterpartyBankAccount` carries `beneficiary_name, iban, bic, currency, is_active`; `PartyBankAccount` keeps `company_id, party_id, is_default` and the `direct_debit_mandate_*` fields (they belong to the creditor company) and gains `counterparty_bank_account_id`. Reads of `iban`, `bic`, `beneficiary_name`, `currency` on `PartyBankAccount` go through the link.
 
-- [ ] **Step 1: Check the premise.** Read `PaymentRunBuilderService`, the SEPA exporters and `BankReconciliationService` for every use of the moved columns; if a column other than the five listed is company-specific, move it back to `PartyBankAccount` and note the divergence in the delivery status.
-- [ ] **Step 2: Failing tests**: `it('shares one bank account between the parties of two companies')`; `it('keeps mandate and default flag per company')`; the payment-run test builds a run from the linked account's iban; `it('hides bank accounts from users without the counterparty bank account ability')` (D20).
-- [ ] **Step 3: Run** both files. Expected: FAIL.
-- [ ] **Step 4: Implement** and run `php artisan test --compact Modules/ERP/tests/Feature/Services` for the payment and SEPA tests. Expected: PASS.
-- [ ] **Step 5: Commit** in `Modules/CRM` and `Modules/ERP`: `feat(crm): counterparty bank accounts`.
+- [x] **Step 1: Check the premise.** Read `PaymentRunBuilderService`, the SEPA exporters and `BankReconciliationService` for every use of the moved columns; if a column other than the five listed is company-specific, move it back to `PartyBankAccount` and note the divergence in the delivery status.
+- [x] **Step 2: Failing tests**: `it('shares one bank account between the parties of two companies')`; `it('keeps mandate and default flag per company')`; the payment-run test builds a run from the linked account's iban; `it('hides bank accounts from users without the counterparty bank account ability')` (D20).
+- [x] **Step 3: Run** both files. Expected: FAIL.
+- [x] **Step 4: Implement** and run `php artisan test --compact Modules/ERP/tests/Feature/Services` for the payment and SEPA tests. Expected: PASS.
+- [x] **Step 5: Commit** in `Modules/CRM` and `Modules/ERP`: `feat(crm): counterparty bank accounts`.
 
 ### Task 9: Documentation, manifests, closing
 
@@ -163,11 +163,33 @@ created_on: 2026-10-20
 - Create/modify: `Modules/CRM/README.md`, `Modules/CRM/docs/` (user and developer notes), `Modules/CRM/docs/rag/MODULE.md`, `GLOSSARY.md`; `Modules/ERP/docs/rag/MODULE.md` and `GLOSSARY.md` (M3.1 and CRM sections replaced by a pointer); `Modules/ERP/README.md`; `CHANGELOG.md` in CRM and ERP; `modules_statuses`-style activation is done by `php artisan module:enable CRM` (database activator, not the JSON file)
 - Modify: `docs/superpowers/plans/INDEX.md`, `docs/superpowers/specs/INDEX.md`
 
-- [ ] **Step 1: Write the module docs** from the moved sections; state in the finishing message whether RAG docs were skipped and why (`AGENTS.md`).
-- [ ] **Step 2: Verify the scopes** `php artisan test --compact Modules/CRM`, then `Modules/ERP/tests/Feature/Models`, `.../Filament`, `.../Services`, `.../Seeders`, plus `Modules/MES/tests/Feature/SalesOrderProductionPlannerTest.php` (its `Party::query()->withoutGlobalScopes()->create([...])` now needs identity attributes: adapt it) and the Shop tests that create orders. Expected: PASS. The user runs the full suite.
-- [ ] **Step 3: Bump pointers** of `Modules/CRM`, `Modules/ERP`, `Modules/MES`, `Modules/Shop` in `laraplate`; propose version bumps to the user (ERP major, CRM first release); do not push.
-- [ ] **Step 4: Close the plan:** set `status: closed`, add `## Delivery status (date)` with divergences and a `**Documented in:**` line naming the CRM docs; update both indexes.
+- [x] **Step 1: Write the module docs** from the moved sections; state in the finishing message whether RAG docs were skipped and why (`AGENTS.md`).
+- [x] **Step 2: Verify the scopes** `php artisan test --compact Modules/CRM`, then `Modules/ERP/tests/Feature/Models`, `.../Filament`, `.../Services`, `.../Seeders`, plus `Modules/MES/tests/Feature/SalesOrderProductionPlannerTest.php` (its `Party::query()->withoutGlobalScopes()->create([...])` now needs identity attributes: adapt it) and the Shop tests that create orders. Expected: PASS. The user runs the full suite.
+- [x] **Step 3: Bump pointers** of `Modules/CRM`, `Modules/ERP`, `Modules/MES`, `Modules/Shop` in `laraplate`; propose version bumps to the user (ERP major, CRM first release); do not push.
+- [x] **Step 4: Close the plan:** set `status: closed`, add `## Delivery status (2026-10-21)
 
-## Delivery status
+Delivered. `Modules/CRM` owns `Counterparty`, `CounterpartyBankAccount`, `Contact`, `Lead`, `Opportunity` and the pipeline stages; the ERP `Party` is `Counterparty x Company`. Final gate: `php artisan test --compact Modules/CRM Modules/ERP/tests Modules/MES/tests/Feature/SalesOrderProductionPlannerTest.php` passed (771 passed, 2 skipped); Shop and the MES feature tests were run as well.
 
-Open.
+Divergences from the plan, all ruled in the ledger:
+
+- **Sales pipeline stays in the ERP.** `SalesPipelineService`, its page and the CSV exporter remain in the ERP (the exporter is ERP-only and the CRM must not import ERP classes). `generate()` lost its `company_id` argument because an opportunity has no company.
+- **`PartyBankAccount` stays in the ERP** as the per-company link (company, default flag, direct debit mandate); only iban, bic, beneficiary name, currency and active flag moved to `CounterpartyBankAccount`. `ERPTables` keeps `PartyBankAccounts`.
+- **Counterparty loaded in `newCollection`**, not through `$with`, so partial selects (`value('is_customer')`) stay readable; the same for the bank account link.
+- **Soft-deleted parties do not block** a soft delete of the counterparty (the foreign key still blocks a hard delete).
+- **Seeders**: `CRMDatabaseSeeder` and `DevCRMDatabaseSeeder` arrived with Task 5, not Task 7, because the stage tests needed them; the demo ERP data has no opportunity-linked quotations, so the planned link between ERP demo quotations and CRM opportunities had nothing to attach to. CRUD permissions need no code: `permission:refresh` generates them from the enabled models.
+- **Latent ERP bug fixed on the way**: the opportunity form selected the stage through `relationship('stage', 'name')`, a column that does not exist on `core_taxonomies`; it now lists stage options explicitly.
+- **Quotation form** drops the customers-only filter at Task 3, the model check at Task 5.
+- **Test fixtures** that created several parties with one fixed VAT number for the same company now use unique VAT numbers: with the attach rule and the unique (counterparty, company) key the second party would be the same one.
+
+Fresh whole-branch review (one pass, each fix with a test that fails when reverted):
+
+- Fixed: the party column of eight ERP document lists searched and sorted on `erp_parties.name` (a crash on sort, an empty result on search); it now goes through `party.counterparty.name`.
+- Fixed: the Core CRUD API could not filter parties by identity attributes (`Party` now implements `IMountsRelatedAttributes`) nor create one from identity attributes (create rules accept them without `counterparty_id`). Sorting and selecting columns by identity attributes through the CRUD query builder stay unsupported: the Core seam documents filters only.
+- Fixed: a soft-deleted counterparty with the same VAT number was ignored and duplicated; it is now matched and restored. Same for a trashed counterparty bank account with the same IBAN. Restoring a party restores its trashed counterparty.
+- Fixed: fiscal identifiers are normalised (upper case, no spaces) on save and on lookup, so `it 0123` and `IT0123` are one subject.
+- Fixed: D10 was not implemented; the lead create page now takes a typed company and attaches to the counterparty with the same fiscal identity or name (suppliers included), creating one only when nothing matches.
+- Deferred minors: moving a party between counterparties leaves the old counterparty's flags stale; the party observer runs three queries on every save; D12 is enforced one way; the counterparty select of a lead or opportunity is empty when the subject is in the trash.
+
+Version bumps are left to the user (ERP major, CRM first release).
+
+**Documented in:** `Modules/CRM/README.md`, `Modules/CRM/docs/rag/MODULE.md`, `Modules/CRM/docs/GLOSSARY.md`, `Modules/CRM/docs/rag/GLOSSARY.md`; ERP side `Modules/ERP/README.md`, `Modules/ERP/docs/GLOSSARY.md`, `Modules/ERP/docs/rag/GLOSSARY.md`, `Modules/ERP/docs/rag/MODULE.md`, `Modules/ERP/docs/ERP_GUIDA_SEMPLICE.md`.
