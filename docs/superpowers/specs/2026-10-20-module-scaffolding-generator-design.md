@@ -32,7 +32,8 @@ reads the same file list. A module that drifts from it fails a test instead of b
 - **The conformance check covers one module.** `Modules/SAO/tests/Unit/ScaffoldingComplianceTest.php`
   asserts the right file list, the absence of the application toolchain and the agent rules, but only
   for SAO.
-- **The vendor moved.** Composer packages became `getlaraplate/laraplate-*` on 2026-10-20, and
+- **The vendor moved.** Composer packages became `getlaraplate/lara*` on 2026-10-21 (first
+  `getlaraplate/laraplate-*` on 2026-10-20), and
   `is_laraplate_owned_module()` recognises official modules by that prefix. A generator that writes the
   vendor and `laraplate_owned` keeps new modules from getting this wrong.
 
@@ -54,7 +55,7 @@ one.
 | | Custom (default) | Internal (`--internal`) |
 |---|---|---|
 | Who | anyone building a module on Laraplate | the maintainer, for `getlaraplate` modules |
-| Composer name | `{vendor}/{lower-name}`, vendor from `MODULE_VENDOR` / `--author-vendor` | `getlaraplate/laraplate-{lower-name}` |
+| Composer name | `{vendor}/{lower-name}`, vendor from `MODULE_VENDOR` / `--author-vendor` | `getlaraplate/lara{lower-name}` |
 | Licence | none written; `composer.json` `license` from an option, default `proprietary` | `AGPL-3.0-or-later`, `LICENSE` copied from the application's AGPL text |
 | `module.json` | `laraplate_owned` absent | `laraplate_owned: true` |
 | README | name, description, install, requirements | the same, plus Contributing (CONTRIBUTING and CLA of the organization) and Licence sections |
@@ -136,7 +137,7 @@ functionality; the application carries the toolchain (module testing strategy, r
   two cannot diverge.
 - A Core architecture test (`Modules/Core/tests/Unit/Architecture/ModuleScaffoldingTest.php`) runs the
   checks for every module whose `module.json` declares `laraplate_owned: true`: required files present,
-  toolchain absent, AGPL `LICENSE`, `composer.json` named `getlaraplate/laraplate-*` with a `version`,
+  toolchain absent, AGPL `LICENSE`, `composer.json` named `getlaraplate/lara*` with a `version`,
   README naming the module, `module-context.mdc` present.
 - `Modules/SAO/tests/Unit/ScaffoldingComplianceTest.php` keeps only its SAO-specific assertions (the
   README mentions "Simply Another Orchestrator"); the generic ones move to Core.
@@ -160,7 +161,7 @@ the module's own repository, one commit per module, without touching domain code
 
 The command does not create the GitHub repository, the submodule or the `modules_statuses.json`
 entry: those are git and GitHub operations with their own permissions. The Core documentation gives
-the sequence for an official module (create `getlaraplate/laraplate-{name}`, `git submodule add` with
+the sequence for an official module (create `getlaraplate/lara{name}`, `git submodule add` with
 `url` and `pushurl` in `.gitmodules`, activation). A script can come later (section 8).
 
 ## 4. Command behaviour
@@ -218,7 +219,7 @@ one module at a time; nwidart's multi-name form stays available for the custom p
 | Key | Value | Source |
 |---|---|---|
 | `STUDLY_NAME`, `LOWER_NAME`, `KEBAB_NAME`, `MODULE_NAMESPACE`, `PROVIDER_NAMESPACE`, `APP_FOLDER_NAME`, `VENDOR`, `AUTHOR_NAME`, `AUTHOR_EMAIL` | as today | nwidart generator |
-| `PACKAGE_NAME` | `getlaraplate/laraplate-{lower}` or `{vendor}/{lower}` | Core `ReplacementKeyCommand` |
+| `PACKAGE_NAME` | `getlaraplate/lara{lower}` or `{vendor}/{lower}` | Core `ReplacementKeyCommand` |
 | `LICENSE_SPDX` | `AGPL-3.0-or-later` or the custom option | Core `ReplacementKeyCommand` |
 | `TABLE_PREFIX` | `{lower}_` | Core `ReplacementKeyCommand` |
 | `REQUIRES_LIST` | bullet list for `module-context.mdc` and README | Core `ReplacementKeyCommand` |
