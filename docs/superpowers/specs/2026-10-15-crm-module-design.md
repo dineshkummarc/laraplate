@@ -53,7 +53,7 @@ The relationship between a `Counterparty` and one `Company`.
 | `Lead` | ERP | CRM | `crm_leads` | `party_id` becomes `counterparty_id` (nullable). Loses `company_id`. |
 | `Opportunity` | ERP | CRM | `crm_opportunities` | `party_id` becomes `counterparty_id` (NOT NULL). Loses `company_id`. |
 | `OpportunityStage` | ERP | CRM | Core taxonomy | A `Taxonomy` subclass bound to the module `Entity`, `Presettable` and `EntityType`. The CRM gets its own `Entity`, `Pivot\Presettable` and `Casts\EntityType` (case `OpportunityStages`), the per-module pattern Shop already follows. |
-| `SalesPipelineService` | ERP | ERP (stays) | service | Reads the CRM `Opportunity` without a company filter. It stays in the ERP together with the page and the CSV exporter because the exporter is ERP-only and the CRM must not import ERP classes. |
+| `SalesPipelineService`, `SalesPipelinePage`, CSV export | ERP | CRM | service, page | First left in the ERP because the export looked ERP-only; it is a thin wrapper over Core `TabularCsvExporter`, so everything moved to the CRM and the report lost its company filter (an opportunity has no company). |
 | `LeadStatus`, `OpportunityStatus` | ERP | CRM | casts | Namespace change only. |
 | `OpportunityLifecycleService` | ERP | CRM | service | Called by the ERP `QuotationObserver`. |
 | Filament `Leads`, `Opportunities` resources | ERP | CRM | | `Parties` and `Contacts` resources are split or reviewed. |
@@ -89,7 +89,7 @@ Rules that follow:
 Each module with a backoffice owns a plugin (`CMSPlugin`, `CorePlugin`, `ERPPlugin`, `MESPlugin`, `SAOPlugin`); the panel auto-registers module plugins (`config/filament-modules.php`, `auto-register-plugins`). The CRM follows the same shape:
 
 - `Modules\CRM\Filament\CRMPlugin` with `ModuleFilamentPlugin`, id `crm`, which in `afterRegister` registers the module colour (from the `color` key of `module.json`) and the CRM navigation groups.
-- Navigation group keys are translation keys prefixed by the module, as in the ERP (`erp.navigation.sales`). Proposal: `crm.navigation.master_data` (`Counterparty`, `Contact`) and `crm.navigation.pipeline` (`Lead`, `Opportunity`; the sales pipeline report page stays in the ERP). Labels live in `Modules/CRM/lang/{de,en,es,it,sl}/crm.php`, the locales the ERP ships.
+- Navigation group keys are translation keys prefixed by the module, as in the ERP (`erp.navigation.sales`). Proposal: `crm.navigation.master_data` (`Counterparty`, `Contact`) and `crm.navigation.pipeline` (`Lead`, `Opportunity` and the sales pipeline report page). Labels live in `Modules/CRM/lang/{de,en,es,it,sl}/crm.php`, the locales the ERP ships.
 - Resources move with their entities: `Leads` and `Opportunities` leave the ERP group `erp.navigation.sales`; a new `Counterparties` resource and the `Contacts` resource live in the CRM. The ERP `Parties` resource stays in `erp.navigation.master_data` and keeps editing the identity fields through the transparent proxy (D15), so its form does not change.
 - A `CRMPluginTest` mirrors `ERPPluginTest`: the plugin exposes its id and module name, and every `navigationGroup` used by a CRM resource or page is registered.
 

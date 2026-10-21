@@ -172,7 +172,7 @@ Delivered. `Modules/CRM` owns `Counterparty`, `CounterpartyBankAccount`, `Contac
 
 Divergences from the plan, all ruled in the ledger:
 
-- **Sales pipeline stays in the ERP.** `SalesPipelineService`, its page and the CSV exporter remain in the ERP (the exporter is ERP-only and the CRM must not import ERP classes). `generate()` lost its `company_id` argument because an opportunity has no company.
+- **Sales pipeline report.** First left in the ERP (the exporter looked ERP-only), then moved to the CRM once it turned out to be a thin wrapper over Core `TabularCsvExporter`: `SalesPipelineService`, `SalesPipelinePage`, its view and `SalesPipelineCsvExporter`. `generate()` lost its `company_id` argument because an opportunity has no company.
 - **`PartyBankAccount` stays in the ERP** as the per-company link (company, default flag, direct debit mandate); only iban, bic, beneficiary name, currency and active flag moved to `CounterpartyBankAccount`. `ERPTables` keeps `PartyBankAccounts`.
 - **Counterparty loaded in `newCollection`**, not through `$with`, so partial selects (`value('is_customer')`) stay readable; the same for the bank account link.
 - **Soft-deleted parties do not block** a soft delete of the counterparty (the foreign key still blocks a hard delete).
