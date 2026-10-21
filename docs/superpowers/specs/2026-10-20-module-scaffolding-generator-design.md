@@ -169,11 +169,14 @@ the module's own repository, one commit per module, without touching domain code
   `MODULE_AUTHOR_NAME` and `MODULE_AUTHOR_EMAIL` default to empty, and are documented in the Core
   README in the existing env var style.
 - **Custom profile:** vendor, author name and email are prompted when not passed (`--author-vendor`,
-  `--author-name`, `--author-email`, already options of `module:make`) and the command stops under
-  `--no-interaction` if one is missing. The composer stub omits `authors` when no author is given,
+  `--author-name`, `--author-email`, already options of `module:make`). Name and email are prefilled
+  from `git config user.name` and `git config user.email` and editable (section 4.1); the vendor has
+  no default. Under `--no-interaction` the command stops if the vendor is missing or if no author
+  can be resolved from the options or from `git config`. The composer stub omits `authors` when no author is given,
   instead of writing empty values.
-- **Internal profile:** vendor `getlaraplate` and the author come from the maintainer's own
-  environment (`.env`), not from a shipped default.
+- **Internal profile:** vendor `getlaraplate`; the author is prefilled from `git config` like any
+  other profile, so the maintainer's identity comes from the maintainer's machine, not from a shipped
+  default.
 - A conformance check for the generator output: a module generated for the custom profile contains
   neither `getlaraplate` nor the maintainer's name or email.
 
@@ -191,18 +194,33 @@ php artisan module:make Billing --internal --requires=Core --requires=ERP \
     --description="Billing module" --color=bright-blue
 ```
 
-### 4.1 Missing input is prompted
+### 4.1 Missing input is prompted, prefilled and revisable
 
-Every value not passed on the command line is asked with Laravel Prompts, in this order. Under
-`--no-interaction` nothing is asked and the fallback column applies.
+Every value not passed on the command line is asked with Laravel Prompts, in this order, as one
+**form** (`Laravel\Prompts\form()`, available in the installed `laravel/prompts` v0.3.26): the user
+can press Ctrl+U to go back to the previous question and change it, and a **summary with a
+confirmation** closes the sequence before anything is written. Under `--no-interaction` nothing is
+asked and the fallback column applies.
 
-| Value | Prompt | Asked when | Fallback under `--no-interaction` |
-|---|---|---|---|
-| name | text, validated StudlyCase and not an existing module | no name argument | error |
-| internal | confirm, default no | `--internal` not passed and the resolved vendor is `getlaraplate` (D6) | error: pass `--internal`, or `--author-vendor` for a custom module |
-| description | text | `--description` not passed | empty |
-| requires | multiselect of the existing modules, `Core` preselected | `--requires` not passed | `[]` |
-| color | select among the unused colours (4.2) | internal profile and `--color` not passed | error listing the unused colours |
+| # | Value | Prompt, with its prefilled default | Asked when | Fallback under `--no-interaction` |
+|---|---|---|---|---|
+| 1 | name | text, validated StudlyCase and not an existing module | no name argument | error |
+| 2 | internal | confirm, default no | `--internal` not passed and the resolved vendor is `getlaraplate` (D6) | error: pass `--internal`, or `--author-vendor` for a custom module |
+| 3 | vendor | text, validated as a composer vendor | custom profile, `--author-vendor` not passed | error |
+| 4 | author name | text, default `git config user.name` | `--author-name` not passed | `git config user.name` when set, otherwise error |
+| 5 | author email | text, default `git config user.email`, validated as an email | `--author-email` not passed | `git config user.email` when set, otherwise error |
+| 6 | licence | select (Q1 of section 9), `AGPL-3.0-or-later` preselected | custom profile, `--license` not passed | no `license` key, with a notice |
+| 7 | description | text | `--description` not passed | empty |
+| 8 | requires | multiselect of the existing modules, `Core` preselected | `--requires` not passed | `[]` |
+| 9 | color | select among the unused colours (4.2) | internal profile and `--color` not passed | error listing the unused colours |
+| 10 | confirmation | summary of every value, confirm | always in interactive mode | none |
+
+**Defaults, never silent.** The author defaults come from the `git config` of the person running the
+command: their own identity, not the maintainer's (D9). In interactive mode they are only the
+prefilled text of the prompt, editable before confirming. Under `--no-interaction` they are used
+only when set, and the command prints the identity it used. When `git config` has no value, the
+prompt starts empty. The vendor has no default: the application's own `composer.json` vendor is not
+a safe guess (a copy of Laraplate still says `getlaraplate`).
 
 With `--internal` the command takes one module name, so that prompts and colour uniqueness apply to
 one module at a time; nwidart's multi-name form stays available for the custom profile.
@@ -260,6 +278,10 @@ it also asks before going on when the vendor is `getlaraplate` (D6).
 - Prompts: each missing value is asked in interactive mode and falls back as in 4.1 under
   `--no-interaction`; the colour prompt offers only unused colours and is never shown for the custom
   profile; a used or unknown `--color` is refused; `--color` without `--internal` is ignored.
+- Author prefill: with `git config user.name` and `user.email` set, the author prompts start with them
+  and accept an edit; with neither set they start empty; under `--no-interaction` the configured values
+  are used and printed, and missing ones stop the command. The generated custom module carries the
+  identity that was confirmed, never the maintainer's.
 
 ## 7. Documentation
 
