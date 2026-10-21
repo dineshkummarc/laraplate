@@ -62,7 +62,7 @@ one.
 |---|---|---|
 | Who | anyone building a module on Laraplate | the maintainer, for `getlaraplate` modules |
 | Composer name | `{vendor}/{lower-name}`, vendor from `--author-vendor` or its prompt | `getlaraplate/lara{lower-name}` |
-| Licence | none written; `composer.json` `license` from an option, default `proprietary` | `AGPL-3.0-or-later`, `LICENSE` copied from the application's AGPL text |
+| Licence | the application's licence by default (D10), editable; `LICENSE` copied when it is unchanged | the application's licence (D10), `LICENSE` copied from the application |
 | `module.json` | `laraplate_owned` absent | `laraplate_owned: true` |
 | README | name, description, install, requirements | the same, plus Contributing (CONTRIBUTING and CLA of the organization) and Licence sections |
 | Agent directives | yes (D5) | yes (D5) |
@@ -182,6 +182,21 @@ the module's own repository, one commit per module, without touching domain code
 - A conformance check for the generator output: a module generated for the custom profile contains
   neither `getlaraplate` nor the maintainer's name or email.
 
+### D10. The licence of a module is the licence of the project, whatever it is
+
+- The default licence of a generated module is the `license` of the **application's own
+  `composer.json`**, read at run time and never hardcoded: today `AGPL-3.0-or-later`, and it follows the
+  project if that ever changes.
+- Both profiles use it. For the custom profile it is the prefilled text of the prompt, editable (any
+  SPDX identifier) and `--license` overrides it; under `--no-interaction` the application's licence
+  applies. For the internal profile it is not asked: official modules are always the project's licence.
+- The module `LICENSE` file is copied from the application when the module's licence equals the
+  application's; for any other licence no file is written and the README says where the text must go.
+- Reason: a module runs inside the application and is, in general, covered by its licence once it is
+  distributed or offered over a network. Defaulting to the same licence is the compatible choice; a
+  different one is a deliberate decision of the author. The generated README states the default and
+  its meaning in two lines.
+
 ### D8. Repository creation stays outside the generator
 
 The command does not create the GitHub repository, the submodule or the `modules_statuses.json`
@@ -211,7 +226,7 @@ asked and the fallback column applies.
 | 3 | vendor | text, validated as a composer vendor | custom profile, `--author-vendor` not passed | error |
 | 4 | author name | text, default `git config user.name` | `--author-name` not passed | `git config user.name` when set, otherwise error |
 | 5 | author email | text, default `git config user.email`, validated as an email | `--author-email` not passed | `git config user.email` when set, otherwise error |
-| 6 | licence | select (Q1 of section 9), `AGPL-3.0-or-later` preselected | custom profile, `--license` not passed | no `license` key, with a notice |
+| 6 | licence | text with the SPDX identifier read from the application's `composer.json` as prefilled default (D10) | custom profile, `--license` not passed | the application's licence |
 | 7 | description | text | `--description` not passed | empty |
 | 8 | requires | multiselect of the existing modules, `Core` preselected | `--requires` not passed | `[]` |
 | 9 | color | select among the unused colours (4.2) | internal profile and `--color` not passed | error listing the unused colours |
@@ -241,7 +256,7 @@ one module at a time; nwidart's multi-name form stays available for the custom p
 - Colours in use on 2026-10-20: `green` (Core), `cyan` (CMS), `magenta` (AI), `yellow` (ERP), `blue`
   (MES), `bright-red` (SAO), `bright-magenta` (Shop), `bright-green` (CRM). Free: `red`,
   `bright-blue`, `bright-cyan`, `bright-yellow`. Four modules from now the palette is exhausted
-  (question 2 of section 9).
+  (question 1 of section 9).
 
 ### 4.3 Steps
 
@@ -303,10 +318,11 @@ it also asks before going on when the vendor is `getlaraplate` (D6).
 
 ## 9. Open questions
 
-1. Custom profile licence default: `proprietary`, or no `license` key at all.
-2. What happens when no colour is left: extend the palette (`ModuleColor` would need terminal
+1. What happens when no colour is left: extend the palette (`ModuleColor` would need terminal
    styles beyond the sixteen ANSI names, for example `#rrggbb` foregrounds), or allow reuse with an
    explicit confirmation.
+
+Resolved: the module licence defaults to the application's (D10, 2026-10-21).
 
 Resolved: `CHANGELOG.md` starts with an "Initial scaffold" entry under `[unreleased]` (2026-10-21).
 
