@@ -8743,24 +8743,6 @@ parameters:
 			path: Modules/Core/app/Search/Engines/DatabaseEngine.php
 
 		-
-			rawMessage: Cannot access offset 'properties' on mixed.
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: Modules/Core/app/Search/Engines/DatabaseEngine.php
-
-		-
-			rawMessage: Cannot access offset 'type' on mixed.
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: Modules/Core/app/Search/Engines/DatabaseEngine.php
-
-		-
-			rawMessage: Cannot access offset 'vector' on mixed.
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: Modules/Core/app/Search/Engines/DatabaseEngine.php
-
-		-
 			rawMessage: Cannot cast mixed to float.
 			identifier: cast.double
 			count: 1
@@ -8879,24 +8861,6 @@ parameters:
 			identifier: argument.unresolvableType
 			count: 1
 			path: Modules/Core/app/Search/Engines/DatabaseEngine.php
-
-		-
-			rawMessage: Cannot access offset 'properties' on mixed.
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: Modules/Core/app/Search/Engines/ElasticsearchEngine.php
-
-		-
-			rawMessage: Cannot access offset 'type' on mixed.
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: Modules/Core/app/Search/Engines/ElasticsearchEngine.php
-
-		-
-			rawMessage: Cannot access offset 'vector' on mixed.
-			identifier: offsetAccess.nonOffsetAccessible
-			count: 1
-			path: Modules/Core/app/Search/Engines/ElasticsearchEngine.php
 
 		-
 			rawMessage: Cannot cast mixed to string.
@@ -9157,18 +9121,6 @@ parameters:
 			path: Modules/Core/app/Search/Jobs/IndexInSearchJob.php
 
 		-
-			rawMessage: 'Call to an undefined static method object::chunk().'
-			identifier: staticMethod.notFound
-			count: 1
-			path: Modules/Core/app/Search/Jobs/ReindexSearchJob.php
-
-		-
-			rawMessage: 'Call to an undefined static method object::query().'
-			identifier: staticMethod.notFound
-			count: 1
-			path: Modules/Core/app/Search/Jobs/ReindexSearchJob.php
-
-		-
 			rawMessage: 'Parameter #1 $driver of method Modules\Core\Search\Jobs\ReindexSearchJob::logReindexStart() expects string, mixed given.'
 			identifier: argument.type
 			count: 1
@@ -9253,62 +9205,14 @@ parameters:
 			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
 
 		-
-			rawMessage: 'Method Modules\Core\Search\Services\EnsembleSearchService::fuseStrategies() should return list<array{id: string, score: float, source: array<string, mixed>}> but returns list<array{id: string, score: float, raw_score: null, score_details: array{normalized_score: float, strategies: array<string, array{}>}, source: array<string, mixed>}>.'
-			identifier: return.type
-			count: 1
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
 			rawMessage: 'Method Modules\Core\Search\Services\EnsembleSearchService::hitsById() should return array<string, array{id: string, score: float, source: array<string, mixed>, rank: int}> but returns array<string, array{id: string, score: float, raw_score: float, score_details: array<string, mixed>, source: array<string, mixed>, rank: int<1, max>}>.'
 			identifier: return.type
 			count: 1
 			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
 
 		-
-			rawMessage: 'Method Modules\Core\Search\Services\EnsembleSearchService::minMaxNormalizeScores() should return array<string, array{id: string, score: float, source: array<string, mixed>, rank: int}> but returns non-empty-array<string, array{id: string, score: float, source: array<string, mixed>, rank: int, score_details: array{normalized_score: float}}>.'
-			identifier: return.type
-			count: 1
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
-			rawMessage: 'Offset ''raw_score'' on array{id: string, score: float, source: array<string, mixed>, rank: int} on left side of ?? does not exist.'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
-			rawMessage: 'Offset ''raw_score'' on array{id: string, score: float, source: array<string, mixed>} on left side of ?? does not exist.'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
-			rawMessage: 'Offset ''score_details'' on array{id: string, score: float, source: array<string, mixed>, rank: int} on left side of ?? does not exist.'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
-			rawMessage: 'Offset ''score_details'' on array{id: string, score: float, source: array<string, mixed>} on left side of ?? does not exist.'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
-			rawMessage: 'Offset ''source'' on array{id: string, score: float, source: array<string, mixed>} on left side of ?? always exists and is not nullable.'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
 			rawMessage: PHPDoc tag @var with type class-string<Illuminate\Database\Eloquent\Model> is not subtype of native type class-string<Illuminate\Database\Eloquent\Model>&literal-string.
 			identifier: varTag.nativeType
-			count: 1
-			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
-
-		-
-			rawMessage: 'Strict comparison using === between null and null will always evaluate to true.'
-			identifier: identical.alwaysTrue
 			count: 1
 			path: Modules/Core/app/Search/Services/EnsembleSearchService.php
 
