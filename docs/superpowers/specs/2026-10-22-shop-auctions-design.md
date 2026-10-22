@@ -36,9 +36,9 @@ Auctions are a contested process: every outcome must be explainable afterwards f
 | A15 | **Auto-bid configurations are an immutable table.** Bids produced by the system reference the configuration that produced them. Cancel and revise are the only customer actions. Revise closes the active configuration and creates a new one. | No dispute about what a customer had asked for at any moment. |
 | A16 | **From Filament, support can only stop an auto-bid**, with a mandatory reason and ticket reference, never in the final window. The customer is always notified. The action is versioned with the session user. Support never creates or edits a configuration. | Support acts on customer requests, and its power to change an outcome is bounded and visible. |
 | A17 | **Every auction has an append-only ledger with a hash chain**, and every bidder gets a receipt carrying the chain head. | A hash stored in the same row proves nothing to someone who can write the database. A chain whose head left our database does. |
-| A18 | **Only eligible customers commit**: an authenticated user linked to an ERP `Party` with complete billing data, who accepted the current auction terms. The accepted terms version is stored with each commitment. Users of the seller company never commit. | The winner must be invoiceable, and every bidder must have agreed to the rules applied to them. |
+| A18 | **Only eligible customers commit**: an authenticated user linked to an ERP `Party` with complete billing data, who accepted the current auction terms. The accepted terms version is stored with each commitment. Seller staff never commit. | The winner must be invoiceable, and every bidder must have agreed to the rules applied to them. |
 | A19 | **An auction with bids is never deleted.** It can only be cancelled, with a reason and a notice to every bidder. | Deleting an auction would delete the evidence. |
-| A20 | Resolution runs **synchronously, in one transaction, under a row lock on the auction**. No queue, no optimistic retry loop. | The customer gets the outcome immediately, and the order of commitments is the order of the lock. |
+| A20 | Resolution runs **synchronously, in one transaction, under a row lock on the auction's state row**. No queue, no optimistic retry loop. | The customer gets the outcome immediately, and the order of commitments is the order of the lock. |
 
 ---
 
@@ -113,7 +113,7 @@ Examples with increment 1:
 
 - An authenticated user, linked to an ERP `Party` with complete billing data. ERP has no link from a user to a `Party` today: `Party` has no `user_id`. The link is Shop's customer identity, E19, not built yet.
 - The accepted version of the auction terms is stored on each commitment.
-- A user whose `company_id` equals the auction's `company_id` cannot commit. `current_company_id()` already falls back to the user's `company_id`, so these are the seller's own users.
+- Seller staff never commit: a user holding the `insert` or `update` permission of `shop_auctions` is refused. Users carry no `company_id` column, so the tenant cannot identify them. Corrected on 2026-10-22 while planning slice 1.
 
 ### 3.9 Ledger, receipts and audit
 
@@ -155,12 +155,18 @@ All tables use `ShopTables`, `MigrateUtils` and models extending `Core\Overrides
 `shop_auctions`, mutable, `BelongsToCompany`, `HasVersions`, soft delete refused once a bid exists:
 
 - `company_id`, `product_variant_id`, `quantity`
-- `starts_at`, `ends_at`, `original_ends_at`
+- `starts_at`, `ends_at` as set by the seller. The current deadline lives in `shop_auction_states`.
 - `starting_price`, `increments` JSON
 - `anti_sniping_window`, `anti_sniping_extension`, `stalemate_extension` in minutes, `max_stalemate_extensions` default 1
 - `status`, `terms_version`, `cancel_reason`
 - price basis and tax snapshot columns: shape set by the Shop VAT decision
-- derived cache, rebuildable from the ledger: `current_price`, `is_stalemate`, `stalemate_extensions_used`, `winning_bid_id`
+- the runtime state lives in `shop_auction_states`, below
+
+`shop_auction_states`, one row per scheduled auction, written only by the auction services. Added on 2026-10-22 while planning slice 1:
+
+- `auction_id` as primary key, `ends_at` as the current deadline, `current_price`, `is_stalemate`, `stalemate_extensions_used`, `winning_bid_id`, `resolution_no`, `last_sequence`, `head_hash`
+- It is the row the commitment flow locks. A customer's request writes it, and a customer holds no permission on `shop_auctions`. Keeping the runtime state apart leaves the seller's configuration governed by permissions.
+- Rebuildable from the ledger.
 
 `shop_auction_autobid_configs`, frozen at birth:
 
@@ -190,6 +196,7 @@ All tables use `ShopTables`, `MigrateUtils` and models extending `Core\Overrides
 - **ERP:** `StockReservationService::reserve()`, `release()`, `consume()`, keyed by an opaque source type and id. `Decimal` for exact amounts. `BelongsToCompany`. Settlement builds a `SalesOrder` through Shop placement, E27 and E28.
 - **Core:** `HasLocks` with `attributesWritableWhileLocked()`. `RestrictsCrudWrites`. `HasVersions` and `VersionSetManager`, with reason and actor on support actions. Notifications. Permissions from `Core\Support\PermissionName`.
 - **Shop:** `ProductVariant` and `VariantItem` for the lot.
+- **Permission scheme:** `shop_auction_states`, configurations, bids and the ledger are appended to `permission.models_blacklist`. The generic CRUD neither reads nor writes them, and only the auction services write them.
 
 Known limits of `HasLocks`: the guard only sees Eloquent events, the runtime setting `core.locking.prevent_modifications` can switch it off, and `forceUnlock()` exists behind the `unlock` permission. It is a seat belt. The ledger chain and the receipts are the evidence.
 
@@ -200,7 +207,7 @@ Known limits of `HasLocks`: the guard only sees Eloquent events, the runtime set
 **Commitment:** manual bid, auto-bid create, revise or cancel.
 
 1. Read `received_at`.
-2. Open a transaction on the auction's connection and lock the auction row.
+2. Open a transaction on the auction's connection and lock the auction's state row.
 3. Check time, eligibility, validity §3.2 and the idempotency key.
 4. Write the bid or configuration change and its ledger entry.
 5. Run the price rule §3.4 and write the resulting automatic bids, the resolution ledger entry and the cache.
