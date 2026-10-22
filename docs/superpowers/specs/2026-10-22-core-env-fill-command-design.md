@@ -12,7 +12,7 @@
 
 A `.env` always starts from `.env.example`. When a release adds entries to `.env.example`, the `.env` files already deployed (production above all) do not get them: there is no way to align them after an update except reading the diff of the example by hand.
 
-The example is also incomplete. Every module reads its settings from environment variables through its `config/` files, and `.env.example` is meant to list them all. It does not: on 2026-10-22 the config files of the root and of the six modules read **378** distinct names through `env()`, and `.env.example` mentions **70** of them (active or commented). 311 names are missing: root 99, Core 114, AI 30, CMS 18, ERP 19, MES 21, SAO 19. Nobody can find out which variables exist without reading every config file, and an installer who upgrades has no way to learn which variables a release added.
+The example is also incomplete for what is specific to Laraplate. The configuration files of the six modules read **161** distinct names through `env()` that belong to Laraplate's own configuration (packages' published configs excluded, see D8), and `.env.example` mentions only 11 of them (active or commented): **150 are missing**. By file: AI 30, CMS 18, Core 49, ERP 19, MES 21, SAO 19 (names shared between files counted once overall). Nobody can find out which Laraplate variables exist without reading every module config, and an installer who upgrades has no way to learn which variables a release added.
 
 Nothing in the repository edits a `.env`: there is no command for it in `Modules/Core/app/Console`.
 
@@ -35,6 +35,7 @@ The motivation, in the owner's words: an env is always born from `.env.example`,
 | D5 | Each choice is written to the file before the next prompt, so interrupting the command loses nothing already answered. |
 | D6 | On exit, if any variable was written, a `confirm` asks whether to run `config:clear` and `config:cache`. |
 | D7 | The command lives in Core and works on the application root's `.env` and `.env.example`. Modules do not get their own example files. |
+| D8 | **Scope of "every possible variable": the Laraplate-specific ones.** That is every `Modules/*/config/*.php` except the configs published from third-party packages (`scout`, `elastic*`, `media-library`, `permission`, `swagger-ui`, `laravel-swagger`). Laravel's own `config/*.php` of the root (database, cache, queue, mail, session, filesystems, logging, auth, services and the rest) is out: it is the framework's, and the example covers what the project needs of it. The owner's wording, 2026-10-22: only Laraplate's own entries. |
 
 ## 4. The command
 
@@ -77,8 +78,8 @@ The command reads the two files directly, never through `env()`, so a cached con
 
 ## 5. Keeping `.env.example` complete
 
-- **Format.** Every name the configuration can read appears once as `NAME=value` or `# NAME=value`. The 311 missing names are added as **commented** lines, so that copying `.env.example` to `.env` still activates only what it activates today. The commented value is the literal default of the `env('NAME', default)` call when it is a scalar, empty otherwise. Lines are grouped under a header per owner (`# --- Core ---`, `# --- AI ---`, and so on, root first) and keep the comment the config file has above the `env()` call when there is one; a name with no comment in the config gets none.
-- **Guard test.** `tests/Unit/EnvExampleCoversConfigTest.php` in the `laraplate` root reads `config/*.php` and `Modules/*/config/*.php`, extracts every name passed to `env('NAME'` and fails with the list of names that `.env.example` does not mention (D1). The failure message says to add each as `# NAME=default`. There is no allow-list: a variable the configuration reads is documented.
+- **Format.** Every name in the scope of D8 appears once as `NAME=value` or `# NAME=value`. The 150 missing names are added as **commented** lines, so that copying `.env.example` to `.env` still activates only what it activates today. The commented value is the literal default of the `env('NAME', default)` call when it is a scalar, empty otherwise. Lines are grouped under a header per owner (`# --- Core ---`, `# --- AI ---`, and so on, root first) and keep the comment the config file has above the `env()` call when there is one; a name with no comment in the config gets none.
+- **Guard test.** `tests/Unit/EnvExampleCoversConfigTest.php` in the `laraplate` root reads the config files in the scope of D8, extracts every name passed to `env('NAME'` and fails with the list of names that `.env.example` does not mention (D1). The failure message says to add each as `# NAME=default`. There is no allow-list of names: a Laraplate variable the configuration reads is documented. The excluded files are the explicit list of D8.
 - The narrow check `EnvExampleListsAiServersTest` of the AI plan is then redundant and is removed when this lands.
 - Reading only `config/` is sound: `grep` finds no `env()` call outside configuration files in `app/` and `Modules/*/app` (checked 2026-10-22; the remaining hits are `getenv` of runtime flags and a docblock).
 
@@ -110,7 +111,7 @@ The command reads the two files directly, never through `env()`, so a cached con
 
 ## 9. Facts read for this spec (2026-10-22)
 
-- Counts and the per-owner split: a script over `config/*.php` and `Modules/*/config/*.php` extracting `env('NAME'`, compared with `.env.example` lines `NAME=` and `# NAME=`.
+- Counts and the per-owner split (2026-10-22): a script over `Modules/*/config/*.php` extracting `env('NAME'`, compared with `.env.example` lines `NAME=` and `# NAME=`: 161 names in scope, 150 missing; the excluded package configs add 65 more missing and the root `config/` of Laravel 99 (not covered).
 - `Modules/Core/app/Console` has no `.env` command; commands are discovered through the provider's `Console` subpaths.
 - `laravel/prompts` v0.3.26: `SearchPrompt` refuses `required: false` and needs a highlighted choice, and `select` requires a choice, so an empty answer to end the loop needs `suggest`.
 - `vlucas/phpdotenv` is installed (`src/Parser`), used for the round-trip test.
