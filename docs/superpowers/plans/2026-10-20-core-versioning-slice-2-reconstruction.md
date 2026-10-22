@@ -26,7 +26,7 @@ A soft delete records one column, but `writePendingVersionDelete()` stores it wi
 - Modify: `Modules/Core/app/Models/Concerns/HasVersions.php` (`capturePendingVersionDelete()`, `writePendingVersionDelete()`)
 - Test: `Modules/Core/tests/Integration/Versioning/DeleteVersioningStrategyTest.php`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```php
 it('records a soft delete of a SNAPSHOT model as a DIFF of deleted_at', function (): void {
@@ -45,10 +45,10 @@ it('records a soft delete of a SNAPSHOT model as a DIFF of deleted_at', function
 
 Check first that `SoftDeletedVersionedArticle` exposes `useVersionStrategy()` (it extends or mirrors `VersionedArticle`); add it to the stub if it does not.
 
-- [ ] **Step 2: Run it and see it fail.** Run: `php artisan test --compact Modules/Core/tests/Integration/Versioning/DeleteVersioningStrategyTest.php`. Expected: FAIL (`SNAPSHOT`).
-- [ ] **Step 3: Store the soft-delete row as `DIFF`.** In `capturePendingVersionDelete()` the soft branch keeps no strategy; in `writePendingVersionDelete()` the `Trashed` change is written with `strategy: VersionStrategy::DIFF`. Narrow the `@var` shape of `$pending_version_delete` accordingly (the soft branch loses `strategy`).
-- [ ] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers`. Expected: PASS.
-- [ ] **Step 5: Commit** `fix(core): a soft delete is a DIFF of deleted_at whatever the strategy`.
+- [x] **Step 2: Run it and see it fail.** Run: `php artisan test --compact Modules/Core/tests/Integration/Versioning/DeleteVersioningStrategyTest.php`. Expected: FAIL (`SNAPSHOT`).
+- [x] **Step 3: Store the soft-delete row as `DIFF`.** In `capturePendingVersionDelete()` the soft branch keeps no strategy; in `writePendingVersionDelete()` the `Trashed` change is written with `strategy: VersionStrategy::DIFF`. Narrow the `@var` shape of `$pending_version_delete` accordingly (the soft branch loses `strategy`).
+- [x] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers`. Expected: PASS.
+- [x] **Step 5: Commit** `fix(core): a soft delete is a DIFF of deleted_at whatever the strategy`.
 
 ### Task 2: Reconstruct the state as of a revision (C08, D61)
 
@@ -57,7 +57,7 @@ Check first that `SoftDeletedVersionedArticle` exposes `useVersionStrategy()` (i
 - Modify: `Modules/Core/app/Models/Version.php` (`stateAsOf()`, `revertWithoutSaving()`)
 - Test: `Modules/Core/tests/Integration/Versioning/VersionReconstructionTest.php` (create)
 
-- [ ] **Step 1: Write the failing tests** (schema as in `HasVersionsTest`: `VersionedArticle::TABLE` with `title`, a nullable `subtitle`, timestamps and `softDeletes()`; the stub's `$versionable` must list `subtitle` too, or the test uses a stub without a `$versionable` list):
+- [x] **Step 1: Write the failing tests** (schema as in `HasVersionsTest`: `VersionedArticle::TABLE` with `title`, a nullable `subtitle`, timestamps and `softDeletes()`; the stub's `$versionable` must list `subtitle` too, or the test uses a stub without a `$versionable` list):
 
 ```php
 it('rebuilds the state at a revision from the nearest snapshot, not from the live row', function (): void {
@@ -104,8 +104,8 @@ it('reverts to the rebuilt state and leaves the bin column as it is', function (
 
 The first test is the evidence of C08 (the old loop gives `T3 / S2`). The last pins D61: the target state had `deleted_at` null and so does the live row here, so add a second case where the record is in the bin when reverted and stays there.
 
-- [ ] **Step 2: Run them and see them fail.** Expected: FAIL (`stateAsOf()` undefined).
-- [ ] **Step 3: The exception**
+- [x] **Step 2: Run them and see them fail.** Expected: FAIL (`stateAsOf()` undefined).
+- [x] **Step 3: The exception**
 
 ```php
 final class MissingVersionAnchorException extends RuntimeException
@@ -117,7 +117,7 @@ final class MissingVersionAnchorException extends RuntimeException
 }
 ```
 
-- [ ] **Step 4: `stateAsOf()`** on `Version`. The root stream is the rows of the same versionable with no `relation_path`; revision order is `(version_set_id, sequence)`. The anchor is the latest of them at or before this row whose stored strategy is `SNAPSHOT` and whose `change_type` is not `Deleted` (a tombstone holds its image in `original_contents`, it is not a state of a live record). Query without the eager `versionable` (`newQueryWithoutRelationships()`): two queries, the anchor and then the rows after it up to this one, applied forward, last write wins.
+- [x] **Step 4: `stateAsOf()`** on `Version`. The root stream is the rows of the same versionable with no `relation_path`; revision order is `(version_set_id, sequence)`. The anchor is the latest of them at or before this row whose stored strategy is `SNAPSHOT` and whose `change_type` is not `Deleted` (a tombstone holds its image in `original_contents`, it is not a state of a live record). Query without the eager `versionable` (`newQueryWithoutRelationships()`): two queries, the anchor and then the rows after it up to this one, applied forward, last write wins.
 
 ```php
     /**
@@ -172,7 +172,7 @@ final class MissingVersionAnchorException extends RuntimeException
 
 A later `SNAPSHOT` cannot appear in `$later` (the anchor is the latest one); the branch stays for clarity and costs nothing. Adapt the closures to the types PHPStan wants (`Builder<self>`).
 
-- [ ] **Step 5: `revertWithoutSaving()`** replaces the two strategy branches:
+- [x] **Step 5: `revertWithoutSaving()`** replaces the two strategy branches:
 
 ```php
     public function revertWithoutSaving(): ?Model
@@ -198,9 +198,11 @@ A later `SNAPSHOT` cannot appear in `$later` (the anchor is the latest one); the
 
 `resolveReplayVersionStrategy()` is no longer called by the revert; keep it if other callers or tests use it (`grep -rn resolveReplayVersionStrategy Modules`), otherwise remove it together with its tests only with the user's approval (AGENTS.md: tests are not deleted without approval).
 
-- [ ] **Step 6: Update the old expectations.** The three `revertWithoutSaving` tests of `VersionModelTest` build rows in separate sets after the user's own `Created` row; check that they still pass under the new rule and fix only the ones whose expectation encoded the old merge over the live row.
-- [ ] **Step 7: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models Modules/Core/tests/Integration/Helpers`, then the aggregate restore tests (`grep -rln restoreToRevision Modules/Core/tests`). Expected: PASS.
-- [ ] **Step 8: Commit** `feat(core): rebuild the state at a revision from its nearest snapshot (C08, D61)`.
+- [x] **Step 6: Update the old expectations.** The three `revertWithoutSaving` tests of `VersionModelTest` build rows in separate sets after the user's own `Created` row; check that they still pass under the new rule and fix only the ones whose expectation encoded the old merge over the live row.
+- [x] **Step 7: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models Modules/Core/tests/Integration/Helpers`, then the aggregate restore tests (`grep -rln restoreToRevision Modules/Core/tests`). Expected: PASS.
+- [x] **Step 8: Commit** `feat(core): rebuild the state at a revision from its nearest snapshot (C08, D61)`.
+
+**Found at execution (2026-10-22):** the tests use a new stub, `VersionedDocument` (a bin and no `$versionable` list), since `VersionedArticle` versions only `title`. A revert of a record in the bin did nothing at all: the `versionable` relation does not find a trashed record, so `revertWithoutSaving()` returned null; both entry points now hand the version the record they are called on. `Version` declares its columns as `@property`, as `Entity` does, so the column names of the new queries type-check without an ignore. The DIFF test of `VersionModelTest` gains the creation snapshot every real history has. `resolveReplayVersionStrategy()` has no caller left in the application and stays, with its tests, until the user decides.
 
 ### Task 3: The creation row is read back (C09)
 
@@ -208,7 +210,7 @@ A later `SNAPSHOT` cannot appear in `$later` (the anchor is the latest one); the
 - Modify: `Modules/Core/app/Models/Concerns/HasVersions.php` (`createInitialVersion()`)
 - Test: `Modules/Core/tests/Integration/Versioning/VersionWriterCharacterizationTest.php`
 
-- [ ] **Step 1: Write the failing test.** A table whose column takes its value from a database default, never assigned at insert:
+- [x] **Step 1: Write the failing test.** A table whose column takes its value from a database default, never assigned at insert:
 
 ```php
 it('writes the creation row as a complete image, defaults included', function (): void {
@@ -225,10 +227,12 @@ it('writes the creation row as a complete image, defaults included', function ()
 
 The stub's `$versionable` list (`['title']`) would hide `status`: use a stub without the list or extend the list in this test's stub, following the file's existing schema helper.
 
-- [ ] **Step 2: Run it and see it fail.** Expected: FAIL (`status` missing).
-- [ ] **Step 3: Read the row back.** In `createInitialVersion()` replace `$model->getAttributes()` with the raw attributes of `$model->getRefreshedModel($model)` (`getRawOriginal()`), still filtered by `filterVersionableImage()`. One `SELECT` per creation, inside the transaction of the insert when there is one.
-- [ ] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models Modules/Core/tests/Integration/Helpers` and the seeding tests (`Modules/Core/tests/Feature/Seeding`). Expected: PASS; a test that asserted the old partial image is updated to the complete one.
-- [ ] **Step 5: Commit** `fix(core): the creation version is read back after the insert (C09)`.
+- [x] **Step 2: Run it and see it fail.** Expected: FAIL (`status` missing).
+- [x] **Step 3: Read the row back.** In `createInitialVersion()` replace `$model->getAttributes()` with the raw attributes of `$model->getRefreshedModel($model)` (`getRawOriginal()`), still filtered by `filterVersionableImage()`. One `SELECT` per creation, inside the transaction of the insert when there is one.
+- [x] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models Modules/Core/tests/Integration/Helpers` and the seeding tests (`Modules/Core/tests/Feature/Seeding`). Expected: PASS; a test that asserted the old partial image is updated to the complete one.
+- [x] **Step 5: Commit** `fix(core): the creation version is read back after the insert (C09)`.
+
+**Found at execution (2026-10-22):** the tests sit in `VersionReconstructionTest` with the `VersionedDocument` stub (a `status` column with a database default), not in `VersionWriterCharacterizationTest`, whose stub versions only `title`; a second test reverts to the creation and gets the default back.
 
 ### Task 4: The creation set is a baseline (D53, D60)
 
@@ -237,7 +241,7 @@ The stub's `$versionable` list (`['title']`) would hide `status`: use a stub wit
 - Modify: `Modules/Core/app/Versioning/VersionWriter.php`
 - Test: `Modules/Core/tests/Integration/Versioning/VersionSetManagerTest.php`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```php
 it('stores the creation set of a root as a baseline and later sets as changes', function (): void {
@@ -269,8 +273,8 @@ it('never stores a revert set as a baseline', function (): void {
 
 Write the third with the existing revert fixtures of the file. Check that `VersionSetManagerArticle` is versioned (it writes `Created` rows); if the second test cannot open `run()` for an unsaved model, use the pattern the file already uses for pre-persist roots.
 
-- [ ] **Step 2: Run them and see them fail.** Expected: FAIL (`change` stored).
-- [ ] **Step 3: `ActiveVersionSet`.** A private `?VersionSetKind $stored_kind`, cleared by `reset()`; `versionSet()` stores `$this->stored_kind ?? $options->kind`; and:
+- [x] **Step 2: Run them and see them fail.** Expected: FAIL (`change` stored).
+- [x] **Step 3: `ActiveVersionSet`.** A private `?VersionSetKind $stored_kind`, cleared by `reset()`; `versionSet()` stores `$this->stored_kind ?? $options->kind`; and:
 
 ```php
     /**
@@ -286,7 +290,7 @@ Write the third with the existing revert fixtures of the file. Check that `Versi
     }
 ```
 
-- [ ] **Step 4: `VersionWriter::write()`**, in the scoped branch before `nextSequence()`:
+- [x] **Step 4: `VersionWriter::write()`**, in the scoped branch before `nextSequence()`:
 
 ```php
         if ($change->type === VersionChangeType::Created && $change->relationPath === null && $active->root()->model() === $change->model) {
@@ -295,8 +299,10 @@ Write the third with the existing revert fixtures of the file. Check that `Versi
 ```
 
 The fallback branch reaches the same code through its own `run()`, so the creation of a root saved outside any scope is covered too.
-- [ ] **Step 5: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models Modules/SAO/tests/Feature/Services/TicketTimelineServiceTest.php`. Expected: PASS.
-- [ ] **Step 6: Commit** `feat(core): store the creation set of a root as a baseline (D53, D60)`.
+- [x] **Step 5: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Models Modules/SAO/tests/Feature/Services/TicketTimelineServiceTest.php`. Expected: PASS.
+- [x] **Step 6: Commit** `feat(core): store the creation set of a root as a baseline (D53, D60)`.
+
+**Found at execution (2026-10-22):** the tests sit in a new `CreationBaselineTest` with the `VersionedDocument` stub, since `VersionSetManagerArticle` is not versioned. The nested `run()` on a model saved inside the scope already worked; only the stored kind was missing.
 
 ### Task 5: Lock columns stay out of the history (D21)
 
@@ -304,9 +310,9 @@ The fallback branch reaches the same code through its own `run()`, so the creati
 - Modify: `Modules/Core/app/Models/Concerns/HasVersions.php` (`getDontVersionable()`)
 - Test: `Modules/Core/tests/Integration/Helpers/HasVersionsTest.php` (with the `VersionedLockableArticle` stub)
 
-- [ ] **Step 1: Write the failing test:** a lockable versioned record created, locked by a user and then updated under `SNAPSHOT`: no version row contains `locked_at`, `locked_user_id` or `locked_until`; a revert to the creation leaves the live lock as it is. Create the lock columns in the test schema with `MigrateUtils::timestamps($table, hasLocks: true)` or the columns the stub expects.
-- [ ] **Step 2: Run it and see it fail.** Expected: FAIL (the read-back creation row of Task 3 now carries the lock columns).
-- [ ] **Step 3: Exclude them.** In `getDontVersionable()`, next to the optimistic lock column:
+- [x] **Step 1: Write the failing test:** a lockable versioned record created, locked by a user and then updated under `SNAPSHOT`: no version row contains `locked_at`, `locked_user_id` or `locked_until`; a revert to the creation leaves the live lock as it is. Create the lock columns in the test schema with `MigrateUtils::timestamps($table, hasLocks: true)` or the columns the stub expects.
+- [x] **Step 2: Run it and see it fail.** Expected: FAIL (the read-back creation row of Task 3 now carries the lock columns).
+- [x] **Step 3: Exclude them.** In `getDontVersionable()`, next to the optimistic lock column:
 
 ```php
         if ($this instanceof ILockableModel) {
@@ -314,8 +320,10 @@ The fallback branch reaches the same code through its own `run()`, so the creati
         }
 ```
 
-- [ ] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Helpers Modules/Core/tests/Integration/Versioning Modules/Core/tests/Feature/Locking` (or the folder holding the lock tests). Expected: PASS.
-- [ ] **Step 5: Commit** `fix(core): keep the lock columns out of the version history (D21)`.
+- [x] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Helpers Modules/Core/tests/Integration/Versioning Modules/Core/tests/Feature/Locking` (or the folder holding the lock tests). Expected: PASS.
+- [x] **Step 5: Commit** `fix(core): keep the lock columns out of the version history (D21)`.
+
+**Found at execution (2026-10-22):** `VersionedLockableArticle` versions only `title`, so the tests use a new stub, `VersionedLockableDocument` (no `$versionable` list, `SNAPSHOT`), in `LockColumnsOutOfHistoryTest`. Before the fix a revert by the holder dropped the live lock.
 
 ### Task 6: Comments, ratings and translations are never versioned (D8, D10)
 
@@ -327,9 +335,9 @@ The fallback branch reaches the same code through its own `run()`, so the creati
 - Modify: `Modules/CMS/app/Models/Comment.php`, `Modules/CMS/app/Models/ContentRating.php` (implement the marker)
 - Test: `Modules/Core/tests/Integration/Helpers/HasVersionsTest.php`, `Modules/CMS/tests/Feature/Models/NeverVersionedModelsTest.php` (create)
 
-- [ ] **Step 1: Write the failing tests.** In CMS: `Comment`, `ContentRating` and every translation model (`ContentTranslation`, `CommentTranslation`, `ContributorTranslation`, `TagTranslation`, and Core's `TaxonomyTranslation`) return `false` from `getVersionStrategy()` even when a `versioning.strategy.{table}` setting says `DIFF`; creating a comment writes no version row; the Core seeder produces no `versioning.strategy.cms_comments`, `versioning.strategy.cms_contents_ratings` nor `versioning.strategy.*_translations` row (assert on the rows `CoreDatabaseSeeder` builds, as the existing seeding tests do); `ForcedVersionStrategySettings::isForced()` is true for those names.
-- [ ] **Step 2: Run them and see them fail.**
-- [ ] **Step 3: The marker**
+- [x] **Step 1: Write the failing tests.** In CMS: `Comment`, `ContentRating` and every translation model (`ContentTranslation`, `CommentTranslation`, `ContributorTranslation`, `TagTranslation`, and Core's `TaxonomyTranslation`) return `false` from `getVersionStrategy()` even when a `versioning.strategy.{table}` setting says `DIFF`; creating a comment writes no version row; the Core seeder produces no `versioning.strategy.cms_comments`, `versioning.strategy.cms_contents_ratings` nor `versioning.strategy.*_translations` row (assert on the rows `CoreDatabaseSeeder` builds, as the existing seeding tests do); `ForcedVersionStrategySettings::isForced()` is true for those names.
+- [x] **Step 2: Run them and see them fail.**
+- [x] **Step 3: The marker**
 
 ```php
 /**
@@ -340,7 +348,7 @@ The fallback branch reaches the same code through its own `run()`, so the creati
 interface INeverVersionedModel {}
 ```
 
-- [ ] **Step 4: `HasVersions`**
+- [x] **Step 4: `HasVersions`**
 
 ```php
     /**
@@ -353,11 +361,13 @@ interface INeverVersionedModel {}
 ```
 
 and `getVersionStrategy()` returns `false` first when `static::isNeverVersioned()`.
-- [ ] **Step 5: Seeder and panel.** `ModelCapabilityScanner`: `hasVersions: isset($traits[HasVersions::class]) && ! $model_class::isNeverVersioned()`. `ForcedVersionStrategySettings::names()` also lists the setting names of the never-versioned models, so a row left from an older seed is hidden and refused like a forced one. `Comment` and `ContentRating` implement `INeverVersionedModel`.
-- [ ] **Step 6: Run** the new tests, `Modules/Core/tests/Feature/Seeding`, the `SettingResource` tests (`grep -rln ForcedVersionStrategySettings Modules/Core/tests`) and `Modules/CMS/tests`. Expected: PASS; seeding counts that included the removed rows are updated.
-- [ ] **Step 7: Commit** in Core (`feat(core): never version comments, ratings and translations (D8, D10)`) and CMS (`feat(cms): comments and ratings are never versioned (D8)`).
+- [x] **Step 5: Seeder and panel.** `ModelCapabilityScanner`: `hasVersions: isset($traits[HasVersions::class]) && ! $model_class::isNeverVersioned()`. `ForcedVersionStrategySettings::names()` also lists the setting names of the never-versioned models, so a row left from an older seed is hidden and refused like a forced one. `Comment` and `ContentRating` implement `INeverVersionedModel`.
+- [x] **Step 6: Run** the new tests, `Modules/Core/tests/Feature/Seeding`, the `SettingResource` tests (`grep -rln ForcedVersionStrategySettings Modules/Core/tests`) and `Modules/CMS/tests`. Expected: PASS; seeding counts that included the removed rows are updated.
+- [x] **Step 7: Commit** in Core (`feat(core): never version comments, ratings and translations (D8, D10)`) and CMS (`feat(cms): comments and ratings are never versioned (D8)`).
 
 Note: until Slice 4 writes the translation rows on the owner (D28), a translation change leaves no history at all; the rows the translation models wrote of their own were never used by a revert.
+
+**Found at execution (2026-10-22):** the rule lives in a small class, `Modules\Core\Versioning\NeverVersionedModels::includes()`, not in a static method of the trait: the scanner and the panel hold a `class-string<Model>`, on which PHPStan cannot see a trait method. The Core Integration folder now exhausts the 2 GB of one process and is run per subfolder.
 
 ### Task 7: Documentation and closing of the slice
 
@@ -366,9 +376,17 @@ Note: until Slice 4 writes the translation rows on the owner (D28), a translatio
 - Modify: the review log status line and the spec's implementation lists
 - Modify: this plan and the parent plan (tick Slice 2)
 
-- [ ] **Step 1: `MODULE.md`:** the revert rebuilds the state from the nearest snapshot (`stateAsOf()`, refused without one), never moves the record in or out of the bin, the creation row is read back and its set is a `baseline`, the lock columns are outside the history, and comments, ratings and translation models are never versioned (`INeverVersionedModel`, `ITranslated`).
-- [ ] **Step 2: Status lines:** review log and spec list C08, C09, D8, D10, D21, D53 and D61 as implemented.
-- [ ] **Step 3: Run** the full regression per suite (Core per folder, CMS, SAO, ERP, MES, AI, Shop, `tests/`) and record the result here.
-- [ ] **Step 4: Commit** the docs in each module and in `laraplate/`; add the delivery status below and tick Slice 2 in the parent plan.
+- [x] **Step 1: `MODULE.md`:** the revert rebuilds the state from the nearest snapshot (`stateAsOf()`, refused without one), never moves the record in or out of the bin, the creation row is read back and its set is a `baseline`, the lock columns are outside the history, and comments, ratings and translation models are never versioned (`INeverVersionedModel`, `ITranslated`).
+- [x] **Step 2: Status lines:** review log and spec list C08, C09, D8, D10, D21, D53 and D61 as implemented.
+- [x] **Step 3: Run** the full regression per suite (Core per folder, CMS, SAO, ERP, MES, AI, Shop, `tests/`) and record the result here.
+- [x] **Step 4: Commit** the docs in each module and in `laraplate/`; add the delivery status below and tick Slice 2 in the parent plan.
 
-**Documented in (when the plan closes):** `Modules/Core/docs/rag/MODULE.md`.
+## Delivery status (2026-10-22): delivered
+
+All seven tasks are done, each with its tests written first. Commits in `Modules/Core`: `229f6f9a` (soft delete as a `DIFF`), `1bd83830` (`stateAsOf()`, C08, D61), `d19ba806` (creation row read back, C09), `3fea7eb4` (creation set as `baseline`, D53, D60), `1f183744` (lock columns, D21), `a6fb1139` (never-versioned models, D8, D10); in `Modules/CMS`: `d65a27e`.
+
+Divergences from the plan, each recorded under its task: the tests use two new stubs (`VersionedDocument`, `VersionedLockableDocument`) because the existing ones version only `title`; the never-versioned rule lives in `NeverVersionedModels::includes()` instead of a static method of the trait; `Version` declares its columns as `@property`; a revert of a record in the bin, which used to do nothing, now works and keeps the record in the bin. `resolveReplayVersionStrategy()` has no caller left and is kept, with its tests, until the user decides.
+
+Regression on 2026-10-22, per suite: Core Feature, Unit and every Integration subfolder green (the Integration folder as a whole exhausts 2 GB in one process), CMS, ERP, MES and Shop green. Failing, not caused by this slice: 14 tests of `Modules/AI/tests/Feature/EmbeddingSwitch*` (the verifier calls `getEmbeddingsProvider()` since AI commit `57559ed` and the mocks do not expect it), `tests/Feature/Filament/ResourceFormPagesCloseOrCancelTest` (the CRM pages in progress), and one SAO test that failed once on a random `key_prefix` collision and passed on the rerun of the whole suite.
+
+**Documented in:** `Modules/Core/docs/rag/MODULE.md`, `Modules/CMS/docs/rag/MODULE.md`.
