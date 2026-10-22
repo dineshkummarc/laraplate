@@ -67,12 +67,6 @@ parameters:
 			path: Modules/AI/app/Console/RepairMissingEmbeddingsCommand.php
 
 		-
-			rawMessage: 'Call to an undefined method object::getKeyName().'
-			identifier: method.notFound
-			count: 1
-			path: Modules/AI/app/Console/RepairMissingEmbeddingsCommand.php
-
-		-
 			rawMessage: 'Call to an undefined method object::count().'
 			identifier: method.notFound
 			count: 1
@@ -133,26 +127,8 @@ parameters:
 			path: Modules/AI/app/Jobs/ApproveModificationJob.php
 
 		-
-			rawMessage: 'Call to an undefined method Illuminate\Database\Eloquent\Model&Modules\Core\Contracts\IEmbeddableModel::prepareDataToEmbedByLocale().'
-			identifier: method.notFound
-			count: 1
-			path: Modules/AI/app/Jobs/GenerateEmbeddingsJob.php
-
-		-
 			rawMessage: Cannot cast mixed to int.
 			identifier: cast.int
-			count: 1
-			path: Modules/AI/app/Jobs/GenerateEmbeddingsJob.php
-
-		-
-			rawMessage: Instanceof between Illuminate\Database\Eloquent\Model and Illuminate\Database\Eloquent\Model will always evaluate to true.
-			identifier: instanceof.alwaysTrue
-			count: 1
-			path: Modules/AI/app/Jobs/GenerateEmbeddingsJob.php
-
-		-
-			rawMessage: 'Parameter #1 $attributes of method Illuminate\Database\Eloquent\Relations\HasOneOrMany<Modules\Core\Models\ModelEmbedding,Illuminate\Database\Eloquent\Model&Modules\Core\Contracts\IEmbeddableModel,Illuminate\Database\Eloquent\Collection<int, Modules\Core\Models\ModelEmbedding>>::create() expects array<model property of Modules\Core\Models\ModelEmbedding, mixed>, array<string, mixed> given.'
-			identifier: argument.type
 			count: 1
 			path: Modules/AI/app/Jobs/GenerateEmbeddingsJob.php
 
@@ -1429,20 +1405,8 @@ parameters:
 			path: Modules/CMS/app/Models/Comment.php
 
 		-
-			rawMessage: Anonymous function with return type void returns null but should not return anything.
-			identifier: return.void
-			count: 2
-			path: Modules/CMS/app/Models/Content.php
-
-		-
 			rawMessage: 'Argument of an invalid type mixed supplied for foreach, only iterables are supported.'
 			identifier: foreach.nonIterable
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: Binary operation "." between ' ' and mixed results in an error.
-			identifier: binaryOp.invalid
 			count: 1
 			path: Modules/CMS/app/Models/Content.php
 
@@ -1450,24 +1414,6 @@ parameters:
 			rawMessage: 'Call to an undefined method Illuminate\Database\Eloquent\Model::getIsLockedColumn().'
 			identifier: method.notFound
 			count: 2
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: 'Call to an undefined method object::getKeyName().'
-			identifier: method.notFound
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: 'Call to function method_exists() with $this(Modules\CMS\Models\Content) and ''embeddings'' will always evaluate to true.'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: Cannot access constant class on mixed.
-			identifier: classConstant.nonObject
-			count: 1
 			path: Modules/CMS/app/Models/Content.php
 
 		-
@@ -1497,7 +1443,7 @@ parameters:
 		-
 			rawMessage: Cannot cast mixed to int.
 			identifier: cast.int
-			count: 3
+			count: 2
 			path: Modules/CMS/app/Models/Content.php
 
 		-
@@ -1573,18 +1519,6 @@ parameters:
 			path: Modules/CMS/app/Models/Content.php
 
 		-
-			rawMessage: 'Method Modules\CMS\Models\Content::embeddings() return type with generic class Illuminate\Database\Eloquent\Relations\MorphMany does not specify its types: TRelatedModel, TDeclaringModel'
-			identifier: missingType.generics
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: 'Method Modules\CMS\Models\Content::ensureIndexesForModels() has parameter $models with no type specified.'
-			identifier: missingType.parameter
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
 			rawMessage: 'Method Modules\CMS\Models\Content::entity() return type with generic class Illuminate\Database\Eloquent\Casts\Attribute does not specify its types: TGet, TSet'
 			identifier: missingType.generics
 			count: 1
@@ -1604,12 +1538,6 @@ parameters:
 
 		-
 			rawMessage: 'Method Modules\CMS\Models\Content::getDynamicFields() return type has no value type specified in iterable type array.'
-			identifier: missingType.iterableValue
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: 'Method Modules\CMS\Models\Content::getSearchMappingTrait() return type has no value type specified in iterable type array.'
 			identifier: missingType.iterableValue
 			count: 1
 			path: Modules/CMS/app/Models/Content.php
@@ -1651,26 +1579,8 @@ parameters:
 			path: Modules/CMS/app/Models/Content.php
 
 		-
-			rawMessage: 'Method Modules\CMS\Models\Content::queueMakeSearchable() has parameter $models with no type specified.'
-			identifier: missingType.parameter
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
 			rawMessage: 'Method Modules\CMS\Models\Content::setAttribute() should return $this(Modules\CMS\Models\Content) but returns mixed.'
 			identifier: return.type
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: 'Method Modules\CMS\Models\Content::syncMakeSearchable() has parameter $models with no type specified.'
-			identifier: missingType.parameter
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: 'Method Modules\CMS\Models\Content::toSearchableArrayTrait() return type has no value type specified in iterable type array.'
-			identifier: missingType.iterableValue
 			count: 1
 			path: Modules/CMS/app/Models/Content.php
 
@@ -1713,12 +1623,6 @@ parameters:
 		-
 			rawMessage: 'Parameter #1 $attributes of method Illuminate\Database\Eloquent\Relations\HasOneOrMany<Illuminate\Database\Eloquent\Model&Modules\Core\Services\Translation\Definitions\ITranslated,Illuminate\Database\Eloquent\Model,Illuminate\Database\Eloquent\Collection<int, Illuminate\Database\Eloquent\Model&Modules\Core\Services\Translation\Definitions\ITranslated>>::create() expects array<model property of Illuminate\Database\Eloquent\Model&Modules\Core\Services\Translation\Definitions\ITranslated, mixed>, array<string, mixed> given.'
 			identifier: argument.type
-			count: 2
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: 'Parameter #1 $column of method Illuminate\Database\Eloquent\Builder<Approval\Models\Modification>::where() expects array<int|model property of Approval\Models\Modification, mixed>|(Closure(Illuminate\Database\Query\Builder): mixed)|Illuminate\Contracts\Database\Query\Expression|model property of Approval\Models\Modification, ''md5'' given.'
-			identifier: argument.type
 			count: 1
 			path: Modules/CMS/app/Models/Content.php
 
@@ -1738,12 +1642,6 @@ parameters:
 			rawMessage: 'Parameter #1 $column of method Illuminate\Database\Eloquent\Builder<Illuminate\Database\Eloquent\Model>::orWhere() expects array<int|model property of Illuminate\Database\Eloquent\Model, mixed>|(Closure(Illuminate\Database\Eloquent\Builder<Illuminate\Database\Eloquent\Model>|Illuminate\Database\Query\Builder): mixed)|Illuminate\Contracts\Database\Query\Expression|model property of Illuminate\Database\Eloquent\Model, ''locale'' given.'
 			identifier: argument.type
 			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: 'Parameter #1 $column of method Illuminate\Database\Eloquent\Builder<Illuminate\Database\Eloquent\Model>::where() expects array<int|model property of Illuminate\Database\Eloquent\Model, mixed>|(Closure(Illuminate\Database\Eloquent\Builder<Illuminate\Database\Eloquent\Model>|Illuminate\Database\Query\Builder): mixed)|Illuminate\Contracts\Database\Query\Expression|model property of Illuminate\Database\Eloquent\Model, ''locale'' given.'
-			identifier: argument.type
-			count: 2
 			path: Modules/CMS/app/Models/Content.php
 
 		-
@@ -1772,12 +1670,6 @@ parameters:
 
 		-
 			rawMessage: 'Parameter #1 $field of method Modules\CMS\Models\Content::isFieldTranslatable() expects string, mixed given.'
-			identifier: argument.type
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: 'Parameter #1 $name of callable passed to call_user_func() expects string, $this(Modules\CMS\Models\Content) given.'
 			identifier: argument.type
 			count: 1
 			path: Modules/CMS/app/Models/Content.php
@@ -1839,12 +1731,6 @@ parameters:
 		-
 			rawMessage: Property Modules\CMS\Models\Content::$valid_to_column has no type specified.
 			identifier: missingType.property
-			count: 1
-			path: Modules/CMS/app/Models/Content.php
-
-		-
-			rawMessage: 'Trait Modules\Core\Models\Concerns\HasApprovals requires using class to implement Modules\Core\Contracts\IModeratableModel, but Modules\CMS\Models\Content does not.'
-			identifier: class.missingImplements
 			count: 1
 			path: Modules/CMS/app/Models/Content.php
 
@@ -2167,51 +2053,9 @@ parameters:
 			path: Modules/CMS/app/Models/Location.php
 
 		-
-			rawMessage: Anonymous function with return type void returns null but should not return anything.
-			identifier: return.void
-			count: 2
-			path: Modules/CMS/app/Models/Location.php
-
-		-
-			rawMessage: Binary operation "." between ' ' and mixed results in an error.
-			identifier: binaryOp.invalid
-			count: 1
-			path: Modules/CMS/app/Models/Location.php
-
-		-
-			rawMessage: 'Call to an undefined method $this(Modules\CMS\Models\Location)::getTranslation().'
-			identifier: method.notFound
-			count: 1
-			path: Modules/CMS/app/Models/Location.php
-
-		-
-			rawMessage: 'Call to function method_exists() with $this(Modules\CMS\Models\Location) and ''embeddings'' will always evaluate to true.'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: Modules/CMS/app/Models/Location.php
-
-		-
-			rawMessage: Cannot cast mixed to int.
-			identifier: cast.int
-			count: 1
-			path: Modules/CMS/app/Models/Location.php
-
-		-
 			rawMessage: Cannot cast mixed to string.
 			identifier: cast.string
-			count: 5
-			path: Modules/CMS/app/Models/Location.php
-
-		-
-			rawMessage: 'Method Modules\CMS\Models\Location::embeddings() return type with generic class Illuminate\Database\Eloquent\Relations\MorphMany does not specify its types: TRelatedModel, TDeclaringModel'
-			identifier: missingType.generics
-			count: 1
-			path: Modules/CMS/app/Models/Location.php
-
-		-
-			rawMessage: 'Method Modules\CMS\Models\Location::ensureIndexesForModels() has parameter $models with no type specified.'
-			identifier: missingType.parameter
-			count: 1
+			count: 3
 			path: Modules/CMS/app/Models/Location.php
 
 		-
@@ -2221,20 +2065,8 @@ parameters:
 			path: Modules/CMS/app/Models/Location.php
 
 		-
-			rawMessage: 'Method Modules\CMS\Models\Location::getSearchMappingTrait() return type has no value type specified in iterable type array.'
-			identifier: missingType.iterableValue
-			count: 1
-			path: Modules/CMS/app/Models/Location.php
-
-		-
 			rawMessage: 'Method Modules\CMS\Models\Location::path() return type with generic class Illuminate\Database\Eloquent\Casts\Attribute does not specify its types: TGet, TSet'
 			identifier: missingType.generics
-			count: 1
-			path: Modules/CMS/app/Models/Location.php
-
-		-
-			rawMessage: 'Method Modules\CMS\Models\Location::queueMakeSearchable() has parameter $models with no type specified.'
-			identifier: missingType.parameter
 			count: 1
 			path: Modules/CMS/app/Models/Location.php
 
@@ -2257,25 +2089,7 @@ parameters:
 			path: Modules/CMS/app/Models/Location.php
 
 		-
-			rawMessage: 'Method Modules\CMS\Models\Location::syncMakeSearchable() has parameter $models with no type specified.'
-			identifier: missingType.parameter
-			count: 1
-			path: Modules/CMS/app/Models/Location.php
-
-		-
-			rawMessage: 'Method Modules\CMS\Models\Location::toSearchableArrayTrait() return type has no value type specified in iterable type array.'
-			identifier: missingType.iterableValue
-			count: 1
-			path: Modules/CMS/app/Models/Location.php
-
-		-
 			rawMessage: 'Parameter #1 $callback of function call_user_func expects callable(): mixed, mixed given.'
-			identifier: argument.type
-			count: 1
-			path: Modules/CMS/app/Models/Location.php
-
-		-
-			rawMessage: 'Parameter #1 $name of callable passed to call_user_func() expects string, $this(Modules\CMS\Models\Location) given.'
 			identifier: argument.type
 			count: 1
 			path: Modules/CMS/app/Models/Location.php
@@ -2573,18 +2387,6 @@ parameters:
 			identifier: argument.type
 			count: 1
 			path: Modules/CMS/app/Models/Translations/TagTranslation.php
-
-		-
-			rawMessage: 'Call to an undefined method Illuminate\Database\Eloquent\Relations\MorphMany::forLocale().'
-			identifier: method.notFound
-			count: 1
-			path: Modules/CMS/app/Observers/ContentTranslationObserver.php
-
-		-
-			rawMessage: 'Method Modules\CMS\Observers\ContentTranslationObserver::resolveContent() should return Modules\CMS\Models\Content|null but returns Illuminate\Database\Eloquent\Collection<(int|string), Modules\CMS\Models\Content>|Modules\CMS\Models\Content|null.'
-			identifier: return.type
-			count: 1
-			path: Modules/CMS/app/Observers/ContentTranslationObserver.php
 
 		-
 			rawMessage: Variable $content in PHPDoc tag @var does not exist.
@@ -4241,12 +4043,6 @@ parameters:
 			identifier: cast.string
 			count: 7
 			path: Modules/Core/app/Contracts/Geocoding/GeocodingResult.php
-
-		-
-			rawMessage: 'Type $this(Modules\Core\Contracts\IEmbeddableModel) in generic type Illuminate\Database\Eloquent\Relations\MorphMany<Modules\Core\Models\ModelEmbedding, $this(Modules\Core\Contracts\IEmbeddableModel)> in PHPDoc tag @return is not subtype of template type TDeclaringModel of Illuminate\Database\Eloquent\Model of class Illuminate\Database\Eloquent\Relations\MorphMany.'
-			identifier: generics.notSubtype
-			count: 1
-			path: Modules/Core/app/Contracts/IEmbeddableModel.php
 
 		-
 			rawMessage: 'Method Modules\Core\Contracts\ISearchableModel::searchable() has no return type specified.'
@@ -6733,24 +6529,6 @@ parameters:
 			path: Modules/Core/app/Models/License.php
 
 		-
-			rawMessage: 'Call to an undefined method Illuminate\Database\Eloquent\Model::revert().'
-			identifier: method.notFound
-			count: 1
-			path: Modules/Core/app/Models/Media.php
-
-		-
-			rawMessage: 'Method Modules\Core\Models\Media::trashingVersions() should return Illuminate\Database\Eloquent\Builder<Overtrue\LaravelVersionable\Version> but returns Illuminate\Database\Eloquent\Builder<Illuminate\Database\Eloquent\Model>.'
-			identifier: return.type
-			count: 1
-			path: Modules/Core/app/Models/Media.php
-
-		-
-			rawMessage: 'Parameter #1 $column of method Illuminate\Database\Eloquent\Builder<Illuminate\Database\Eloquent\Model>::where() expects array<int|model property of Illuminate\Database\Eloquent\Model, mixed>|(Closure(Illuminate\Database\Query\Builder): mixed)|Illuminate\Contracts\Database\Query\Expression|model property of Illuminate\Database\Eloquent\Model, ''change_type'' given.'
-			identifier: argument.type
-			count: 1
-			path: Modules/Core/app/Models/Media.php
-
-		-
 			rawMessage: 'Class Modules\Core\Models\ModelEmbedding uses generic trait Illuminate\Database\Eloquent\Factories\HasFactory but does not specify its types: TFactory'
 			identifier: missingType.generics
 			count: 1
@@ -6765,30 +6543,6 @@ parameters:
 		-
 			rawMessage: 'Method Modules\Core\Models\ModelEmbedding::model() should return Illuminate\Database\Eloquent\Relations\MorphTo<Illuminate\Database\Eloquent\Model> but returns Illuminate\Database\Eloquent\Relations\MorphTo<Illuminate\Database\Eloquent\Model, $this(Modules\Core\Models\ModelEmbedding)>.'
 			identifier: return.type
-			count: 1
-			path: Modules/Core/app/Models/ModelEmbedding.php
-
-		-
-			rawMessage: 'Parameter #1 $column of method Illuminate\Database\Eloquent\Builder<Modules\Core\Models\ModelEmbedding>::where() expects array<int|model property of Modules\Core\Models\ModelEmbedding, mixed>|(Closure(Illuminate\Database\Eloquent\Builder<Modules\Core\Models\ModelEmbedding>|Illuminate\Database\Query\Builder): mixed)|Illuminate\Contracts\Database\Query\Expression|model property of Modules\Core\Models\ModelEmbedding, ''model_id'' given.'
-			identifier: argument.type
-			count: 1
-			path: Modules/Core/app/Models/ModelEmbedding.php
-
-		-
-			rawMessage: 'Parameter #1 $column of method Illuminate\Database\Eloquent\Builder<Modules\Core\Models\ModelEmbedding>::where() expects array<int|model property of Modules\Core\Models\ModelEmbedding, mixed>|(Closure(Illuminate\Database\Query\Builder): mixed)|Illuminate\Contracts\Database\Query\Expression|model property of Modules\Core\Models\ModelEmbedding, ''locale'' given.'
-			identifier: argument.type
-			count: 1
-			path: Modules/Core/app/Models/ModelEmbedding.php
-
-		-
-			rawMessage: 'Parameter #1 $column of method Illuminate\Database\Eloquent\Builder<Modules\Core\Models\ModelEmbedding>::where() expects array<int|model property of Modules\Core\Models\ModelEmbedding, mixed>|(Closure(Illuminate\Database\Query\Builder): mixed)|Illuminate\Contracts\Database\Query\Expression|model property of Modules\Core\Models\ModelEmbedding, ''model_key'' given.'
-			identifier: argument.type
-			count: 1
-			path: Modules/Core/app/Models/ModelEmbedding.php
-
-		-
-			rawMessage: 'Parameter #1 $column of method Illuminate\Database\Eloquent\Builder<Modules\Core\Models\ModelEmbedding>::where() expects array<int|model property of Modules\Core\Models\ModelEmbedding, mixed>|(Closure(Illuminate\Database\Query\Builder): mixed)|Illuminate\Contracts\Database\Query\Expression|model property of Modules\Core\Models\ModelEmbedding, ''model_type'' given.'
-			identifier: argument.type
 			count: 1
 			path: Modules/Core/app/Models/ModelEmbedding.php
 
@@ -8842,24 +8596,6 @@ parameters:
 			rawMessage: 'Parameter #1 $array of function array_unique expects an array of values castable to string, list<mixed> given.'
 			identifier: argument.type
 			count: 2
-			path: Modules/Core/app/Search/Engines/DatabaseEngine.php
-
-		-
-			rawMessage: 'Parameter #1 $array of function usort contains unresolvable type.'
-			identifier: argument.unresolvableType
-			count: 1
-			path: Modules/Core/app/Search/Engines/DatabaseEngine.php
-
-		-
-			rawMessage: 'Parameter #1 $column of method Illuminate\Database\Eloquent\Builder<Modules\Core\Models\ModelEmbedding>::where() expects array<int|model property of Modules\Core\Models\ModelEmbedding, mixed>|(Closure(Illuminate\Database\Query\Builder): mixed)|Illuminate\Contracts\Database\Query\Expression|model property of Modules\Core\Models\ModelEmbedding, ''model_type'' given.'
-			identifier: argument.type
-			count: 3
-			path: Modules/Core/app/Search/Engines/DatabaseEngine.php
-
-		-
-			rawMessage: 'Parameter #2 $callback of function usort contains unresolvable type.'
-			identifier: argument.unresolvableType
-			count: 1
 			path: Modules/Core/app/Search/Engines/DatabaseEngine.php
 
 		-
@@ -10973,12 +10709,6 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: Modules/Core/database/factories/MediaDraftFactory.php
-
-		-
-			rawMessage: 'Method Modules\Core\Database\Factories\ModelEmbeddingFactory::definition() should return array<model property of Modules\Core\Models\ModelEmbedding, mixed> but returns array<string, list<float>|null>.'
-			identifier: return.type
-			count: 1
-			path: Modules/Core/database/factories/ModelEmbeddingFactory.php
 
 		-
 			rawMessage: Cannot access property $value on mixed.
@@ -18313,91 +18043,13 @@ parameters:
 			path: Modules/SAO/app/Models/ProjectBinding.php
 
 		-
-			rawMessage: Anonymous function with return type void returns null but should not return anything.
-			identifier: return.void
-			count: 2
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: Binary operation "." between ' ' and mixed results in an error.
-			identifier: binaryOp.invalid
-			count: 1
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Call to an undefined method Modules\SAO\Models\Ticket::getTranslation().'
-			identifier: method.notFound
-			count: 1
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Call to function method_exists() with $this(Modules\SAO\Models\Ticket) and ''embeddings'' will always evaluate to true.'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
 			rawMessage: Cannot cast mixed to int.
 			identifier: cast.int
-			count: 3
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: Cannot cast mixed to string.
-			identifier: cast.string
 			count: 2
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Method Modules\SAO\Models\Ticket::embeddings() return type with generic class Illuminate\Database\Eloquent\Relations\MorphMany does not specify its types: TRelatedModel, TDeclaringModel'
-			identifier: missingType.generics
-			count: 1
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Method Modules\SAO\Models\Ticket::ensureIndexesForModels() has parameter $models with no type specified.'
-			identifier: missingType.parameter
-			count: 1
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Method Modules\SAO\Models\Ticket::getSearchMappingTrait() return type has no value type specified in iterable type array.'
-			identifier: missingType.iterableValue
-			count: 1
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Method Modules\SAO\Models\Ticket::labels() should return Illuminate\Database\Eloquent\Relations\BelongsToMany<Modules\SAO\Models\Label, $this(Modules\SAO\Models\Ticket), Illuminate\Database\Eloquent\Relations\Pivot, ''pivot''> but returns Illuminate\Database\Eloquent\Relations\BelongsToMany<Modules\SAO\Models\Label, $this(Modules\SAO\Models\Ticket), Modules\SAO\Models\Pivot\TicketLabel, ''pivot''>.'
-			identifier: return.type
-			count: 1
 			path: Modules/SAO/app/Models/Ticket.php
 
 		-
 			rawMessage: 'Method Modules\SAO\Models\Ticket::lockVersionColumn() should return string but returns mixed.'
-			identifier: return.type
-			count: 1
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Method Modules\SAO\Models\Ticket::queueMakeSearchable() has parameter $models with no type specified.'
-			identifier: missingType.parameter
-			count: 1
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Method Modules\SAO\Models\Ticket::syncMakeSearchable() has parameter $models with no type specified.'
-			identifier: missingType.parameter
-			count: 1
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Method Modules\SAO\Models\Ticket::toSearchableArrayTrait() return type has no value type specified in iterable type array.'
-			identifier: missingType.iterableValue
-			count: 1
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Method Modules\SAO\Models\Ticket::watchers() should return Illuminate\Database\Eloquent\Relations\BelongsToMany<Modules\Core\Models\User, $this(Modules\SAO\Models\Ticket), Illuminate\Database\Eloquent\Relations\Pivot, ''pivot''> but returns Illuminate\Database\Eloquent\Relations\BelongsToMany<Modules\Core\Models\User, $this(Modules\SAO\Models\Ticket), Modules\SAO\Models\Pivot\TicketWatcher, ''pivot''>.'
 			identifier: return.type
 			count: 1
 			path: Modules/SAO/app/Models/Ticket.php
@@ -18430,12 +18082,6 @@ parameters:
 			rawMessage: 'Parameter #1 $column of method Illuminate\Database\Eloquent\Builder<Modules\SAO\Models\TicketRelation>::where() expects array<int|model property of Modules\SAO\Models\TicketRelation, mixed>|(Closure(Illuminate\Database\Query\Builder): mixed)|Illuminate\Contracts\Database\Query\Expression|model property of Modules\SAO\Models\TicketRelation, ''type'' given.'
 			identifier: argument.type
 			count: 3
-			path: Modules/SAO/app/Models/Ticket.php
-
-		-
-			rawMessage: 'Parameter #1 $name of callable passed to call_user_func() expects string, $this(Modules\SAO\Models\Ticket) given.'
-			identifier: argument.type
-			count: 1
 			path: Modules/SAO/app/Models/Ticket.php
 
 		-

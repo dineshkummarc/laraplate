@@ -123,6 +123,15 @@ parameters:
         -
           identifier: nullCoalesce.expr
           path: Modules/Core/app/Overrides/Command.php
+        # Searchable::eagerLoadForIndexing() adds `translations` to the eager load only
+        # when the model uses HasTranslations (class_uses_trait() at runtime). Larastan
+        # checks the relation name against every model that uses the trait, translated
+        # or not, and the collection's model type cannot be narrowed from the check.
+        # Named here, by relation and file, so a wrong relation name elsewhere still fails.
+        -
+          identifier: larastan.relationExistence
+          message: '#^Relation ''translations'' is not found in Modules\\[A-Za-z]+\\Models\\[A-Za-z]+ model\.$#'
+          path: Modules/Core/app/Search/Traits/Searchable.php
         # Both engines are analysed in more than one context, and this error appears in
         # some and not others. A baseline entry pins a count, and a count that moves is
         # reported as ignore.count, so these two are named here without one.
