@@ -1,6 +1,6 @@
 # AI module on standard servers
 
-**Status:** Draft, 2026-10-22. Design agreed with the owner in chat the same day; the plan is written after this spec is reviewed.
+**Status:** Built 2026-10-23, plan `../plans/2026-10-22-ai-standard-servers.md` (closed). The hands-on verification of section 9 was not run: the owner deferred it, and the guide says so.
 
 **Date:** 2026-10-22
 
@@ -130,6 +130,10 @@ The custom `/health` plus `api_version` convention goes away. What the module ne
 
 The research spec was desk research: nothing was run. Before the guides are written and before the repositories are archived, the maintainer runs, or explicitly allows, tests A, B and C of section 8 of the research spec on their own machine (Infinity in a throwaway venv, TEI built from source, speaches with `uv`), and the results are recorded in a **Verification** section appended to this spec: vector equality with the current service for the same prefixed text, rerank order and score range for 64 pairs, the 5 s per search figure, build time and size of TEI on the LXC, `/health` while the model loads, and the behaviour of speaches on an oversized file. Nothing is installed without that go-ahead. A failure there changes D8 (the documented server), not the client code.
 
+## Verification
+
+Not run (2026-10-23). The owner chose to skip tests A, B and C of the research spec for now; nothing was installed. The guide `Modules/AI/docs/STANDARD_SERVERS_INSTALLATION.md` opens by saying it was written from the servers' documentation (TEI v1.9.4, Infinity 0.0.78, speaches v0.9.0-rc.3) and not run on the reference host. The items to settle when it is run are in section 11 and in the plan's delivery status.
+
 ## 10. Removal and sequence
 
 AI side (this spec, its plan):
@@ -153,6 +157,7 @@ Stack root (a separate stack-root plan, after the AI release ships):
 - **TEI refuses a batch over its limit** with `413`; `--max-client-batch-size` is documented as at least `batch_size` (32) and 64 for the reranker; the check of section 7 reports a lower value.
 - **`--default-prompt` doubles the prefix** (section 8).
 - **Infinity v1 is in maintenance and V3 has a restricted licence**; it needs its own venv (`numpy<2`, `sentence-transformers<4`, `transformers<=5.0`, Python below 3.14). It is the alternative, not the default.
+- **Infinity publishes `/embeddings` and `/rerank` under its `--url-prefix`**, not under `/v1` (its OpenAPI document, read 2026-10-23). The client sends `{url}/v1/embeddings` and `{rerank url}/rerank`, so the guide starts Infinity with `--url-prefix /v1` and sets `AI_RERANK_URL` to `http://host:port/v1`; the exact flag spelling is to be confirmed in the verification.
 - **speaches** has no stable release after 0.8.3 (`v0.9.0-rc.3`) and no limits found; any OpenAI-style server works because the client is generic. Cloud OpenAI transcription is not in scope.
 - **The `/v1/embeddings` normalisation default** of TEI is not stated in the OpenAPI document. Section 7 checks it with the norm and the hands-on test records it.
 - **The dropdown of transcription models** needs a read of `AiModelChoice`, `AiModelFeature::supportedProviders()` and `ModelCatalog` to accept `openai_compatible:<model>`; the plan starts there.

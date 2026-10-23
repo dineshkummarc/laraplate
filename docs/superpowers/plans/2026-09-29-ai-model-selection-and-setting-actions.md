@@ -12,7 +12,7 @@
 
 ## Delivery status (2026-09-29): shipped
 
-**Documented in:** `Modules/Core/docs/rag/SETTING_ACTIONS_USER.md`, `Modules/Core/docs/rag/SETTING_ACTIONS_DEVELOPER.md`, `Modules/AI/docs/rag/AI_MODEL_SELECTION_USER.md`, `Modules/AI/docs/rag/AI_MODEL_SELECTION_DEVELOPER.md`, `Modules/AI/README.md`, `Modules/AI/docs/SEARCH_AND_TRANSLATION.md`, `Modules/AI/docs/WHISPER_INSTALLATION.md`.
+**Documented in:** `Modules/Core/docs/rag/SETTING_ACTIONS_USER.md`, `Modules/Core/docs/rag/SETTING_ACTIONS_DEVELOPER.md`, `Modules/AI/docs/rag/AI_MODEL_SELECTION_USER.md`, `Modules/AI/docs/rag/AI_MODEL_SELECTION_DEVELOPER.md`, `Modules/AI/README.md`, `Modules/AI/docs/SEARCH_AND_TRANSLATION.md`, `Modules/AI/docs/STANDARD_SERVERS_INSTALLATION.md`.
 
 Every task shipped, executed inline with one commit per task in `laraplate-core` and `laraplate-ai`, each pushed. Divergences from the steps:
 
@@ -3230,7 +3230,7 @@ Amends M18 and M21 of `docs/superpowers/specs/2026-09-18-media-ai-analysis-searc
 - Modify: `Modules/AI/tests/Feature/MediaAnalysis/MediaAnalysisGateTest.php`
 - Modify: `Modules/AI/tests/Feature/MediaAnalysis/WhisperTranscriberTest.php`
 - Modify: `Modules/AI/tests/Feature/MediaAnalysis/AnalyzeMediaJobTest.php` (lines 69 and 84)
-- Modify: `Modules/AI/docs/WHISPER_INSTALLATION.md` (lines 22 and 103)
+- Modify: `docs/WHISPER_INSTALLATION.md of the AI module (replaced on 2026-10-23 by STANDARD_SERVERS_INSTALLATION.md)` (lines 22 and 103)
 
 **Interfaces:**
 - Consumes: `AiModelFeature::Vision`, `AiModelFeature::Transcription`, `AiModelChoice` (Task 8).
