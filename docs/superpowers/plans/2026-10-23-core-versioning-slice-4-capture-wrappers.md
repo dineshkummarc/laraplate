@@ -39,17 +39,19 @@
 - Modify: the five translation models (`Modules/CMS/app/Models/Translations/{Content,Comment,Contributor,Tag}Translation.php`, `Modules/Core/app/Models/Translations/TaxonomyTranslation.php`)
 - Test: `Modules/Core/tests/Integration/Versioning/TranslationHistoryTest.php` (create; a Core stub owner with a stub translation model under `Modules/Core/tests/Stubs/Versioning/`), `Modules/CMS/tests/Feature/Models/ContentTranslationHistoryTest.php` (create)
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - creating a translation writes on the owner a `created` row with `relation_path = translations`, `subject_key = {locale}`, strategy `SNAPSHOT`, contents read back from the database;
   - updating it writes an `updated` row whose contents are the changed fields for a `DIFF` owner and the full image for a `SNAPSHOT` owner (D11);
   - deleting it writes a `deleted` row with the image in `original_contents`;
   - an owner with versioning off writes nothing;
   - the translation model itself writes no row of its own (D10, already true since Slice 2).
-- [ ] **Step 2: Run them and see them fail.**
-- [ ] **Step 3: The trait.** It captures on `creating`/`updating`/`deleting` what the row needs (the original image, the dirty keys) and writes on `created`/`updated`/`deleted` through `VersionWriterInterface`, with `model` = the owner (found through `IsPartOfParent::parentRelation()`), `relationPath` and `subjectKey` set. The owner is versioned when `getVersionStrategy()` is not `false`. A translation's `created` row is always a `SNAPSHOT` read back (D45 rule 3).
-- [ ] **Step 4: Use it** on the five translation models, next to `TouchesOwnerOnChange`.
-- [ ] **Step 5: Run** the new tests, `Modules/Core/tests/Integration/Versioning`, the CMS model tests. Expected: PASS.
-- [ ] **Step 6: Commit** in Core and CMS.
+- [x] **Step 2: Run them and see them fail.**
+- [x] **Step 3: The trait.** It captures on `creating`/`updating`/`deleting` what the row needs (the original image, the dirty keys) and writes on `created`/`updated`/`deleted` through `VersionWriterInterface`, with `model` = the owner (found through `IsPartOfParent::parentRelation()`), `relationPath` and `subjectKey` set. The owner is versioned when `getVersionStrategy()` is not `false`. A translation's `created` row is always a `SNAPSHOT` read back (D45 rule 3).
+- [x] **Step 4: Use it** on the five translation models, next to `TouchesOwnerOnChange`.
+- [x] **Step 5: Run** the new tests, `Modules/Core/tests/Integration/Versioning`, the CMS model tests. Expected: PASS.
+- [x] **Step 6: Commit** in Core and CMS.
+
+**Found at execution (2026-10-23):** the owner a part records on is the instance that writes it: `HasTranslations::writeTranslation()` hands itself over (`recordOnHistoryOf()`), so the rows reach the record being saved, with its concrete class; `TaxonomyTranslation`, whose own owner class is abstract, records on the category or location that writes it and records nothing when saved on its own. A part saved alone resolves its owner through `IsPartOfParent`, without global scopes (the locale scope hides an owner with no translation yet) and without eager loads, and only after checking on the owner's class that its history is on: two CMS tests count the queries of a translation save. The CMS factories create random locales, so the CMS test reads an existing one. Until Task A2 each locale row is its own `best_effort` set.
 
 ### Task A2: The save of a root opens its scope (D28, D34)
 
@@ -57,7 +59,7 @@
 - Modify: `Modules/Core/app/Models/Concerns/HasVersions.php` (`save()` wrapper, `opensRevisionScopeOnSave()`)
 - Test: `Modules/Core/tests/Integration/Versioning/SaveScopeTest.php` (create), `Modules/CMS/tests/Feature/Models/ContentTranslationHistoryTest.php`
 
-- [ ] **Step 1: Write the failing tests:**
+- [x] **Step 1: Write the failing tests:**
   - a save of a root with pending translations writes the root's row and the locale rows in one set (one revision, D28);
   - the creation of a content with its translations gives one `baseline` set holding the root and every locale (the creation anchor is complete);
   - a save with nothing to write opens no scope and writes no set;
@@ -65,11 +67,13 @@
   - an exception thrown in a `saved` handler rolls back the version rows too;
   - a stale save fails inside the scope as outside it (D34, Slice 3);
   - a nested save of another root inside the scope gets its own set (D43).
-- [ ] **Step 2: Measure** the queries of a content save (`DB::listen` count in a throwaway test) before the change; record the number here.
-- [ ] **Step 3: The wrapper.** `HasVersions::save(array $options = []): bool` calls `parent::save($options)` unless the model is a versioned root that owns translations (`HasTranslations`) or registers relations (`versionedRelations()` not empty) and has something to write (dirty attributes, pending translations, or not yet saved); then it runs `parent::save()` inside `VersionSetManagerInterface::run(VersionSetRoot::forModel($this), …, new VersionSetOptions(actor: $this->getVersionUserId()))`. Models that override `save()` (`ExtendsContentTrait`, `Contributor`) keep calling `parent::save()`, which now reaches the wrapper.
-- [ ] **Step 4: Measure again** and record the difference (one transaction and one `SELECT … FOR UPDATE` per affected save are expected, D34).
-- [ ] **Step 5: Run** Core per folder and CMS. Expected: PASS.
-- [ ] **Step 6: Commit.**
+- [x] **Step 2: Measure** the queries of a content save (`DB::listen` count in a throwaway test) before the change; record the number here. **18 queries** (2026-10-23) for a title change of a saved content, versioning on for `cms_contents`.
+- [x] **Step 3: The wrapper.** `HasVersions::save(array $options = []): bool` calls `parent::save($options)` unless the model is a versioned root that owns translations (`HasTranslations`) or registers relations (`versionedRelations()` not empty) and has something to write (dirty attributes, pending translations, or not yet saved); then it runs `parent::save()` inside `VersionSetManagerInterface::run(VersionSetRoot::forModel($this), …, new VersionSetOptions(actor: $this->getVersionUserId()))`. Models that override `save()` (`ExtendsContentTrait`, `Contributor`) keep calling `parent::save()`, which now reaches the wrapper.
+- [x] **Step 4: Measure again** and record the difference (one transaction and one `SELECT … FOR UPDATE` per affected save are expected, D34). **18 queries**, unchanged: before the wrapper the writer's fallback already opened a scope for the translation row and locked the content; now the wrapper locks it once and the translation joins.
+- [x] **Step 5: Run** Core per folder and CMS. Expected: PASS.
+- [x] **Step 6: Commit.**
+
+**Found at execution (2026-10-23):** inside an open scope (a revert, an explicit revision) the wrapper joins with no options of its own, which `runNested()` would refuse as a different operation; `HasVersionedRelations` gained `hasRegisteredRelations()`. `withinRevision()` (Task A5) was added with the wrapper, its tests come in A5.
 
 ### Task A3: A translation written alone opens its owner's scope (D52)
 
@@ -77,10 +81,12 @@
 - Modify: `Modules/Core/app/Models/Concerns/RecordsChangesOnOwner.php` (or `HasVersions` for `ITranslated`): `save()` and `delete()` of a part open `run()` for its owner, when the owner is versioned and no scope of it is active
 - Test: `Modules/Core/tests/Integration/Versioning/TranslationHistoryTest.php`, `VersionCaptureTest.php`
 
-- [ ] **Step 1: Write the failing tests:** `setTranslation()` on a saved owner, with no scope open, gives one `atomic` set with the locale row; inside an owner's `run()` it joins the owner's set; the owner's row is locked when the scope opens.
-- [ ] **Step 2: Run them and see them fail** (today the fallback writes a `best_effort` set).
-- [ ] **Step 3: Open the owner's scope** before the part's SQL. Mind the trait conflict: the translation models extend `Core\Overrides\Model`, whose `save()` is now the wrapper of Task A2; resolve it in one place, the wrapper asks the model for the root to scope (itself, or its owner for a part).
-- [ ] **Step 4: Run** the versioning tests and CMS. **Step 5: Commit.**
+- [x] **Step 1: Write the failing tests:** `setTranslation()` on a saved owner, with no scope open, gives one `atomic` set with the locale row; inside an owner's `run()` it joins the owner's set; the owner's row is locked when the scope opens.
+- [x] **Step 2: Run them and see them fail** (today the fallback writes a `best_effort` set).
+- [x] **Step 3: Open the owner's scope** before the part's SQL. Mind the trait conflict: the translation models extend `Core\Overrides\Model`, whose `save()` is now the wrapper of Task A2; resolve it in one place, the wrapper asks the model for the root to scope (itself, or its owner for a part).
+- [x] **Step 4: Run** the versioning tests and CMS. **Step 5: Commit.**
+
+**Found at execution (2026-10-23):** the part's `save()` and `delete()` live in `RecordsChangesOnOwner` and open the owner's scope only when no scope is open at all: inside a scope, opened by the owner or by another root, the row joins through `setFor()`, so a part never opens a second `run()` for an owner instance other than the one already scoped.
 
 ### Task A4: A translation-only revision raises the owner's `lock_version` once (D23)
 
@@ -88,8 +94,10 @@
 - Modify: `Modules/Core/app/Versioning/ActiveVersionSet.php` (whether the root's own row was written), `VersionSetManager.php` (before finishing, raise the lock version of a root whose set has part rows and no own row)
 - Test: `Modules/Core/tests/Integration/Versioning/TranslationHistoryTest.php`
 
-- [ ] **Step 1: Write the failing tests:** a translation-only change raises the owner's `lock_version` by one, and a form holding the old version is refused (`StaleModelLockingException`); a save of root and translations raises it once, not twice; relation-only changes (Part B) do not raise it.
-- [ ] **Step 2–5:** run and fail, implement (a direct `UPDATE` of the lock column, as `HasLocks::writeLockColumns` does, and the instance updated), run, commit.
+- [x] **Step 1: Write the failing tests:** a translation-only change raises the owner's `lock_version` by one, and a form holding the old version is refused (`StaleModelLockingException`); a save of root and translations raises it once, not twice; relation-only changes (Part B) do not raise it.
+- [x] **Step 2–5:** run and fail, implement (a direct `UPDATE` of the lock column, as `HasLocks::writeLockColumns` does, and the instance updated), run, commit.
+
+**Found at execution (2026-10-23):** each set notes which streams it wrote (`noteStream()`); before finishing, the manager raises the lock version of a root whose set wrote translation rows and no row of its own. The relation-only case is tested in Part B, when membership rows exist.
 
 ### Task A5: `withinRevision()` and the translation job (D28)
 
@@ -98,12 +106,14 @@
 - Modify: `Modules/AI/app/Jobs/TranslateModelJob.php` (the locale loop inside `withinRevision(..., reason: 'ai-translation')`, actor none)
 - Test: `TranslationHistoryTest.php`, `Modules/AI/tests` for the job
 
-- [ ] **Step 1: Write the failing tests:** `withinRevision()` groups a loop of `setTranslation()` over three locales in one set; the job writes its locales in one `atomic` set with reason `ai-translation` and no actor; a job that fails on one locale still commits the others as before (check the job's current per-locale error handling and keep it).
-- [ ] **Step 2–5:** run and fail, implement, run Core versioning, CMS and AI, commit in Core and AI.
+- [x] **Step 1: Write the failing tests:** `withinRevision()` groups a loop of `setTranslation()` over three locales in one set; the job writes its locales in one `atomic` set with reason `ai-translation` and no actor; a job that fails on one locale still commits the others as before (check the job's current per-locale error handling and keep it).
+- [x] **Step 2–5:** run and fail, implement, run Core versioning, CMS and AI, commit in Core and AI.
+
+**Found at execution (2026-10-23):** `withinRevision()` takes the set's options (`?VersionSetOptions`), so the job names its reason and no actor; the job keeps its per-locale error handling inside the revision, so a failed locale does not undo the others. The job's docblock named `ITranslatableModel` without importing it, which PHPStan reported once the job called the model; the import was added.
 
 ### Part A closing
 
-- [ ] Regression per suite; `MODULE.md` (Core: the save scope, translation rows, `withinRevision()`); record the query counts; **pause for review** before Part B.
+- [x] Regression per suite; `MODULE.md` (Core: the save scope, translation rows, `withinRevision()`); record the query counts; **pause for review** before Part B. Done 2026-10-23: every suite green but `tests/Feature/Filament/ResourceFormPagesCloseOrCancelTest` (the CRM pages in progress); a content save keeps 18 queries; docs in Core, CMS and AI. Commits: Core `8924170d`, `734cf4f2`, `7c059412`, `171f0a05`, `f1eda203`, `b117ff0b`; CMS `6f12977`, `5f4b8f2`; AI `fb303f4`, `58badb9`.
 
 ---
 
