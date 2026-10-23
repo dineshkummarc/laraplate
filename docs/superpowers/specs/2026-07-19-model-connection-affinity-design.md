@@ -1,5 +1,7 @@
 # Model Connection Affinity
 
+**Status:** Implemented 2026-09-30; see the delivery status of `docs/superpowers/plans/2026-07-19-model-connection-affinity.md`.
+
 ## Goal
 
 Keep Laraplate queries correct when a model is moved from the default database

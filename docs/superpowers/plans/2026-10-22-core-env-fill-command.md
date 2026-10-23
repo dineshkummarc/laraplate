@@ -1,5 +1,5 @@
 ---
-status: closed
+status: completed
 created_on: 2026-10-22
 ---
 # Core `env:fill` command and a complete `.env.example`. Implementation Plan

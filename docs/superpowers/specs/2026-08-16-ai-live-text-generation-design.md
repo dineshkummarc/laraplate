@@ -1,6 +1,6 @@
 # AI live text generation — design
 
-**Status:** Draft
+**Status:** Implemented 2026-08-25; see the delivery status of `docs/superpowers/plans/2026-08-16-ai-live-text-generation.md`. Was: Draft.
 **Modules:** AI (primary), Core (event, unchanged), SAO (consumer, unchanged)
 **Builds on:** the optional-AI seam already shipped — Core's `AiTextGenerationRequested` event, SAO's `EventTextGenerator`/`AiSuggestionPhraser`, and AI's `HandleAiTextGenerationListener` (feature-flagged by `AI_TEXT_GENERATION_ENABLED`).
 

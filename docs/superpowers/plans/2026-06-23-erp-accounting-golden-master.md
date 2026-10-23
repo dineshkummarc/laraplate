@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # ERP Accounting Golden Master Test Suite Implementation Plan
 
 > **Navigation:** Golden master suite is **implemented**. API/export after green suite →
@@ -665,3 +668,13 @@ assertions.
   cannot be recomputed, updated, or deleted, and that only confirmed previous VAT credits are
   carried forward.
 - Add API/export work only after the golden-master accounting suite is green.
+
+## Delivery status (2026-10-23): delivered, reconciled against the code
+
+The six planned tests and the four `goldenMaster*` helpers are in `Modules/ERP/tests/Feature/AccountingGoldenMasterTest.php` under the planned names. The follow-ups landed on 2026-06-26 and 2026-06-27: `Modules/ERP/tests/Feature/InventoryAccountingGoldenMasterTest.php` (DDT and COGS) and the settlement-lock tests in `VatRegisterServiceTest.php` and `Models/VatSettlementTest.php`. Divergences:
+
+- The constraint "ERP factories are still not part of this module" no longer holds: `Modules/ERP/database/factories/` exists. The suite keeps its manual setup, as planned.
+- The closing item "add API/export work only after the golden-master suite is green" moved to Spec 2 Phase 3, as the plan header says.
+- No module document describes the suite: the ERP docs carry only its ticked TODO line. A section under *Code quality and testing* in `Modules/ERP/docs/rag/MODULE.md` is still to write, in the ERP repository.
+
+**Documented in:** `Modules/ERP/docs/rag/MODULE.md` (*TODO*, the golden-master line only), `Modules/ERP/README.md` (*TODO*).

@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Domain Action HTTP Routes Implementation Plan
 
 **Status:** Completed 2026-08-01. All task checkboxes describe executed implementation history; external `/api/v1` exposure remains outside this plan.
@@ -1771,3 +1774,15 @@ git -C Modules/ERP commit -m "test(erp): cover the domain action HTTP matrix"
 Spec coverage: D1 → Task 6 Step 6; D2 → Task 3; D3 → Tasks 4 and 8; D4 → Tasks 1, 2, 5; D5 → Task 6 Steps 4–5 and Task 9; D6 → no task, `unlock` is deliberately not registered; D7 → Final verification, asserted rather than assumed.
 
 Two places where this plan tells the implementer to check reality before writing: the exact service method names in Tasks 7–9, and `BankStatementImportService::importFile()`'s signature. Both are cases where the plan's table comes from the design document and the code is the authority.
+
+## Delivery status (2026-08-01): delivered with three registrations missing, reconciled against the code on 2026-10-23
+
+The registry, the `domain-action` route, `PermissionName`, the ERP handlers and the HTTP behaviour matrix (`Modules/ERP/tests/Feature/Http/ErpDomainActionsHttpTest.php`) are built. Divergences:
+
+- Task 9: `DocumentSequence::reserve`, `TaxCode::supersede` and `Company::switch_context` are not registered because no service is behind them, as the ERP document says. `PartnerPool::allocate_expense`, `PartnerPool::settle_up` and `VatSettlement::compute_settlement` are not registered either, and nothing records why: they remain Filament actions only (`EditPartnerPool`, `ListVatSettlements`). Open follow-up.
+- `registerAdministration()` does not exist: its handlers are in `registerInvoices()` and `registerCommercial()` of `ErpDomainActionRegistrar`.
+- Task 2's `ERPDatabaseSeeder::domainPermissions()` became the declaration class `Modules/ERP/app/Authorization/ERPPermissions.php`; `post` and `unpost` stay on Invoice and DeliveryNote only.
+- `unlock` is not registered (spec decision D6); its permission is still declared on Quotation.
+- No Core document describes `PermissionName` (3-04); to write in the Core repository.
+
+**Documented in:** `Modules/Core/docs/CRUD_SYSTEM.md` (*Domain Actions*), `Modules/ERP/docs/rag/MODULE.md` (*Domain actions over HTTP*).

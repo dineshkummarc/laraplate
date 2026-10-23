@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # SAO Phase 1c — Kanban Board Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -50,3 +53,12 @@
 
 - HTML5 drag-and-drop (needs an approved Filament kanban package).
 - Swimlanes, WIP limits, saved board layouts.
+
+## Delivery status (2026-08-25): delivered, reconciled against the code on 2026-10-23
+
+Shipped in SAO 1.0.0. Divergences:
+
+- The move action is one button per allowed transition calling the Livewire `move()`, which re-reads through `TicketQueryService::visible()` and checks `update` before `WorkflowService::transition()`.
+- Not built, as the known gaps above say: drag-and-drop, swimlanes, WIP limits, saved layouts.
+
+**Documented in:** `Modules/SAO/docs/rag/MODULE.md` (*Current Status*, *How it works (developer)*), `Modules/SAO/docs/rag/GLOSSARY.md` (*Work*), `Modules/SAO/README.md` (*Current Status*).

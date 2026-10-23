@@ -3,7 +3,7 @@
 **Date:** 2026-08-16
 **Module:** `Modules/Core` (fingerprint foundation) + `Modules/SAO` (signals, ingest, loop protection)
 **Parent spec:** `docs/superpowers/specs/2026-07-31-sao-module-design.md` (§6.1, §7, §4 Signal; decisions D7, D11, D13)
-**Status:** Design proposed.
+**Status:** Implemented 2026-09-30; see the delivery status of `docs/superpowers/plans/2026-08-16-sao-phase-2-signals-fingerprinting.md`. Was: Design proposed.
 
 ---
 

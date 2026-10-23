@@ -492,7 +492,7 @@ Add at the end of this file:
 
 **Documented in:** `AGENTS.md` (stack line), `Modules/Core/README.md`, `Modules/AI/README.md`, `Modules/ERP/README.md` (requirements).
 ```
-plus any divergence recorded during Tasks 4-7 (for example the swagger decision). Mark the `INDEX.md` entry `(**shipped YYYY-MM-DD**)`.
+plus any divergence recorded during Tasks 4-7 (for example the swagger decision). Set `status: completed` in the front matter (`.ai/rules/plans.md`); the `INDEX.md` entry carries no status.
 
 Run: `php artisan test --compact tests/Unit/ClosedPlansPointToDocumentationTest.php`
 Expected: PASS.

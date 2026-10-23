@@ -1,5 +1,7 @@
 # Filament environment indicator (custom) — design
 
+**Status:** Implemented 2026-07-29; see the delivery status of `docs/superpowers/plans/2026-07-29-filament-environment-indicator.md`.
+
 ## Goal
 
 Replace `pxlrbt/filament-environment-indicator` with a Core-owned Filament plugin that:

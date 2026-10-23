@@ -1,6 +1,6 @@
 # Core — Generic Bulk Import (upload → map columns → preview → queue → notify)
 
-**Status:** proposed · **draft — deep analysis pending** · **Module:** Core (consumed by any module)
+**Status:** Implemented 2026-08-23; see the delivery status of `docs/superpowers/plans/2026-08-23-core-bulk-import-mapping.md`. Was: proposed · **draft — deep analysis pending** · **Module:** Core (consumed by any module)
 **Related:** `2026-07-22-module-import-command-framework-design.md`,
 `2026-07-29-erp-import-source-reconciliation-design.md`,
 `2026-08-23-core-in-app-notifications-design.md`,

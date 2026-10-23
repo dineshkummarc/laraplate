@@ -73,7 +73,7 @@ provider therefore lists no module: it only declares the application's own group
 
 ### Deprecations
 
--   **`app/crud/grid/*` (the Grid surface) is deprecated** and will be removed. Its Funnels concept survives as **facets** on the ordinary CRUD routes, served by `Modules\Core\Services\Crud\CrudService`. `Modules\Core\Grids\Components\Grid` and `Modules\Core\Http\Controllers\GridsController` carry `@deprecated` tags pointing at the replacement — do not build on them.
+-   **`app/crud/grid/*` (the Grid surface) was removed** in Core 1.75.0. Its Funnels concept survives as **facets** on the ordinary CRUD routes, served by `Modules\Core\Services\Crud\CrudService`.
 
 <br>
 <br>

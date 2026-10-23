@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # ERP Hardening (Spec 1) Implementation Plan
 
 > **Navigation:** **Completed.** Open follow-ups →

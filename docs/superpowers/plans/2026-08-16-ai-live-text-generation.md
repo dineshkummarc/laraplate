@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # AI Live Text Generation Plan
 
 > REQUIRED SUB-SKILL: superpowers:executing-plans. Checkbox (`- [ ]`) steps.
@@ -39,3 +42,16 @@
 
 - Streaming, multi-turn, tool use; a new provider/SDK; auto-applying AI output to domain state (D14 stands).
 - Live provider credentials/quotas are an environment concern, not code.
+
+## Delivery status (2026-08-25): delivered, reconciled against the code on 2026-10-23
+
+Shipped in AI 2.17.0. Divergences:
+
+- The system prompt is a constant in the listener, not a config override.
+- No `timeout_seconds` setting: a timeout is caught as `Throwable` and leaves the event unfulfilled.
+- No separate "provider buildable" preflight: a failure to build the agent logs outcome `error`.
+- The log line carries no token count.
+- The model binding started as `AI_TEXT_GENERATION_MODEL` and became the setting `features.text_generation.model` on 2026-09-29; the other `AI_TEXT_GENERATION_*` variables became settings on 2026-10-07, so the exit criterion's `AI_TEXT_GENERATION_ENABLED=1` no longer applies.
+- Task 4's update of `Modules/AI/docs/rag/MODULE.md` was not done: it has nothing on text generation; to write in the AI repository.
+
+**Documented in:** `Modules/AI/README.md` (*Configuration*, *Architecture*), `Modules/AI/docs/rag/AI_MODEL_SELECTION_USER.md`, `Modules/AI/docs/rag/AI_MODEL_SELECTION_DEVELOPER.md`, `Modules/SAO/docs/rag/GLOSSARY.md` (*Automation*).

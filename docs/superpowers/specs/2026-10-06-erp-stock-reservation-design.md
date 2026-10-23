@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-06
 **Module:** `Modules/ERP` (owner) + `Modules/MES` (consumer)
-**Status:** Design agreed. No implementation started.
+**Status:** Implemented 2026-10-07; see the delivery status of `docs/superpowers/plans/2026-10-06-erp-stock-reservation.md`. Was: Design agreed. No implementation started.
 **Related:** `2026-09-17-shop-module-design.md` (§8a ERP-4, E29 — Shop is a future consumer);
 `2026-06-19-mes-module-full-implementation.md` (MES materials; near-complete, not the home for this scope).
 

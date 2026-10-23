@@ -1,6 +1,6 @@
 # Embedding model switch: design
 
-**Status:** Implemented (2026-10-05) for what Tasks 1 to 10, 12 and 13 of the plan delivered (`docs/superpowers/plans/2026-10-05-embedding-model-switch.md`); the plan is not closed yet. Divergences found while building are recorded inline, marked *As built*, and in section 11. PostgreSQL and the Elasticsearch branches are not verified against a real server (section 10).
+**Status:** Implemented (2026-10-05) for what Tasks 1 to 10, 12 and 13 of the plan delivered (`docs/superpowers/plans/2026-10-05-embedding-model-switch.md`, closed on 2026-10-05). Divergences found while building are recorded inline, marked *As built*, and in section 11. PostgreSQL and the Elasticsearch branches are not verified against a real server (section 10).
 **Related:** `2026-09-12-es-multilingual-index-and-multimodel-embeddings-design.md` (the profile registry and the `model_key` stamp this builds on), `2026-09-29-ai-model-selection-and-setting-actions-design.md` (the Settings pattern, which excluded embeddings for the reason this spec answers).
 
 ## 1. Purpose

@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # SAO Phase 6 — Fix Propagation & Evidence-Based Closure Plan
 
 > REQUIRED SUB-SKILL: superpowers:executing-plans. Checkbox (`- [ ]`) steps.
@@ -43,3 +46,12 @@
 
 - Closed by follow-on slices: closure application to the workflow (`ClosureApplicationService`); ownership suggestion persistence + read-only UI and its evidence chain (CODEOWNERS/recent-touch/blame → coordinator → suggestion, incl. PR file discovery); phase-8 AI phrasing via the optional Core `AiTextGenerationRequested` event seam; Filament policy/audit/release/environment surfaces.
 - Still open (gated on live infrastructure): binding a concrete live-model `SuggestionTextGenerator` (the AI listener exists behind `AI_TEXT_GENERATION_ENABLED`, exercised via mocks), and live PR-merge/webhook transport for drivers and ingest.
+
+## Delivery status (2026-08-25): delivered and extended, reconciled against the code on 2026-10-23
+
+Shipped in SAO 1.0.0, then extended with `ClosureApplicationService`, `ClosureCoordinator` and `sao:closure:run`, the ownership suggestion chain, the suggestion phrasing seam and the Filament surfaces. Divergences:
+
+- `Signal.ticket_id` and `ChangeRef.merged_at` are in the create migrations, not in additive migrations.
+- Of the "still open" items above only the live PR-merge transport remains: the live generator binding, the inbound logs webhook and scheduled issue polling have landed.
+
+**Documented in:** `Modules/SAO/docs/rag/MODULE.md` (*Roadmap*, *SPA domain actions*), `Modules/SAO/docs/rag/GLOSSARY.md` (*Automation*).

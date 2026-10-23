@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # ERP Spec 2 — Phase 2A Implementation Plan
 
 > **Navigation:** Implements backlog IDs `2A-01`…`2A-09` from

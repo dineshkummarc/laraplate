@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Core Media Foundation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
@@ -63,3 +66,15 @@
 
 - If a fresh migrate double-creates `vend_media`, the guard or migration order is wrong — fix before merging.
 - Rollback is reverting both commits; because the table name and data are unchanged, no data recovery is needed.
+
+## Delivery status (2026-10-23): delivered, reconciled against the code
+
+Core owns media: `Modules/Core/app/Models/Media.php` on `vend_media`, the guarded migration, `media_model` and `file_namer` in `Modules/Core/config/media-library.php`, `HasMedia` and `MediaFileNamer`. The CMS copies are gone and `HasMultimedia` stays in CMS over the Core model. Divergences:
+
+- Task 2: `Modules/CMS/config/media-library.php` was deleted rather than trimmed.
+- No media factory existed to move.
+- The CMS `MediaTest` was dropped, as allowed; its checks are in `Modules/Core/tests/Integration/Models/MediaTest.php`.
+- Nothing records the Task 2 Step 4 fresh-migrate check.
+- `Modules/CMS/docs/rag/MODULE.md` (*Multimedia pipeline*) still names the removed CMS model; to correct in the CMS repository.
+
+**Documented in:** `Modules/Core/README.md` (*Installed Packages*, Media), `Modules/CMS/docs/rag/MODULE.md` (*Module boundaries*).

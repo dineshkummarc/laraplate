@@ -1,5 +1,5 @@
 ---
-status: closed
+status: completed
 created_on: 2026-10-20
 ---
 # CRM module extraction (parity phase). Implementation Plan
@@ -166,7 +166,9 @@ created_on: 2026-10-20
 - [x] **Step 1: Write the module docs** from the moved sections; state in the finishing message whether RAG docs were skipped and why (`AGENTS.md`).
 - [x] **Step 2: Verify the scopes** `php artisan test --compact Modules/CRM`, then `Modules/ERP/tests/Feature/Models`, `.../Filament`, `.../Services`, `.../Seeders`, plus `Modules/MES/tests/Feature/SalesOrderProductionPlannerTest.php` (its `Party::query()->withoutGlobalScopes()->create([...])` now needs identity attributes: adapt it) and the Shop tests that create orders. Expected: PASS. The user runs the full suite.
 - [x] **Step 3: Bump pointers** of `Modules/CRM`, `Modules/ERP`, `Modules/MES`, `Modules/Shop` in `laraplate`; propose version bumps to the user (ERP major, CRM first release); do not push.
-- [x] **Step 4: Close the plan:** set `status: closed`, add `## Delivery status (2026-10-21)
+- [x] **Step 4: Close the plan:** set the status and add the delivery status below.
+
+## Delivery status (2026-10-21): delivered
 
 Delivered. `Modules/CRM` owns `Counterparty`, `CounterpartyBankAccount`, `Contact`, `Lead`, `Opportunity` and the pipeline stages; the ERP `Party` is `Counterparty x Company`. Final gate: `php artisan test --compact Modules/CRM Modules/ERP/tests Modules/MES/tests/Feature/SalesOrderProductionPlannerTest.php` passed (771 passed, 2 skipped); Shop and the MES feature tests were run as well.
 
@@ -192,6 +194,12 @@ Fresh whole-branch review (one pass, each fix with a test that fails when revert
 
 - Core, afterwards: the CRUD query builder orders the rows of the main model by a column of a to-one relation (`sort=relation.column`, through a correlated subquery, honouring the related-entity read permission; a to-many relation keeps ordering its loaded records) and, for a model that implements `IMountsRelatedAttributes`, turns a mounted attribute (`name`) into that relation column for sorting and for requested columns, so a client of `Party` does not need to know where the identity lives. Only mounted attributes that are real columns of the related table are covered; translated or dynamic fields of a mounted record (a `Product` title) are not.
 
-Version bumps are left to the user (ERP major, CRM first release).
+Version bumps: ERP 2.0.0 and the first CRM release, 1.0.0, both on 2026-10-21.
+
+Reconciled against the code on 2026-10-23:
+
+- Task 3's test file `Modules/ERP/tests/Feature/Filament/PartyIdentityQueriesTest.php` is `Modules/ERP/tests/Feature/Models/PartyIdentityQueriesTest.php`, with `Modules/ERP/tests/Feature/Filament/PartyColumnSearchSortTest.php` and the importer test in `ErpImportersTest.php`.
+- Task 9 asked for user and developer notes under `Modules/CRM/docs/`: there is no user document, only `GLOSSARY.md` and the RAG `MODULE.md` and `GLOSSARY.md`, the two glossaries identical.
+- `Modules/CRM/app/Models/Preset.php` uses `DB::raw('1')` despite the constraint on `DB::`, copying the ERP and Shop `Preset`.
 
 **Documented in:** `Modules/CRM/README.md`, `Modules/CRM/docs/rag/MODULE.md`, `Modules/CRM/docs/GLOSSARY.md`, `Modules/CRM/docs/rag/GLOSSARY.md`; ERP side `Modules/ERP/README.md`, `Modules/ERP/docs/GLOSSARY.md`, `Modules/ERP/docs/rag/GLOSSARY.md`, `Modules/ERP/docs/rag/MODULE.md`, `Modules/ERP/docs/ERP_GUIDA_SEMPLICE.md`.

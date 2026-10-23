@@ -3,7 +3,7 @@
 **Date:** 2026-08-15
 **Modules:** `Modules/Core` (new owner), `Modules/CMS` (becomes consumer)
 **Prerequisite for:** `docs/superpowers/plans/2026-08-15-sao-phase-1b-ticket-enrichment.md` Task 4 (SAO ticket attachments)
-**Status:** Design proposed. No implementation started. **Touches live media data — approval-gated.**
+**Status:** Implemented, reconciled against the code on 2026-10-23; see the delivery status of `docs/superpowers/plans/2026-08-15-core-media-foundation.md`. Was: Design proposed. No implementation started. **Touches live media data — approval-gated.**
 
 ---
 

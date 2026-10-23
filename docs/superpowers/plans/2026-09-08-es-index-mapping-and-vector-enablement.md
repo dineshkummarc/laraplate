@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # ES index mapping + vector search enablement
 
 > Living tracker for making Elasticsearch index creation (and therefore vector/hybrid search) actually work. Kept updated as work proceeds.
