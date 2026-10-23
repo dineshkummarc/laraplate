@@ -1,6 +1,6 @@
 # Core command to complete the production `.env`
 
-**Status:** Draft, 2026-10-22. Requirements given by the owner in chat the same day; the design below fills in what they left open. The plan follows after this spec is reviewed.
+**Status:** Built 2026-10-23, plan `../plans/2026-10-22-core-env-fill-command.md` (closed). Requirements given by the owner in chat on 2026-10-22; the design below fills in what they left open.
 
 **Date:** 2026-10-22
 
@@ -35,7 +35,7 @@ The motivation, in the owner's words: an env is always born from `.env.example`,
 | D5 | Each choice is written to the file before the next prompt, so interrupting the command loses nothing already answered. |
 | D6 | On exit, if any variable was written, a `confirm` asks whether to run `config:clear` and `config:cache`. |
 | D7 | The command lives in Core and works on the application root's `.env` and `.env.example`. Modules do not get their own example files. |
-| D8 | **Scope of "every possible variable": the Laraplate-specific ones.** That is every `Modules/*/config/*.php` except the configs published from third-party packages (`scout`, `elastic*`, `media-library`, `permission`, `swagger-ui`, `laravel-swagger`). Laravel's own `config/*.php` of the root (database, cache, queue, mail, session, filesystems, logging, auth, services and the rest) is out: it is the framework's, and the example covers what the project needs of it. The owner's wording, 2026-10-22: only Laraplate's own entries. |
+| D8 | **Scope of "every possible variable": the Laraplate-specific ones.** That is every `Modules/*/config/*.php` except the configs published from third-party packages (`scout`, `elastic*`, `media-library`, `permission`, `swagger-ui`, `laravel-swagger`, `fortify`, `laravel-impersonate`). Laravel's own `config/*.php` of the root (database, cache, queue, mail, session, filesystems, logging, auth, services and the rest) is out: it is the framework's, and the example covers what the project needs of it. The owner's wording, 2026-10-22: only Laraplate's own entries. |
 
 ## 4. The command
 
@@ -57,7 +57,7 @@ php artisan env:fill [--file=] [--example=]
 4. On leaving the loop: if at least one variable was written and the target is the application's own `.env` (the default path), ask `confirm('Run config:clear and config:cache now?')`; yes runs `config:clear` then `config:cache` through `$this->call()`. With a different `--file` there is nothing to refresh and no question is asked.
 5. Print a summary: variables written, whether the cache was refreshed, and exit `0`.
 
-`--no-interaction`: the command prints how many variables are missing and exits `1` without writing, because every write needs an answer.
+`--no-interaction`, or standard input that is not a terminal (the way Laravel decides to ask): the command prints how many variables are missing and exits `1` without writing, because every write needs an answer.
 
 ### 4.2 The value prompt
 
@@ -68,8 +68,11 @@ php artisan env:fill [--file=] [--example=]
 ### 4.3 Writing the file
 
 - The new line is `NAME=value`, appended at the end; the file's own content stays byte for byte as it was, a missing final newline is added first and no line is reordered or removed.
-- A value is written bare when it contains only characters Dotenv reads literally. Otherwise (whitespace, `#`, quotes, `$`, backtick, backslash, or an empty value that must stay distinguishable) it is wrapped in double quotes with `\`, `"` and `$` escaped. The test round-trips every written value through `Dotenv\Parser\Parser` (installed under `vendor/vlucas/phpdotenv`) and requires the parsed value to equal the typed one.
+- A value is written bare when it contains only characters Dotenv reads literally. An empty value is written `NAME=`. Otherwise (whitespace, `#`, quotes, `$`, backtick, backslash) it is wrapped in double quotes with `\`, `"` and `$` escaped. The test round-trips every written value through `Dotenv\Parser\Parser` (installed under `vendor/vlucas/phpdotenv`) and requires the parsed value to equal the typed one.
 - The write is atomic: the new content goes to a temporary file in the same directory, takes the permissions of the original and replaces it with `rename`. A `.env` usually has mode 0600 and holds secrets; it must not become world-readable, and a crash must not leave a truncated file.
+- An answer equal to the default offered (the value of the example line) writes the example's own text, so `"${APP_NAME}"` keeps its quotes and its reference instead of becoming an escaped literal.
+- The write follows a symlink to the file it points to (zero-downtime deploy layouts), works on what the file holds at that moment (an edit made while a prompt is open is kept, a name defined meanwhile is refused), checks every filesystem call (a warning would escape as an exception whose trace holds the value) and keeps the mode and, for a superuser, the owner and group.
+- A commented line of the example is a variable only when its value is a quoted text or one token: `# SAO_SYNC_ENABLED=false to keep the command manual-only.` is prose.
 - A value is never printed back or logged.
 
 ### 4.4 Interaction with the configuration cache
