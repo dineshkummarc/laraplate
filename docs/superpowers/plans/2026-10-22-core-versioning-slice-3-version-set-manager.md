@@ -25,7 +25,7 @@
 - Create: `Modules/Core/app/Versioning/ApplicationTransactions.php`
 - Test: `Modules/Core/tests/Integration/Versioning/ApplicationTransactionsTest.php`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```php
 it('sees no application transaction in a test wrapped by RefreshDatabase', function (): void {
@@ -42,8 +42,8 @@ it('sees the transaction the application opened, on its connection only', functi
 
 The first test is the one that fails if the harness transaction were counted. Add a case for another connection (the `version_set_affinity` in-memory connection the manager tests already configure) when a transaction is open only on the default one.
 
-- [ ] **Step 2: Run them and see them fail.** Expected: FAIL (class missing).
-- [ ] **Step 3: The helper**
+- [x] **Step 2: Run them and see them fail.** Expected: FAIL (class missing).
+- [x] **Step 3: The helper**
 
 ```php
 /**
@@ -64,8 +64,8 @@ final class ApplicationTransactions
 ```
 
 Check that `DatabaseTransactionRecord::$connection` is public in the installed Laravel version and that `db.transactions` is bound outside tests (the database service provider binds it); adapt to what the code shows.
-- [ ] **Step 4: Run** the new test file. Expected: PASS.
-- [ ] **Step 5: Commit** `feat(core): tell an application transaction from the test harness's (D52)`.
+- [x] **Step 4: Run** the new test file. Expected: PASS.
+- [x] **Step 5: Commit** `feat(core): tell an application transaction from the test harness's (D52)`.
 
 ### Task 2: Lock the root without losing what the caller loaded (D34)
 
@@ -74,11 +74,13 @@ Check that `DatabaseTransactionRecord::$connection` is public in the installed L
 - Modify: `Modules/Core/app/Versioning/VersionSetManager.php` (`lockExistingRoot()`)
 - Test: `Modules/Core/tests/Integration/Versioning/VersionSetManagerTest.php`
 
-- [ ] **Step 1: Write the failing tests.** A stale instance of an optimistically locked root (another write raised `lock_version` after it was loaded) is refused inside `run()` with `StaleModelLockingException` before the operation runs, and nothing is written; an instance with the current `lock_version` keeps it and runs; relations loaded before the scope are still loaded inside it. The existing test `invalidates relations loaded before locking and reloads their current state` encodes the behaviour D34 removes: rewrite it as `keeps the relations loaded before locking`. The test `synchronizes the root from its locked snapshot while preserving intentional dirty values` stays: a root without optimistic locking is still realigned to the locked row.
-- [ ] **Step 2: Run them and see them fail.**
-- [ ] **Step 3: `lockExistingRoot()`.** After reading the locked row: when the model is an `IOptimisticLockableModel`, compare `currentLockVersion()` with the locked row's `lockVersionColumn()` and throw `StaleModelLockingException` when they differ; then realign the attributes as today (the lock column is equal by then) and drop the `unsetRelations()` call.
-- [ ] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Locking`. Expected: PASS.
-- [ ] **Step 5: Commit** `feat(core): lock a root without dropping its relations or its lock version (D34)`.
+- [x] **Step 1: Write the failing tests.** A stale instance of an optimistically locked root (another write raised `lock_version` after it was loaded) is refused inside `run()` with `StaleModelLockingException` before the operation runs, and nothing is written; an instance with the current `lock_version` keeps it and runs; relations loaded before the scope are still loaded inside it. The existing test `invalidates relations loaded before locking and reloads their current state` encodes the behaviour D34 removes: rewrite it as `keeps the relations loaded before locking`. The test `synchronizes the root from its locked snapshot while preserving intentional dirty values` stays: a root without optimistic locking is still realigned to the locked row.
+- [x] **Step 2: Run them and see them fail.**
+- [x] **Step 3: `lockExistingRoot()`.** After reading the locked row: when the model is an `IOptimisticLockableModel`, compare `currentLockVersion()` with the locked row's `lockVersionColumn()` and throw `StaleModelLockingException` when they differ; then realign the attributes as today (the lock column is equal by then) and drop the `unsetRelations()` call.
+- [x] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Locking`. Expected: PASS.
+- [x] **Step 5: Commit** `feat(core): lock a root without dropping its relations or its lock version (D34)`.
+
+**Found at execution (2026-10-22):** the D34 tests sit in a new `RootLockTest`; the comparison runs only when the instance carries a lock version, as the guarded update itself requires one.
 
 ### Task 3: One set per root in one scope (D43)
 
@@ -91,7 +93,7 @@ Check that `DatabaseTransactionRecord::$connection` is public in the installed L
 - Modify: `Modules/Core/app/Providers/CoreServiceProvider.php` if the bindings change (the manager stays scoped)
 - Test: `Modules/Core/tests/Integration/Versioning/VersionSetPerRootTest.php` (create), `VersionSetManagerTest.php`
 
-- [ ] **Step 1: Write the failing tests** (with `VersionedDocument` and a second versioned stub table, or two `VersionedDocument` rows):
+- [x] **Step 1: Write the failing tests** (with `VersionedDocument` and a second versioned stub table, or two `VersionedDocument` rows):
   - a `run()` for document A that calls `run()` for document B gives two sets, each with its own root, rows and sequences starting at 1, in one transaction: an exception thrown inside B's operation rolls back both sets and both writes;
   - a write of B inside A's scope without a `run()` for B (B updated inside A's operation) lands in B's set, not in A's;
   - B's set is opened with the actor of the outer operation and the ordinary kind; a revert of A that writes B gives A a `revert` set and B a `change` set;
@@ -101,17 +103,19 @@ Check that `DatabaseTransactionRecord::$connection` is public in the installed L
   - `current()` returns B's set inside B's operation and A's set again after it;
   - a scope that writes nothing for B leaves no set for B.
   In `VersionSetManagerTest`, `rejects a nested different root before its operation runs` encodes the rule D43 replaces: rewrite it as the first case above.
-- [ ] **Step 2: Run them and see them fail.**
-- [ ] **Step 3: `VersionScope` and `ActiveVersionSet`.** The scope keeps `connection_name`, `enlisted_connection_name`, `depth`, `list<ActiveVersionSet> $sets` and the stack of sets named by `run()`. A set is found for a root by `VersionSetRoot::matches()` and, for an unsaved root, by instance. `ActiveVersionSet` keeps what belongs to one root: `root()`, `options()`, `connectionName()`, `versionSet()`, `storeAsBaseline()`, `nextSequence()`, `markVersionWritten()`, `finish()`; its public methods used by `HasVersionedRelations` and the tests (`versionSet()`, `nextSequence()`, `markVersionWritten()`, `connectionName()`) keep their signatures.
-- [ ] **Step 4: The manager.**
+- [x] **Step 2: Run them and see them fail.**
+- [x] **Step 3: `VersionScope` and `ActiveVersionSet`.** The scope keeps `connection_name`, `enlisted_connection_name`, `depth`, `list<ActiveVersionSet> $sets` and the stack of sets named by `run()`. A set is found for a root by `VersionSetRoot::matches()` and, for an unsaved root, by instance. `ActiveVersionSet` keeps what belongs to one root: `root()`, `options()`, `connectionName()`, `versionSet()`, `storeAsBaseline()`, `nextSequence()`, `markVersionWritten()`, `finish()`; its public methods used by `HasVersionedRelations` and the tests (`versionSet()`, `nextSequence()`, `markVersionWritten()`, `connectionName()`) keep their signatures.
+- [x] **Step 4: The manager.**
   - `run()` outside a scope: as today (open the scope, transaction, lock, validate the revert target, operation, finish), but the finish goes over every set of the scope, in the order they were opened.
   - `runNested()`: same root and same instance, join as today (options compared as today); another root, find or open its set (lock its row, validate its revert target if it is a revert), push it on the stack for the operation and pop it after; the options of an opened set are the ones given, or `new VersionSetOptions(actor: <outer actor>)` when none.
   - `setFor(Model $root)`: the set of that root, opened (and locked) if the scope has none; throws a `LogicException` outside a scope.
   - `current()`: the top of the stack, or null outside a scope.
   - `enlist()`: unchanged rule, kept on the scope.
-- [ ] **Step 5: The writer** writes into `$this->manager->setFor($change->model)` instead of `current()`, and the baseline check of D53 compares the change's model with that set's root.
-- [ ] **Step 6: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers Modules/Core/tests/Integration/Models`. Expected: PASS.
-- [ ] **Step 7: Commit** `feat(core): one version set per root in one transaction (D43)`.
+- [x] **Step 5: The writer** writes into `$this->manager->setFor($change->model)` instead of `current()`, and the baseline check of D53 compares the change's model with that set's root.
+- [x] **Step 6: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning Modules/Core/tests/Integration/Helpers Modules/Core/tests/Integration/Models`. Expected: PASS.
+- [x] **Step 7: Commit** `feat(core): one version set per root in one transaction (D43)`.
+
+**Found at execution (2026-10-22):** a set opened by the writer through `setFor()` does not lock its root: the write that brings the change already ran in the scope's transaction and holds the row, and realigning the instance from inside its own `updated` or `deleted` event would undo what the event is doing (after a delete the row is gone and the lock would fail). Only a set opened by a `run()` locks, before its operation. `ActiveVersionSet` is no longer a container binding: the manager creates one per root, and the scope state lives in the new `VersionScope`. `VersionSetRootMismatchException` lost its only use and was removed.
 
 ### Task 4: Each set records its capture (D47, D52)
 
@@ -122,15 +126,15 @@ Check that `DatabaseTransactionRecord::$connection` is public in the installed L
 - Modify: `Modules/Core/app/Versioning/VersionWriter.php` (the fallback uses the new entry point)
 - Test: `Modules/Core/tests/Integration/Versioning/VersionCaptureTest.php` (create)
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
   - a save of a versioned model with no scope and no application transaction gives a `best_effort` set, and its scalar revert (`revertToVersion()`) still works;
   - the same save inside `DB::connection()->transaction(...)` gives an `atomic` set;
   - a write inside `run()` gives an `atomic` set; so does a set opened for another root inside the scope (Task 3);
   - a revert set is `atomic`;
   - no set is written as `incomplete` (D52: the value stays in the enum, unused in milestone 1).
-- [ ] **Step 2: Run them and see them fail.** Expected: FAIL (every set is `best_effort`, the column default).
-- [ ] **Step 3: Store the capture.** `ActiveVersionSet` gets a `VersionCaptureQuality $capture`, given when the set is opened and written into `capture` by `versionSet()`.
-- [ ] **Step 4: Decide it in the manager.** `run()` and the sets opened inside a scope are `atomic`: the transaction is open before the operation's SQL. The writer's fallback, which runs after the business statement already happened, goes through a dedicated entry point:
+- [x] **Step 2: Run them and see them fail.** Expected: FAIL (every set is `best_effort`, the column default).
+- [x] **Step 3: Store the capture.** `ActiveVersionSet` gets a `VersionCaptureQuality $capture`, given when the set is opened and written into `capture` by `versionSet()`.
+- [x] **Step 4: Decide it in the manager.** `run()` and the sets opened inside a scope are `atomic`: the transaction is open before the operation's SQL. The writer's fallback, which runs after the business statement already happened, goes through a dedicated entry point:
 
 ```php
     /**
@@ -142,8 +146,10 @@ Check that `DatabaseTransactionRecord::$connection` is public in the installed L
 ```
 
 It reads `ApplicationTransactions::isOpenOn($root->model()->getConnection())` before opening its own transaction, then behaves like `run()`.
-- [ ] **Step 5: Run** the new tests, `Modules/Core/tests/Integration/Versioning`, `Helpers`, `Models`, and the SAO timeline test. Expected: PASS.
-- [ ] **Step 6: Commit** `feat(core): record the capture quality of each version set (D47, D52)`.
+- [x] **Step 5: Run** the new tests, `Modules/Core/tests/Integration/Versioning`, `Helpers`, `Models`, and the SAO timeline test. Expected: PASS.
+- [x] **Step 6: Commit** `feat(core): record the capture quality of each version set (D47, D52)`.
+
+**Found at execution (2026-10-22):** the capture belongs to the scope, so the sets the writer opens for other roots inside a fallback scope inherit it: they were written after the fact too. The hand-written schema of the affinity connection in `VersionSetManagerTest` gained the `capture` column.
 
 ### Task 5: Each root's set decides its stored kind (D53, D60)
 
@@ -151,11 +157,11 @@ It reads `ApplicationTransactions::isOpenOn($root->model()->getConnection())` be
 - Modify: `Modules/Core/app/Versioning/VersionWriter.php`, `ActiveVersionSet.php` (only if Task 3 did not already cover it)
 - Test: `Modules/Core/tests/Integration/Versioning/CreationBaselineTest.php`
 
-- [ ] **Step 1: Write the failing tests:** a root B created inside A's scope gets its own set, stored as `baseline`, while A's set stays `change`; a nested `run()` for B with ordinary options inside B's baseline set joins it; a revert of A that creates nothing keeps A's set `revert`.
-- [ ] **Step 2: Run them.** If Task 3 already made them pass, record it here and mark Step 3 `- [-]`.
-- [ ] **Step 3: Fix** what fails: the promotion of D53 is decided per root's set, before its row is written.
-- [ ] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning`. Expected: PASS.
-- [ ] **Step 5: Commit** `test(core): the creation set of each root is its own baseline (D53, D60)` (or `feat` if code changed).
+- [x] **Step 1: Write the failing tests:** a root B created inside A's scope gets its own set, stored as `baseline`, while A's set stays `change`; a nested `run()` for B with ordinary options inside B's baseline set joins it; a revert of A that creates nothing keeps A's set `revert`.
+- [x] **Step 2: Run them.** If Task 3 already made them pass, record it here and mark Step 3 `- [-]`. They passed at once (2026-10-22): the set the writer opens for B through `setFor()` has B as its root, so the creation promotes B's own set.
+- [-] **Step 3: Fix** what fails (nothing failed, see Step 2): the promotion of D53 is decided per root's set, before its row is written.
+- [x] **Step 4: Run** `php artisan test --compact Modules/Core/tests/Integration/Versioning`. Expected: PASS.
+- [x] **Step 5: Commit** `test(core): the creation set of each root is its own baseline (D53, D60)` (or `feat` if code changed).
 
 ### Task 6: Documentation and closing of the slice
 
@@ -164,9 +170,17 @@ It reads `ApplicationTransactions::isOpenOn($root->model()->getConnection())` be
 - Modify: the review log status line and the spec's implementation lists
 - Modify: this plan and the parent plan (tick Slice 3); `docs/superpowers/plans/INDEX.md`
 
-- [ ] **Step 1: `MODULE.md`:** one set per root in one transaction, each root's row locked when its set opens, `current()` and `setFor()`, the capture recorded per set (`atomic` inside a scope or an application transaction, `best_effort` otherwise, the test harness transaction not counted), the lock that keeps loaded relations and refuses a stale optimistic lock.
-- [ ] **Step 2: Status lines:** review log and spec list D34 (the lock part), D43, D47 (stored capture), D52 (manager part) and D60 as implemented.
-- [ ] **Step 3: Run** the regression per suite (Core per folder and Integration per subfolder, CMS, SAO, ERP, MES, AI, Shop, `tests/`) and record the result here.
-- [ ] **Step 4: Commit** the docs in Core and in `laraplate/`; add the delivery status below and tick Slice 3 in the parent plan.
+- [x] **Step 1: `MODULE.md`:** one set per root in one transaction, each root's row locked when its set opens, `current()` and `setFor()`, the capture recorded per set (`atomic` inside a scope or an application transaction, `best_effort` otherwise, the test harness transaction not counted), the lock that keeps loaded relations and refuses a stale optimistic lock.
+- [x] **Step 2: Status lines:** review log and spec list D34 (the lock part), D43, D47 (stored capture), D52 (manager part) and D60 as implemented.
+- [x] **Step 3: Run** the regression per suite (Core per folder and Integration per subfolder, CMS, SAO, ERP, MES, AI, Shop, `tests/`) and record the result here.
+- [x] **Step 4: Commit** the docs in Core and in `laraplate/`; add the delivery status below and tick Slice 3 in the parent plan.
 
-**Documented in (when the plan closes):** `Modules/Core/docs/rag/MODULE.md`.
+## Delivery status (2026-10-22): delivered
+
+All six tasks are done, tests first. Commits in `Modules/Core`: `7067cb7a` (`ApplicationTransactions`, D52), `57317a21` (root lock, D34), `64a9b9f5` (one set per root, D43), `c53cde7e` (capture per set, D47, D52), `b600c596` (per-root baseline, D53, D60); in `Modules/ERP`: the two hand-written secondary-connection schemas gained the `capture` column.
+
+Divergences from the plan, each recorded under its task: a set opened by the writer through `setFor()` does not lock its root, since the business write already holds the row and realigning the instance inside its own model events would undo them; the capture belongs to the scope, so the sets the writer opens inside a fallback scope inherit it; `ActiveVersionSet` is no longer a container binding and `VersionSetRootMismatchException` was removed; Task 5 needed no code.
+
+Regression on 2026-10-22, per suite: Core Feature, Unit, every Integration subfolder and the Integration root files, CMS, SAO, ERP (after the fixture fix), MES, AI and Shop green. Failing, not caused by this slice: `tests/Feature/Filament/ResourceFormPagesCloseOrCancelTest` (the CRM pages in progress).
+
+**Documented in:** `Modules/Core/docs/rag/MODULE.md`.
