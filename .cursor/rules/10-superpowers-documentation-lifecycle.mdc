@@ -28,8 +28,8 @@ alwaysApply: true
   - Update module user/operator RAG docs under `Modules/{ModuleName}/docs/rag/` or another existing module RAG split when present.
   - Preserve important decisions, final workflows, permissions, extension points, limitations, and follow-up backlog in the module documentation.
   - Keep the completed plan/spec in `docs/superpowers/**`. Never delete it: it is the only record of what was decided and deliberately not built.
-  - Close the plan with a `## Delivery status (date): ...` section recording divergences, and a `**Documented in:**` line naming the module docs (see `AGENTS.md`).
-  - Update the plan's entry in `docs/superpowers/plans/INDEX.md` with its closed status.
+  - Close the plan with `status: completed` in its front matter, a `## Delivery status (date): ...` section recording divergences, and a `**Documented in:**` line naming the module docs (see `AGENTS.md`).
+  - Keep the plan's line in `docs/superpowers/plans/INDEX.md` a description: file name, what it covers. No status there: plan-status reads it from the plan.
 
 - Never finish a superpowers-driven implementation while leaving useful completed-task knowledge only in `docs/superpowers/**`.
 - If only part of a plan is complete, keep the superpowers file in the base repository and clearly mark completed/open items.

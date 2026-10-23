@@ -307,6 +307,7 @@ final class PlanParser
         $title = basename($file, '.md');
         $title_seen = false;
         $status_banner = null;
+        $delivered = false;
         $tasks = [];
         $current = $this->newTask('(plan level)', 0);
         $in_fence = false;
@@ -351,6 +352,8 @@ final class PlanParser
                 if ($current['total'] > 0) {
                     $tasks[] = $current;
                 }
+
+                $delivered = $delivered || str_starts_with($m[1], 'Delivery status');
 
                 $current = $this->newTask(mb_trim($m[1]), $index + 1);
 
@@ -436,7 +439,7 @@ final class PlanParser
             'checked_steps' => $checked,
             'checkbox_state' => $checkbox_state,
             'state' => $this->effectiveState($declared, $checkbox_state),
-            'inconsistency' => $this->inconsistency($declared, $status_banner, $checkbox_state, $checked, $total),
+            'inconsistency' => $this->inconsistency($declared, $status_banner, $checkbox_state, $checked, $total, $delivered),
         ];
     }
 
@@ -476,16 +479,29 @@ final class PlanParser
         };
     }
 
-    private function inconsistency(?string $declared, ?string $banner, string $checkbox_state, int $checked, int $total): ?string
+    /**
+     * A disagreement between what the plan declares and what its checkboxes say. A
+     * finished plan declares itself twice, in the front matter `status:` and in its
+     * `## Delivery status` section, so either one alone is a disagreement too.
+     */
+    private function inconsistency(?string $declared, ?string $banner, string $checkbox_state, int $checked, int $total, bool $delivered = false): ?string
     {
+        $effective = $this->effectiveState($declared, $checkbox_state);
+
+        if ($delivered && ! in_array($effective, ['done', 'superseded'], true)) {
+            return sprintf('delivery status written but the plan reads %s (%d/%d steps flagged)', $effective, $checked, $total);
+        }
+
+        if ($declared !== null && in_array($effective, ['done', 'superseded'], true) && ! $delivered) {
+            return sprintf('front-matter says %s but the plan has no delivery status', $declared);
+        }
+
         // A plan with no checkboxes cannot disagree with its checkboxes. Retrospective
         // records are written that way on purpose, and flagging them would bury the
         // real disagreements.
         if ($total === 0) {
             return null;
         }
-
-        $effective = $this->effectiveState($declared, $checkbox_state);
 
         if ($declared === null && $banner !== null && preg_match('/^complet/i', $banner) === 1 && $checkbox_state !== 'done') {
             return sprintf('banner says completed but %d/%d steps are flagged', $checked, $total);
@@ -495,7 +511,8 @@ final class PlanParser
             return sprintf('front-matter says %s but %d/%d steps are flagged', $declared, $checked, $total);
         }
 
-        if ($declared !== null && $effective !== 'done' && $checkbox_state === 'done') {
+        // A superseded plan resolves its steps too, cancelled or done: that is its normal end.
+        if ($declared !== null && ! in_array($effective, ['done', 'superseded'], true) && $checkbox_state === 'done') {
             return sprintf('front-matter says %s but every step is flagged', $declared);
         }
 

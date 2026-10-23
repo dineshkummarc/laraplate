@@ -389,6 +389,91 @@ test_sort_by_last_change_lists_the_most_recent_first() {
     [[ "$OUTPUT" == *"older-name"*"newer-name"* ]] || fail "the plan changed last is not listed first"
 }
 
+test_a_delivery_status_on_a_plan_with_open_steps_is_reported() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-half.md" <<'PLAN'
+# Half
+
+## Task 1: do the thing
+
+- [x] first step
+- [ ] second step
+
+## Delivery status (2026-01-02): built
+PLAN
+    run_plan_status "$ws"
+    assert_status 0
+    assert_output_contains "delivery status written but the plan reads partial (1/2 steps flagged)"
+}
+
+test_a_plan_declared_completed_without_a_delivery_status_is_reported() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-done.md" <<'PLAN'
+---
+status: completed
+---
+# Done
+
+## Task 1: do the thing
+
+- [x] first step
+PLAN
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_output_contains "front-matter says completed but the plan has no delivery status"
+}
+
+test_a_closed_plan_with_both_declarations_is_consistent() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-done.md" <<'PLAN'
+---
+status: completed
+---
+# Done
+
+## Task 1: do the thing
+
+- [x] first step
+
+```markdown
+## Delivery status (date): quoted as an example, not a record
+```
+
+## Delivery status (2026-01-02): built
+
+**Documented in:** `Modules/Core/README.md`.
+PLAN
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_output_contains '"inconsistency": null'
+}
+
+test_a_superseded_plan_with_every_step_resolved_is_consistent() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-old.md" <<'PLAN'
+---
+status: superseded
+---
+# Old
+
+## Task 1: do the thing
+
+- [x] first step
+- [-] second step (superseded by 2026-02-01-new.md)
+
+## Delivery status (2026-02-01): partially delivered, superseded by 2026-02-01-new.md
+
+**Documented in:** `Modules/Core/README.md`.
+PLAN
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_output_contains '"inconsistency": null'
+}
+
 # --- runner ------------------------------------------------------------------------------------
 
 run_tests() {
