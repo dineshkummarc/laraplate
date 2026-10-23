@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Application Content Retrieval Providers Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -732,3 +735,15 @@ For the interactive Core staging, accept only the `isGuest()` hunk and reject th
 - [x] Empty/insufficient evidence causes abstention.
 - [x] Record-level CMS retrieval has a committed evaluation baseline.
 - [x] No passage index, multimodal processing, entity linking, guest assistant profile, or public endpoint is added without a separate approved design.
+
+## Delivery status (2026-08-03): delivered, reconciled against the code on 2026-10-23
+
+All nine tasks are built; the release evaluation ran on 2026-08-03. Divergences:
+
+- The fake providers live in `Modules/Core/tests/Stubs/ApplicationContent/` and `Modules/AI/tests/Stubs/ApplicationContent/`, not inline in the tests, as the project rule requires.
+- Added beyond the plan: `ProvidesPermissionModel`, `ApplicationContentDeadlineExecutor` with its exception, and `CmsApplicationContentDatasetTest`.
+- The scored CMS baseline gate is in the application: `tests/Integration/ApplicationContent/CmsApplicationContentEvaluationBaselineTest.php`.
+- The passage index is not built: `docs/superpowers/specs/2026-07-21-application-content-passage-index-gate.md` keeps it a deferred experiment. Guest assistance is not built.
+- No module document describes the AI router, the tool schema or the citation mapping; to write in the AI repository.
+
+**Documented in:** `Modules/Core/docs/rag/MODULE.md` (*Application content retrieval contract*), `Modules/CMS/docs/rag/MODULE.md` (*CMS application content retrieval provider*), `Modules/AI/docs/rag/MODULE.md` (*Application content evaluation*), `Modules/Core/docs/GRAPH_SYSTEM.md` (*AI Tool Boundary*).

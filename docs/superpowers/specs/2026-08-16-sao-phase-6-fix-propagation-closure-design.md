@@ -1,6 +1,6 @@
 # SAO phase 6 — fix propagation & evidence-based closure design
 
-**Status:** Draft
+**Status:** Implemented 2026-08-25; see the delivery status of `docs/superpowers/plans/2026-08-16-sao-phase-6-fix-propagation-closure.md`. Was: Draft.
 **Module:** SAO
 **Builds on:** phase 5b (`ChangeRef`, `Release`/`ReleaseTag`/`TicketRelease`, `Environment` + deploy census) and phase 2 (`Signal`/`SignalOccurrence`).
 

@@ -1,6 +1,6 @@
 # In-app AI assistance security and read-only Graph API tools
 
-**Status:** Approved direction
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-07-16-in-app-ai-assistance-security.md`. Was: Approved direction.
 
 **Date:** 2026-07-16
 

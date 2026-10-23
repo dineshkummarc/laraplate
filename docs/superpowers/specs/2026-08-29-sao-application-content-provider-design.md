@@ -1,6 +1,6 @@
 # SAO application-content provider (R2)
 
-**Status:** Approved for planning
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-08-29-sao-application-content-provider.md`. Was: Approved for planning.
 
 **Date:** 2026-08-29
 

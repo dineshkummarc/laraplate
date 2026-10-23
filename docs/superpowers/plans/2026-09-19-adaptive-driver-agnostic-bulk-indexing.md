@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Adaptive Driver-Agnostic Bulk Indexing Implementation Plan
 
 > **Retroactive plan (written 2026-10-09).** The work shipped on 2026-09-19 straight from the spec, without a plan. This file records it afterwards so the backlog and the indexes stay coherent. The steps below were mapped from what the code does, not from the names the spec imagined; where the code differs from the design, the step says so.

@@ -1,5 +1,5 @@
 ---
-status: closed
+status: completed
 created_on: 2026-10-14
 ---
 # Stored property filters in the CRUD API. Implementation Plan

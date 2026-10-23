@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Embedding Switch: Chunked Index Writes Implementation Plan
 
 > **For agentic workers:** Steps use checkbox syntax for tracking. Tick each step when it finishes.

@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Embedding Switch: Review Fixes and RAG Chunks Implementation Plan
 
 > **For agentic workers:** Steps use checkbox syntax for tracking. Tick each step when it finishes.

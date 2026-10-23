@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Record Locking Overhaul Plan
 
 Rebuild `HasLocks` into a usable three-mode locking system (editorial lease, deliberate hold,

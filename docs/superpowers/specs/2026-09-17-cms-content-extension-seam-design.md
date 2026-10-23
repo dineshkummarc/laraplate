@@ -3,7 +3,7 @@
 **Date:** 2026-09-17
 **Module:** `Modules/CMS` (with a dedicated `ContentExtenderRegistry`)
 **First consumer:** `docs/superpowers/specs/2026-09-17-shop-module-design.md` (`Product` extends a `Content`)
-**Status:** Design agreed. No implementation started.
+**Status:** Implemented 2026-09-19; see the delivery status of `docs/superpowers/plans/2026-09-19-cms-content-extension-seam.md`. Was: Design agreed. No implementation started.
 
 ---
 

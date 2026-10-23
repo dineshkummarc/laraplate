@@ -1,3 +1,6 @@
+---
+status: in-progress
+---
 # Palette Documentation Search Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -176,7 +179,7 @@ git -C Modules/AI commit -m "feat(ai): cache query embeddings with a lock so par
 
 - [x] **Step 5: Run the AI module tests touched by this plan and `tests/Unit/ClosedPlansPointToDocumentationTest.php`.** Expected: PASS. Commit docs in the laraplate repository and the handoff in the stack repository.
 
-## Delivery status (2026-10-21): built, one step open
+## Progress (2026-10-21): built, one step open
 
 Built in `Modules/AI` (commits on its master):
 

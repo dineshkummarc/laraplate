@@ -3,7 +3,7 @@
 ## Status
 
 - Date: 2026-07-21
-- Status: approved for incremental implementation
+- Status: Superseded on 2026-10-20 by `2026-07-29-revision-centric-aggregate-history-design.md`; see the delivery status of `docs/superpowers/plans/2026-07-21-core-version-set-foundation.md`. Was: approved for incremental implementation.
 - Scope: generic versioning infrastructure in Core, with CMS categories as the first relation pilot
 - Database baseline: migrations may be edited in place because the development database has already been rebuilt with `migrate:fresh`
 

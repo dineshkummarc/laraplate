@@ -2,7 +2,7 @@
 
 > **Moving on delivery.** This subject names backend files only, so this spec and its plan belong in `docs/superpowers/`. They stay here while the work is in flight and move once it is done, links and indexes repaired on both sides. See `Where specs and plans live` in the stack `AGENTS.md`.
 
-**Status:** approved design (corpus-independent part scoped)
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-09-10-r3-phase2-per-strategy-breakdown.md`. Was: approved design (corpus-independent part scoped).
 **Date:** 2026-09-10
 **Program goal:** R3 (retrieval quality). Phase 1 gave IR metrics + deterministic baselines but only end-to-end on the lexical database engine (near-degenerate). Phase 2 measures ranking quality **per strategy** (keyword / vector / hybrid / fused / reranked) to show whether vector/hybrid/rerank actually beat keyword.
 

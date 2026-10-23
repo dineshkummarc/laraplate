@@ -3,7 +3,7 @@
 **Date:** 2026-08-01
 **Module:** `Modules/SAO`
 **Parent spec:** `docs/superpowers/specs/2026-07-31-sao-module-design.md` (phase 1)
-**Status:** Design agreed. No implementation started.
+**Status:** Implemented 2026-09-30; see the delivery status of `docs/superpowers/plans/2026-08-01-sao-phase-1a-ticketing-core.md`. Was: Design agreed. No implementation started.
 
 ---
 

@@ -1,6 +1,6 @@
 # Core — In-App Notification System (push vs poll)
 
-**Status:** proposed · **draft — deep analysis pending** · **Module:** Core (consumed by all modules)
+**Status:** Implemented 2026-08-24; see the delivery status of `docs/superpowers/plans/2026-08-23-core-in-app-notifications.md`. Was: proposed · **draft — deep analysis pending** · **Module:** Core (consumed by all modules)
 **Related:** `2026-05-15-modification-moderation-design.md`,
 `2026-07-16-in-app-ai-assistance-security-design.md`,
 `2026-08-23-core-bulk-import-mapping-design.md`.

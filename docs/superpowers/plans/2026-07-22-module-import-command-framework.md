@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Module-owned import command framework implementation plan
 
 > **For agentic workers:** execute one task and one owning repository at a time. Do not stage unrelated dirty files. Use module test stubs under `tests/Stubs` or `tests/Support`; do not declare test-only classes inside test files.

@@ -425,7 +425,7 @@
 
 **Files:**
 - Modify: `docs/superpowers/plans/2026-10-20-aggregate-route-and-widget-tool.md` (this file: tick the boxes, add the delivery status)
-- Modify: `docs/superpowers/plans/INDEX.md` and `docs/superpowers/specs/INDEX.md` (status words)
+- Modify: `docs/superpowers/plans/INDEX.md` and `docs/superpowers/specs/INDEX.md` (descriptions only, no status: `AGENTS.md`)
 
 - [ ] **Step 1:** Run `Modules/Core/tests/Integration/Services/Crud/AggregateEngine*Test.php` and `Modules/Core/tests/Feature/Controllers/CrudAggregateTest.php` against a local MySQL and a local PostgreSQL if available (`TestEnvironmentGuard` accepts local hosts; set `DB_CONNECTION` and the connection variables for the run only). Record the result per driver in the delivery status. A driver that cannot be run here is recorded as not verified, and the route documentation says so (spec section 8, point 2).
 - [ ] **Step 2:** Run the AI and Core suites touched (`Modules/AI/tests/Feature`, `Modules/Core/tests/Feature/Controllers`, `Modules/Core/tests/Integration/Services/Crud`) and `vendor/bin/pint --format agent` over every changed file.

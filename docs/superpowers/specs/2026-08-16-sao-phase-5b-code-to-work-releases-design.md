@@ -4,7 +4,7 @@
 **Module:** `Modules/SAO`
 **Parent spec:** `docs/superpowers/specs/2026-07-31-sao-module-design.md` (§4, §8, §9; D12/D15/D17/D18)
 **Builds on:** the phase 5 `vcs`/`releases` driver capabilities (already shipped).
-**Status:** Design proposed.
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-08-16-sao-phase-5b-code-to-work-releases.md`. Was: Design proposed.
 
 ---
 
