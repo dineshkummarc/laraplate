@@ -224,7 +224,7 @@
 ### Task 11: Documentation, spec amendments and closing
 
 **Files:**
-- Modify: `Modules/AI/docs/rag/MODULE.md`, `Modules/AI/README.md` (remove the two variables), `Modules/AI/docs/SEARCH_AND_TRANSLATION.md`, `Modules/AI/docs/SENTENCE_TRANSFORMERS_INSTALLATION.md`, `Modules/Core/README.md`, `Modules/Core/docs/rag/SEARCH_RETRIEVAL_PIPELINE.md` (the guard and its reasons), `docs/superpowers/specs/2026-10-05-embedding-model-switch-design.md`, `docs/superpowers/specs/INDEX.md`, `docs/superpowers/plans/INDEX.md`, this plan
+- Modify: `Modules/AI/docs/rag/MODULE.md`, `Modules/AI/README.md` (remove the two variables), `Modules/AI/docs/SEARCH_AND_TRANSLATION.md`, `docs/SENTENCE_TRANSFORMERS_INSTALLATION.md of the AI module (replaced on 2026-10-23 by STANDARD_SERVERS_INSTALLATION.md)`, `Modules/Core/README.md`, `Modules/Core/docs/rag/SEARCH_RETRIEVAL_PIPELINE.md` (the guard and its reasons), `docs/superpowers/specs/2026-10-05-embedding-model-switch-design.md`, `docs/superpowers/specs/INDEX.md`, `docs/superpowers/plans/INDEX.md`, this plan
 - Test: `tests/Unit/ClosedPlansPointToDocumentationTest.php`
 
 - [x] **Step 1: Write** the user and developer pages: the settings, the confirmation, `ai:embeddings:probe|switch|status|prune`, the guard reasons and `meta.vector_disabled`, the PostgreSQL partial indexes, and how to add a profile (run the probe, declare the number).
@@ -259,7 +259,7 @@
 **Files:**
 - Modify: `Modules/AI/app/Ai/Embeddings/EmbeddingModelRegistry.php` (`activeKey()` reads `config('core.search.vector.model')`, keeping the fallback to the first configured profile, then the first declared one), `Modules/AI/database/seeders/AIDatabaseSeeder.php` (drop the `features.embeddings.active` definition), `Modules/AI/app/Ai/Embeddings/Switching/EmbeddingSwitchOrchestrator.php` (activation no longer writes `features.embeddings.active`), `Modules/AI/config/config.php` (the comment naming `active`), every docblock that names the setting.
 - Test: `Modules/AI/tests/Unit/Embeddings/EmbeddingModelRegistryTest.php`, `Modules/AI/tests/Feature/EmbeddingSettingsSeedTest.php`; replace `config()->set('ai.features.embeddings.active', ...)` with `core.search.vector.model` in every AI test that sets it (`rg "embeddings.active" Modules/AI/tests`), including the `for('features.embeddings.active')` assertion of `EmbeddingModelSettingConfirmationTest`.
-- Docs: `Modules/AI/README.md`, `Modules/AI/docs/SENTENCE_TRANSFORMERS_INSTALLATION.md`, `Modules/AI/docs/SEARCH_AND_TRANSLATION.md` (each line naming `ai.features.embeddings.active`).
+- Docs: `Modules/AI/README.md`, `docs/SENTENCE_TRANSFORMERS_INSTALLATION.md of the AI module (replaced on 2026-10-23 by STANDARD_SERVERS_INSTALLATION.md)`, `Modules/AI/docs/SEARCH_AND_TRANSLATION.md` (each line naming `ai.features.embeddings.active`).
 
 **Interfaces:**
 - Consumes: `search.vector.model` (Task 4), the activation phase (Task 9).
@@ -275,7 +275,7 @@
 
 ## Delivery status (2026-10-05): shipped
 
-**Documented in:** `Modules/AI/docs/rag/MODULE.md`, `Modules/AI/README.md`, `Modules/AI/docs/SEARCH_AND_TRANSLATION.md`, `Modules/AI/docs/SENTENCE_TRANSFORMERS_INSTALLATION.md`, `Modules/Core/README.md`, `Modules/Core/docs/rag/SEARCH_RETRIEVAL_PIPELINE.md`, `Modules/Core/docs/rag/SETTING_ACTIONS_DEVELOPER.md`, `Modules/Core/docs/rag/SETTING_ACTIONS_USER.md`.
+**Documented in:** `Modules/AI/docs/rag/MODULE.md`, `Modules/AI/README.md`, `Modules/AI/docs/SEARCH_AND_TRANSLATION.md`, `Modules/AI/docs/STANDARD_SERVERS_INSTALLATION.md`, `Modules/Core/README.md`, `Modules/Core/docs/rag/SEARCH_RETRIEVAL_PIPELINE.md`, `Modules/Core/docs/rag/SETTING_ACTIONS_DEVELOPER.md`, `Modules/Core/docs/rag/SETTING_ACTIONS_USER.md`.
 
 Divergences from the plan, all recorded in the spec (sections 4, 10 and 11):
 - Ruling R17 (user, in chat): `features.embeddings.active` was removed (Task 13); the serving model is Core's `search.vector.model` only. The write that the plan placed in the orchestrator lived in `EmbeddingSwitchActivation`. Existing rows of the removed setting are not deleted.
