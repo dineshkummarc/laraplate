@@ -81,7 +81,7 @@ git commit -m "feat(plan-status): report the modules of every plan"
 - Consumes: `LastChange::git(string $dir, array $args): ?string` (private, same class), Task 1's `parse()` array.
 - Produces: `public function ticks(string $file): array` on `LastChange`, returning `array{started: ?string, finished: ?string}`. Option `--git-dates`; with it every plan array gains `'started' => ?string` and `'finished' => ?string`, `finished` only when the plan `state` is `done`. `PlanParser::all(?string $repo_filter, ?string $name_filter, bool $with_evidence, bool $with_git_dates = false): array`.
 
-- [ ] **Step 1: Write the failing tests.** Each builds a git repository in the workspace and commits with `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE` set:
+- [x] **Step 1: Write the failing tests.** Each builds a git repository in the workspace and commits with `GIT_AUTHOR_DATE` and `GIT_COMMITTER_DATE` set:
 
 ```bash
 test_git_dates_come_from_ticked_steps()            # add 2026-01-01; tick one 01-05; tick rest 01-09; edit text 01-12
@@ -95,12 +95,12 @@ test_git_dates_are_null_for_an_untracked_plan()    # written, never committed ->
 test_git_dates_are_absent_without_the_option()     # no "started" key in the JSON
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run: `bash scripts/tests/plan-status-test.sh git_dates`
 Expected: failures on every test reading `started`.
 
-- [ ] **Step 3: Implement `ticks()`, thread `$with_git_dates` from `--git-dates` through `all()` and `parse()`, and document the option in `usage()`**
+- [x] **Step 3: Implement `ticks()`, thread `$with_git_dates` from `--git-dates` through `all()` and `parse()`, and document the option in `usage()`**
 
 `ticks()` calls `git(dirname($file), ['log', '--reverse', '--format=%x00%cs', '-p', '--', basename($file)])`; `null` output gives both dates `null`. Walking the lines: a line starting with `"\0"` sets the current day; a line matching `~^\+\s*- \[[xX]\]~` sets `started` once and `finished` every time. Usage line under `--no-evidence`:
 
@@ -109,17 +109,17 @@ Expected: failures on every test reading `started`.
                              last commit that ticked a step); updated is the last change
 ```
 
-- [ ] **Step 4: Run the whole harness to see it pass**
+- [x] **Step 4: Run the whole harness to see it pass**
 
 Run: `bash scripts/tests/plan-status-test.sh`
 Expected: all passed.
 
-- [ ] **Step 5: Check it on the real backlog**
+- [x] **Step 5: Check it on the real backlog**
 
 Run: `php scripts/plan-status.php --format=json --no-evidence --git-dates | php -r '$p = json_decode(stream_get_contents(STDIN), true)["plans"]; echo count(array_filter($p, fn ($x) => $x["started"] !== null)), " of ", count($p), PHP_EOL;'`
 Expected: most plans have a `started` date, no PHP warning.
 
-- [ ] **Step 6: Format and commit**
+- [x] **Step 6: Format and commit**
 
 ```bash
 vendor/bin/pint --format agent scripts/plan-status.php
