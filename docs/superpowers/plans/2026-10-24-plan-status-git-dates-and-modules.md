@@ -40,7 +40,7 @@
 **Interfaces:**
 - Produces: plan array key `'modules' => list<string>`, always present, never empty. `private function modules(array $front_matter, string $path, array $tasks): array` on `PlanParser`; `$path` is the workspace-relative plan path, `$tasks` the parsed tasks (each with `files: list<string>`).
 
-- [ ] **Step 1: Write the failing tests** as `test_` functions in `scripts/tests/plan-status-test.sh`, reading the JSON with `php -r` like `test_last_change_is_the_last_commit_that_touched_the_file`:
+- [x] **Step 1: Write the failing tests** as `test_` functions in `scripts/tests/plan-status-test.sh`, reading the JSON with `php -r` like `test_last_change_is_the_last_commit_that_touched_the_file`:
 
 ```bash
 test_modules_come_from_the_front_matter()          # "module: AI, core, billing"  -> ai,core,billing
@@ -49,21 +49,21 @@ test_modules_rank_the_modules_task_files_name()    # Modules/Core x2, Modules/AI
 test_modules_fall_back_to_platform()               # no module anywhere -> platform
 ```
 
-- [ ] **Step 2: Run them to see them fail**
+- [x] **Step 2: Run them to see them fail**
 
 Run: `bash scripts/tests/plan-status-test.sh modules`
 Expected: 4 failed (no `modules` key).
 
-- [ ] **Step 3: Implement `modules()` and return `'modules' => $this->modules($front_matter, $this->workspace->relative($file), $tasks)` from `parse()`**
+- [x] **Step 3: Implement `modules()` and return `'modules' => $this->modules($front_matter, $this->workspace->relative($file), $tasks)` from `parse()`**
 
 First match wins: front-matter `module` split on commas, trimmed, lowercased; `~(?:^|/)Modules/([^/]+)/docs/plans/~` on the path; counts of `~^Modules/([^/]+)/~` over every task's `files`, by count descending then first appearance; `['platform']`.
 
-- [ ] **Step 4: Run the whole harness to see it pass**
+- [x] **Step 4: Run the whole harness to see it pass**
 
 Run: `bash scripts/tests/plan-status-test.sh`
 Expected: all passed.
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
 
 ```bash
 vendor/bin/pint --format agent scripts/plan-status.php
