@@ -474,6 +474,65 @@ PLAN
     assert_output_contains '"inconsistency": null'
 }
 
+# Prints "file=module,module" for every plan of the JSON report in $OUTPUT.
+modules_of_plans() {
+    printf '%s' "$OUTPUT" | php -r '$r = json_decode(stream_get_contents(STDIN), true); foreach ($r["plans"] as $p) { echo $p["file"], "=", implode(",", $p["modules"]), " "; }'
+}
+
+test_modules_come_from_the_front_matter() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-a.md" <<'PLAN'
+---
+module: AI, core, billing
+---
+# A
+
+## Task 1: do the thing
+
+- Modify: `Modules/ERP/app/X.php`
+- [ ] first step
+PLAN
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_eq "$(modules_of_plans)" "2026-01-01-a.md=ai,core,billing " "modules"
+}
+
+test_modules_come_from_a_plan_inside_a_module() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    make_plan "$ws/backend/Modules/SAO/docs/plans/2026-01-01-b.md" "B"
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_eq "$(modules_of_plans)" "2026-01-01-b.md=sao " "modules"
+}
+
+test_modules_rank_the_modules_task_files_name() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-c.md" <<'PLAN'
+# C
+
+## Task 1: do the thing
+
+- Modify: `Modules/AI/app/X.php`
+- Modify: `Modules/Core/app/Y.php`
+- Create: `Modules/Core/app/Z.php`
+- Modify: `scripts/plan-status.php`
+- [ ] first step
+PLAN
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_eq "$(modules_of_plans)" "2026-01-01-c.md=core,ai " "modules"
+}
+
+test_modules_fall_back_to_platform() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    make_plan "$ws/docs/superpowers/plans/2026-01-01-d.md" "D"
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_eq "$(modules_of_plans)" "2026-01-01-d.md=platform " "modules"
+}
+
 # --- runner ------------------------------------------------------------------------------------
 
 run_tests() {

@@ -431,6 +431,7 @@ final class PlanParser
             'updated' => $updated,
             'updated_source' => $updated_source,
             'path' => $this->workspace->relative($file),
+            'modules' => $this->modules($front_matter, $this->workspace->relative($file), $tasks),
             'title' => $title,
             'front_matter_status' => $declared,
             'status_banner' => $status_banner,
@@ -441,6 +442,52 @@ final class PlanParser
             'state' => $this->effectiveState($declared, $checkbox_state),
             'inconsistency' => $this->inconsistency($declared, $status_banner, $checkbox_state, $checked, $total, $delivered),
         ];
+    }
+
+    /**
+     * The modules a plan is about, as lowercased `Modules/` directory names, or `platform`
+     * when it names none. First match wins: the front-matter `module:` (kept even when the
+     * slug is unknown), the module the plan lives in, then the modules its task files
+     * touch, most files first.
+     *
+     * @param  array<string, string>  $front_matter
+     * @param  list<array{files: list<string>}>  $tasks
+     * @return non-empty-list<string>
+     */
+    private function modules(array $front_matter, string $path, array $tasks): array
+    {
+        $declared = array_values(array_filter(
+            array_map(static fn (string $slug): string => mb_strtolower(mb_trim($slug)), explode(',', $front_matter['module'] ?? '')),
+            static fn (string $slug): bool => $slug !== '',
+        ));
+
+        if ($declared !== []) {
+            return array_values(array_unique($declared));
+        }
+
+        if (preg_match('~(?:^|/)Modules/([^/]+)/docs/plans/~', $path, $m) === 1) {
+            return [mb_strtolower($m[1])];
+        }
+
+        $counts = [];
+
+        foreach ($tasks as $task) {
+            foreach ($task['files'] as $task_file) {
+                if (preg_match('~^Modules/([^/]+)/~', $task_file, $m) === 1) {
+                    $slug = mb_strtolower($m[1]);
+                    $counts[$slug] = ($counts[$slug] ?? 0) + 1;
+                }
+            }
+        }
+
+        if ($counts === []) {
+            return ['platform'];
+        }
+
+        // Sorting is stable since PHP 8.0: equal counts keep their first-appearance order.
+        arsort($counts);
+
+        return array_map('strval', array_keys($counts));
     }
 
     /**
