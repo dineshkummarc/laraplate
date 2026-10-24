@@ -8,7 +8,7 @@
 
 **Tech Stack:** PHP 8.5 (the script already uses `mb_trim()`), git CLI, the bash test harness `scripts/tests/plan-status-test.sh`.
 
-**Spec:** `../docs/superpowers/specs/2026-10-23-website-design.md` in the stack repository (sections 7.3 and 9). Consumer: the website plan `2026-10-24-website-v1.md`, Task 5.
+**Spec:** `docs/superpowers/specs/2026-10-23-website-design.md` in `getlaraplate/website` (sections 7.3 and 9). Consumer: that repository's plan `docs/superpowers/plans/2026-10-24-website-v1.md`, Task 5.
 
 ## Global Constraints
 
