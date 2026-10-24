@@ -553,6 +553,23 @@ PLAN
     assert_eq "$(modules_of_plans)" "2026-01-01-c.md=core,ai " "modules"
 }
 
+test_modules_ignore_a_brace_pattern_in_a_task_path() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-e.md" <<'PLAN'
+# E
+
+## Task 1: do the thing
+
+- Modify: `Modules/{core,ai}/x.php`
+- Modify: `Modules/AI/y.php`
+- [ ] first step
+PLAN
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_eq "$(modules_of_plans)" "2026-01-01-e.md=ai " "modules"
+}
+
 test_modules_fall_back_to_platform() {
     local ws="$WORK_DIR/${FUNCNAME[0]}"
     make_plan "$ws/docs/superpowers/plans/2026-01-01-d.md" "D"

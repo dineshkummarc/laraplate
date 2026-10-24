@@ -508,7 +508,7 @@ final class PlanParser
             return array_values(array_unique($declared));
         }
 
-        if (preg_match('~(?:^|/)Modules/([^/]+)/docs/plans/~', $path, $m) === 1) {
+        if (preg_match('~(?:^|/)Modules/([A-Za-z][A-Za-z0-9]*)/docs/plans/~', $path, $m) === 1) {
             return [mb_strtolower($m[1])];
         }
 
@@ -516,7 +516,7 @@ final class PlanParser
 
         foreach ($tasks as $task) {
             foreach ($task['files'] as $task_file) {
-                if (preg_match('~^Modules/([^/]+)/~', $task_file, $m) === 1) {
+                if (preg_match('~^Modules/([A-Za-z][A-Za-z0-9]*)/~', $task_file, $m) === 1) {
                     $slug = mb_strtolower($m[1]);
                     $counts[$slug] = ($counts[$slug] ?? 0) + 1;
                 }
