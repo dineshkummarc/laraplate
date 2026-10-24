@@ -533,6 +533,132 @@ test_modules_fall_back_to_platform() {
     assert_eq "$(modules_of_plans)" "2026-01-01-d.md=platform " "modules"
 }
 
+# Prints "started|finished|updated" for the only plan of the JSON report in $OUTPUT; a missing
+# key prints as "-" and a null as "null".
+git_dates_of_plan() {
+    printf '%s' "$OUTPUT" | php -r '$r = json_decode(stream_get_contents(STDIN), true); $p = $r["plans"][0]; foreach (["started", "finished", "updated"] as $k) { $out[] = array_key_exists($k, $p) ? ($p[$k] ?? "null") : "-"; } echo implode("|", $out);'
+}
+
+# Replaces the first occurrence of $2 by $3 in the file $1.
+replace_in_file() {
+    sed "s/$2/$3/" "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+
+test_git_dates_come_from_ticked_steps() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    local plan="$ws/docs/superpowers/plans/2026-01-01-plan.md"
+    make_plan "$plan" "Plan"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-01-01
+    replace_in_file "$plan" '- \[ \] first step' '- [x] first step'
+    commit_all "$ws" 2026-01-05
+    replace_in_file "$plan" '- \[ \] second step' '- [x] second step'
+    commit_all "$ws" 2026-01-09
+    replace_in_file "$plan" 'do the thing' 'do the thing well'
+    commit_all "$ws" 2026-01-12
+    run_plan_status "$ws" --format=json --git-dates
+    assert_status 0
+    assert_eq "$(git_dates_of_plan)" "2026-01-05|2026-01-09|2026-01-12" "started|finished|updated"
+}
+
+test_git_dates_leave_finished_empty_while_open() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    local plan="$ws/docs/superpowers/plans/2026-02-01-plan.md"
+    make_plan "$plan" "Plan"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-02-01
+    replace_in_file "$plan" '- \[ \] first step' '- [x] first step'
+    commit_all "$ws" 2026-02-03
+    run_plan_status "$ws" --format=json --git-dates
+    assert_status 0
+    assert_eq "$(git_dates_of_plan)" "2026-02-03|null|2026-02-03" "started|finished|updated"
+}
+
+test_git_dates_leave_started_empty_without_ticks() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    make_plan "$ws/docs/superpowers/plans/2026-03-01-plan.md" "Plan"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-03-01
+    run_plan_status "$ws" --format=json --git-dates
+    assert_status 0
+    assert_eq "$(git_dates_of_plan)" "null|null|2026-03-01" "started|finished|updated"
+}
+
+test_git_dates_keep_the_first_tick_after_a_retick() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    local plan="$ws/docs/superpowers/plans/2026-04-01-plan.md"
+    mkdir -p "$ws/docs/superpowers/plans"
+    printf '# Plan\n\n## Task 1: do the thing\n\n- [ ] only step\n' > "$plan"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-04-01
+    replace_in_file "$plan" '- \[ \] only' '- [x] only'
+    commit_all "$ws" 2026-04-02
+    replace_in_file "$plan" '- \[x\] only' '- [ ] only'
+    commit_all "$ws" 2026-04-04
+    replace_in_file "$plan" '- \[ \] only' '- [x] only'
+    commit_all "$ws" 2026-04-06
+    run_plan_status "$ws" --format=json --git-dates
+    assert_status 0
+    assert_eq "$(git_dates_of_plan)" "2026-04-02|2026-04-06|2026-04-06" "started|finished|updated"
+}
+
+test_git_dates_count_an_uppercase_x() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    local plan="$ws/docs/superpowers/plans/2026-05-01-plan.md"
+    make_plan "$plan" "Plan"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-05-01
+    replace_in_file "$plan" '- \[ \] first step' '- [X] first step'
+    commit_all "$ws" 2026-05-02
+    run_plan_status "$ws" --format=json --git-dates
+    assert_status 0
+    assert_eq "$(git_dates_of_plan)" "2026-05-02|null|2026-05-02" "started|finished|updated"
+}
+
+test_git_dates_read_the_repository_owning_the_plan() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    local module="$ws/backend/Modules/SAO"
+    local plan="$module/docs/plans/2026-06-01-plan.md"
+    make_plan "$plan" "Plan"
+    git -C "$ws/backend" init -q
+    printf 'Modules/SAO\n' >> "$ws/backend/.git/info/exclude"
+    printf 'backend\n' > "$ws/backend/README.md"
+    commit_all "$ws/backend" 2026-06-20
+    git -C "$module" init -q
+    commit_all "$module" 2026-06-01
+    replace_in_file "$plan" '- \[ \] first step' '- [x] first step'
+    commit_all "$module" 2026-06-02
+    run_plan_status "$ws" --format=json --git-dates
+    assert_status 0
+    assert_eq "$(git_dates_of_plan)" "2026-06-02|null|2026-06-02" "started|finished|updated"
+}
+
+test_git_dates_are_null_for_an_untracked_plan() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    local plan="$ws/docs/superpowers/plans/2026-07-02-plan.md"
+    mkdir -p "$ws"
+    printf 'readme\n' > "$ws/README.md"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-07-01
+    make_plan "$plan" "Plan"
+    replace_in_file "$plan" '- \[ \] first step' '- [x] first step'
+    run_plan_status "$ws" --format=json --git-dates
+    assert_status 0
+    assert_eq "$(printf '%s' "$OUTPUT" | php -r 'echo json_decode(stream_get_contents(STDIN), true) === null ? "invalid" : "valid";')" "valid" "JSON"
+    assert_eq "$(git_dates_of_plan | cut -d'|' -f1,2)" "null|null" "started|finished"
+}
+
+test_git_dates_are_absent_without_the_option() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    make_plan "$ws/docs/superpowers/plans/2026-08-01-plan.md" "Plan"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-08-01
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_output_lacks '"started"'
+    assert_output_lacks '"finished"'
+}
+
 # --- runner ------------------------------------------------------------------------------------
 
 run_tests() {

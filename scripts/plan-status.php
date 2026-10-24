@@ -152,6 +152,38 @@ final class LastChange
     }
 
     /**
+     * The days a plan file got its first and its last ticked step, read from the
+     * repository that owns the file: `started` is the commit date of the first commit
+     * adding a `- [x]` line, `finished` that of the last one. Both are null when git
+     * does not know the file or no commit ever ticked a step.
+     *
+     * @return array{started: ?string, finished: ?string}
+     */
+    public function ticks(string $file): array
+    {
+        $log = $this->git(dirname($file), ['log', '--reverse', '--format=%x00%cs', '-p', '--', basename($file)]);
+
+        $started = null;
+        $finished = null;
+        $day = '';
+
+        foreach (explode("\n", $log ?? '') as $line) {
+            if (str_starts_with($line, "\0")) {
+                $day = mb_substr($line, 1);
+
+                continue;
+            }
+
+            if (preg_match('~^\+\s*- \[[xX]\]~', $line) === 1) {
+                $started ??= $day;
+                $finished = $day;
+            }
+        }
+
+        return ['started' => $started, 'finished' => $finished];
+    }
+
+    /**
      * @return array{0: array<string, string>, 1: array<string, true>}|null
      */
     private function folder(string $dir): ?array
@@ -246,7 +278,7 @@ final class PlanParser
     /**
      * @return list<array<string, mixed>>
      */
-    public function all(?string $repo_filter, ?string $name_filter, bool $with_evidence): array
+    public function all(?string $repo_filter, ?string $name_filter, bool $with_evidence, bool $with_git_dates = false): array
     {
         $plans = [];
 
@@ -275,7 +307,7 @@ final class PlanParser
                             continue;
                         }
 
-                        $plan = $this->parse($file, $repo, $relative, $plan_dir, $with_evidence);
+                        $plan = $this->parse($file, $repo, $relative, $plan_dir, $with_evidence, $with_git_dates);
 
                         $plans[] = $plan;
                     }
@@ -299,7 +331,7 @@ final class PlanParser
     /**
      * @return array<string, mixed>
      */
-    private function parse(string $file, string $repo, string $repo_relative, string $plan_dir, bool $with_evidence): array
+    private function parse(string $file, string $repo, string $repo_relative, string $plan_dir, bool $with_evidence, bool $with_git_dates): array
     {
         $lines = file($file, FILE_IGNORE_NEW_LINES) ?: [];
 
@@ -421,7 +453,9 @@ final class PlanParser
         [$date, $date_source] = $this->dateOf($file);
         [$updated, $updated_source] = $this->workspace->last_change->of($file);
 
-        return [
+        $state = $this->effectiveState($declared, $checkbox_state);
+
+        $plan = [
             'kind' => 'plan',
             'repo' => $repo,
             'source' => $plan_dir,
@@ -439,9 +473,18 @@ final class PlanParser
             'total_steps' => $total,
             'checked_steps' => $checked,
             'checkbox_state' => $checkbox_state,
-            'state' => $this->effectiveState($declared, $checkbox_state),
+            'state' => $state,
             'inconsistency' => $this->inconsistency($declared, $status_banner, $checkbox_state, $checked, $total, $delivered),
         ];
+
+        if ($with_git_dates) {
+            $ticks = $this->workspace->last_change->ticks($file);
+
+            $plan['started'] = $ticks['started'];
+            $plan['finished'] = $state === 'done' ? $ticks['finished'] : null;
+        }
+
+        return $plan;
     }
 
     /**
@@ -1535,6 +1578,8 @@ Usage: composer run plan-status [-- options]
   --todo-limit=<n>           cap code markers (default: 200)
   --out=<path>               write to a file instead of stdout
   --no-evidence              skip filesystem checks (faster)
+  --git-dates                add started and finished from git history (first and
+                             last commit that ticked a step); updated is the last change
   --repos                    list the repositories found under the root and exit
   -h, --help                 this help
 
@@ -1598,6 +1643,7 @@ if (($options['repos'] ?? false) === true) {
 
 $repo = is_string($options['repo'] ?? null) ? resolve_repo($options['repo'], $repos) : null;
 $with_evidence = ($options['no-evidence'] ?? false) !== true;
+$with_git_dates = ($options['git-dates'] ?? false) === true;
 $only_open = ($options['open'] ?? false) === true;
 $only_stale = ($options['stale'] ?? false) === true;
 
@@ -1613,7 +1659,7 @@ if (! in_array($sort, ['date', 'repo', 'progress', 'updated'], true)) {
 
 $plans = in_array('plans', $kinds, true)
     ? PlanParser::sort(
-        $plan_parser->all($repo, is_string($options['plan'] ?? null) ? $options['plan'] : null, $with_evidence),
+        $plan_parser->all($repo, is_string($options['plan'] ?? null) ? $options['plan'] : null, $with_evidence, $with_git_dates),
         $sort,
     )
     : [];
