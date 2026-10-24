@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # CRUD facet counters — Implementation Plan
 
 > **For agentic workers:** this plan is **closed**. It is recorded retrospectively for spec/plan parity; the feature shipped before the plan existed. See the delivery status below and the module documentation it names.

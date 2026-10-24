@@ -3,7 +3,7 @@
 **Date:** 2026-09-17
 **Module:** `Modules/Shop` (not yet created)
 **Supersedes:** `.cursor/plans/ecommerce_module_embryo_5a2b64dd.plan.md` (the embryo whose decisions this spec re-analyses and locks)
-**Status:** Design agreed. No implementation started.
+**Status:** Being implemented in phases, each with its own plan and delivery status; plan-status reports their state. Was: Design agreed. No implementation started.
 
 ---
 

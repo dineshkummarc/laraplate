@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Search Modes and Strategy Resolution Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development (or executing-plans). Steps use checkbox (`- [ ]`) tracking.

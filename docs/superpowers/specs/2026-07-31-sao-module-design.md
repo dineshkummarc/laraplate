@@ -4,7 +4,7 @@
 **Updated:** 2026-08-05 — product pillars (deploy census, reliable silence, release history,
 ownership suggestion, fingerprint pivots, time-to-truth) locked into this design.
 **Module:** `Modules/SAO` (Simply Another Orchestrator)
-**Status:** Design agreed. No implementation started.
+**Status:** Being implemented in phases, each with its own plan and delivery status; plan-status reports their state. Was: Design agreed. No implementation started.
 **License:** AGPL-3.0-or-later, `laraplate_owned: true` — same terms as Core/CMS/ERP/AI/MES.
 
 ---

@@ -3,7 +3,7 @@
 ## Status
 
 - Date: 2026-07-14
-- Status: in progress
+- Status: Implemented 2026-09-30; see the delivery status of `docs/superpowers/plans/2026-06-30-cms-graph-layer.md`. Was: in progress.
 - Scope: Core framework, with CMS as the first consumer/provider
 - Supersedes: the previous CMS-only graph layer direction
 

@@ -1,6 +1,6 @@
 # Settings group cache invalidation
 
-**Status:** Draft
+**Status:** Implemented 2026-09-30; see the delivery status of `docs/superpowers/plans/2026-05-21-settings-group-cache-invalidation.md`. Was: Draft.
 **Date:** 2026-05-21
 **Scope:** Core settings cache invalidation only
 **Chosen approach:** Group-level invalidation with backward-compatible reads

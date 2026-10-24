@@ -1,5 +1,5 @@
 ---
-status: closed
+status: completed
 created_on: 2026-10-19
 ---
 # MES clock skew on agent resends. Implementation Plan

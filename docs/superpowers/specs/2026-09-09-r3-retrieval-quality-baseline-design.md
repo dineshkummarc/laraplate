@@ -2,7 +2,7 @@
 
 > **Moving on delivery.** This subject names backend files only, so this spec and its plan belong in `docs/superpowers/`. They stay here while the work is in flight and move once it is done, links and indexes repaired on both sides. See `Where specs and plans live` in the stack `AGENTS.md`.
 
-**Status:** approved design, Phase 1 scoped
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-09-09-r3-retrieval-quality-baseline.md`. Was: approved design, Phase 1 scoped.
 **Date:** 2026-09-09
 **Program goal:** R3 (retrieval quality) of the RAG assistant program — improve application-content ranking from raw lexical/engine baseline toward metadata → hybrid → rerank → graph, **measured**.
 

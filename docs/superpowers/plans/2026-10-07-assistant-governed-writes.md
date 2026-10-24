@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Assistant Governed Writes Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development (or executing-plans). Steps use checkbox (`- [ ]`) tracking. Tick a task's boxes when it finishes, in the same work block.

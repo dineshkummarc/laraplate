@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Seeder Orchestration and Reconciliation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -2521,3 +2524,15 @@ file only if your line is the sole change; otherwise leave it and say so in the 
 **The upsert `$update` list is the safety mechanism.** `SeedReconciler` passes `$definition->structural` and nothing else. Adding `value` or `seeded_value` to that list would silently overwrite operator customizations on every release. If a test ever needs them there, the test is wrong.
 
 **Query-count assertions are load-bearing.** The test in Task 5 that compares 1 row against 50 rows exists to catch a regression into per-row queries. If it fails after a refactor, the refactor reintroduced the N+1 this plan removes.
+
+## Delivery status (2026-08-14): delivered, reconciled against the code on 2026-10-23
+
+All twelve tasks are built. Task 11, deferred, was unblocked on 2026-08-01 and verified on 2026-08-14 (`FullSeedRunTest`). Divergences:
+
+- The migration `2026_07_31_000002_add_seeding_columns_to_settings_table.php` was not created: `module` and `seeded_value` are in the base settings migration.
+- `--skip-unchanged` is not registered, since `content_hash` is a placeholder (Task 9 note, `SeedOrchestrator`); the README documents it as not implemented.
+- `permission:refresh` is its own graph node, `PermissionRefreshSeeder`, which `CoreDatabaseSeeder` depends on.
+- Module seeders build their definitions through `Seeder::internalSettingsDefinition()`, which the plan did not have.
+- The Core RAG documentation has no section on seeding: only the README describes it. A section in `Modules/Core/docs/rag/MODULE.md` is still to write, in the Core repository.
+
+**Documented in:** `Modules/Core/README.md` (*Seeding and reconciliation*), `Modules/Core/docs/rag/MODULE.md` (*Settings and module activation*, the declaring `module` column only).

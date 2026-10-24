@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # SAO Phase 4 — Source Profiles, Webhook Ingest & Replay Plan
 
 > REQUIRED SUB-SKILL: superpowers:executing-plans. Checkbox (`- [ ]`) steps.

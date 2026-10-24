@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-20
 **Module:** `Modules/Shop` (consumer of CMS content-extension seam, Core `Entity`/`Preset`, ERP `Item`/`BelongsToCompany`)
-**Status:** Design agreed. No implementation started.
+**Status:** Implemented 2026-10-21; see the delivery status of `docs/superpowers/plans/2026-10-20-shop-product-admin.md`. Was: Design agreed. No implementation started.
 **Related:** `2026-09-17-shop-module-design.md` (Shop module decisions E1-E31); `2026-10-06-shop-catalog-foundation.md` (plan #1, shipped — `Product`/`ProductVariant`/`VariantItem`, the seed default preset, the deferred write-surface constraints this plan resolves). This is Shop plan **#2** of the decomposition roadmap. Storefront browsing (categories, per-category presets, facets, browse snapshot, `/app` read endpoints) is plan **#3**; cart/checkout and later slices shift down accordingly.
 
 ---

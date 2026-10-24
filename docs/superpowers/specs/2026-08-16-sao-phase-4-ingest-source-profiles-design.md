@@ -4,7 +4,7 @@
 **Module:** `Modules/SAO`
 **Parent spec:** `docs/superpowers/specs/2026-07-31-sao-module-design.md` (§5 driver waves, §6 ingest, §13 phase 4)
 **Builds on:** phase 2 (signals, fingerprint, loop protection) and phase 3 (connections).
-**Status:** Design proposed.
+**Status:** Implemented 2026-09-30; see the delivery status of `docs/superpowers/plans/2026-08-16-sao-phase-4-ingest-source-profiles.md`. Was: Design proposed.
 
 ---
 

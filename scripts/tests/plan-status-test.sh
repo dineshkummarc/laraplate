@@ -335,6 +335,145 @@ PLAN
     assert_output_contains "Task 2: brings a file"
 }
 
+# Commits everything in the git repository at $1 with the commit date $2 (YYYY-MM-DD).
+commit_all() {
+    local root=$1 day=$2
+    git -C "$root" add -A
+    GIT_AUTHOR_DATE="${day}T10:00:00" GIT_COMMITTER_DATE="${day}T10:00:00" \
+        git -C "$root" -c user.name=t -c user.email=t@t commit -q -m "at $day"
+}
+
+test_last_change_is_the_last_commit_that_touched_the_file() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    make_plan "$ws/docs/superpowers/plans/2026-01-01-kept.md" "Kept"
+    make_plan "$ws/docs/superpowers/plans/2026-01-02-edited.md" "Edited"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-03-04
+    printf -- '- [ ] third step\n' >> "$ws/docs/superpowers/plans/2026-01-02-edited.md"
+    commit_all "$ws" 2026-05-06
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_eq "$(printf '%s' "$OUTPUT" | php -r '$r = json_decode(stream_get_contents(STDIN), true); foreach ($r["plans"] as $p) { echo $p["file"], "=", $p["updated"], ":", $p["updated_source"], " "; }')" \
+        "2026-01-01-kept.md=2026-03-04:git 2026-01-02-edited.md=2026-05-06:git " "last change"
+}
+
+test_an_uncommitted_change_takes_the_modification_date() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    make_plan "$ws/docs/superpowers/plans/2026-01-01-plan.md" "Plan"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-03-04
+    printf -- '- [ ] third step\n' >> "$ws/docs/superpowers/plans/2026-01-01-plan.md"
+    run_plan_status "$ws"
+    assert_status 0
+    assert_output_contains "upd $(php -r 'echo date("Y-m-d");')"
+    assert_output_lacks "upd 2026-03-04"
+}
+
+test_outside_git_the_last_change_is_marked_as_a_modification_date() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    make_plan "$ws/docs/superpowers/plans/2026-01-01-plan.md" "Plan"
+    run_plan_status "$ws"
+    assert_status 0
+    assert_output_contains "~upd "
+}
+
+test_sort_by_last_change_lists_the_most_recent_first() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    make_plan "$ws/docs/superpowers/plans/2026-01-01-older-name.md" "Older name"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-05-06
+    make_plan "$ws/docs/superpowers/plans/2026-02-01-newer-name.md" "Newer name"
+    commit_all "$ws" 2026-03-04
+    run_plan_status "$ws" --sort=updated --summary
+    assert_status 0
+    [[ "$OUTPUT" == *"older-name"*"newer-name"* ]] || fail "the plan changed last is not listed first"
+}
+
+test_a_delivery_status_on_a_plan_with_open_steps_is_reported() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-half.md" <<'PLAN'
+# Half
+
+## Task 1: do the thing
+
+- [x] first step
+- [ ] second step
+
+## Delivery status (2026-01-02): built
+PLAN
+    run_plan_status "$ws"
+    assert_status 0
+    assert_output_contains "delivery status written but the plan reads partial (1/2 steps flagged)"
+}
+
+test_a_plan_declared_completed_without_a_delivery_status_is_reported() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-done.md" <<'PLAN'
+---
+status: completed
+---
+# Done
+
+## Task 1: do the thing
+
+- [x] first step
+PLAN
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_output_contains "front-matter says completed but the plan has no delivery status"
+}
+
+test_a_closed_plan_with_both_declarations_is_consistent() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-done.md" <<'PLAN'
+---
+status: completed
+---
+# Done
+
+## Task 1: do the thing
+
+- [x] first step
+
+```markdown
+## Delivery status (date): quoted as an example, not a record
+```
+
+## Delivery status (2026-01-02): built
+
+**Documented in:** `Modules/Core/README.md`.
+PLAN
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_output_contains '"inconsistency": null'
+}
+
+test_a_superseded_plan_with_every_step_resolved_is_consistent() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-old.md" <<'PLAN'
+---
+status: superseded
+---
+# Old
+
+## Task 1: do the thing
+
+- [x] first step
+- [-] second step (superseded by 2026-02-01-new.md)
+
+## Delivery status (2026-02-01): partially delivered, superseded by 2026-02-01-new.md
+
+**Documented in:** `Modules/Core/README.md`.
+PLAN
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_output_contains '"inconsistency": null'
+}
+
 # --- runner ------------------------------------------------------------------------------------
 
 run_tests() {

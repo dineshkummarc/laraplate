@@ -4,7 +4,7 @@
 **Module:** `Modules/SAO`
 **Parent spec:** `docs/superpowers/specs/2026-07-31-sao-module-design.md` (§4, §9; D15/D17)
 **Builds on:** phase 5b (`Release`/`ReleaseTag`/`TicketRelease`, deploy census — shipped).
-**Status:** Design proposed.
+**Status:** Implemented 2026-09-19; see the delivery status of `docs/superpowers/plans/2026-09-18-sao-affected-version-and-maturity-census.md`. Was: Design proposed.
 
 ---
 

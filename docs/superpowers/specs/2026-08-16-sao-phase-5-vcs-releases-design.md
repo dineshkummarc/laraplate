@@ -4,7 +4,7 @@
 **Module:** `Modules/SAO`
 **Parent spec:** `docs/superpowers/specs/2026-07-31-sao-module-design.md` (phase 5)
 **Builds on:** `docs/superpowers/specs/2026-08-15-sao-phase-3a-driver-framework-foundation-design.md` (capability contracts)
-**Status:** Design proposed.
+**Status:** Implemented 2026-09-30; see the delivery status of `docs/superpowers/plans/2026-08-16-sao-phase-5-vcs-releases.md`. Was: Design proposed.
 
 ---
 

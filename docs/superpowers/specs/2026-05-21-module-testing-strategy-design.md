@@ -1,6 +1,6 @@
 # Module testing strategy
 
-**Status:** Revised
+**Status:** Implemented 2026-09-18; see the delivery status of `docs/superpowers/plans/2026-05-21-module-testing-strategy.md`. Was: Revised.
 **Date:** 2026-05-21
 **Revised:** 2026-09-15
 **Scope:** Laraplate application and module test organization, test toolchain ownership

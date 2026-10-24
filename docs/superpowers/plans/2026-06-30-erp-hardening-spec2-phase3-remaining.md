@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # ERP Spec 2 — Phase 2C + Phase 3+ Remaining Backlog Implementation Plan
 
 > **Navigation:** Implements **all backlog remaining after Phase 2A + 2B** — IDs `2C-01`…`2C-05`, `3-01`…`3-06`, `4-01`…`4-13`, `5-01`…`5-06`, `6-01`…`6-06` (36 items) from

@@ -1,6 +1,6 @@
 # CMS content provenance, references and AI-assistance disclosure (design)
 
-**Status:** Approved direction (v1)  
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-07-02-cms-content-provenance-ai-assistance.md`. Was: Approved direction (v1).  
 **Date:** 2026-07-02
 
 ## Problem

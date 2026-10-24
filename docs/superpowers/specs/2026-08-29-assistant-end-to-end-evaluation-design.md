@@ -1,6 +1,6 @@
 # Assistant end-to-end evaluation (R1b)
 
-**Status:** Approved for planning
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-08-29-assistant-end-to-end-evaluation.md`. Was: Approved for planning.
 
 **Date:** 2026-08-29
 

@@ -1,6 +1,6 @@
 # Seeder Orchestration and Reconciliation — Design
 
-**Status:** Implemented (Core mechanism); Task 11 (AI/CMS/ERP/MES seeder migration) deferred
+**Status:** Implemented 2026-08-14, Task 11 (AI/CMS/ERP/MES seeder migration) included; see the delivery status of `docs/superpowers/plans/2026-07-31-seeder-orchestration.md`. Was: implemented (Core mechanism), Task 11 deferred.
 
 **Date:** 2026-07-31
 

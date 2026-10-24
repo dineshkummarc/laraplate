@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # SAO — Affected Version & Version-Maturity Census Plan
 
 > REQUIRED SUB-SKILL: superpowers:executing-plans. Checkbox (`- [ ]`) steps.

@@ -1,5 +1,5 @@
 ---
-status: closed
+status: completed
 created_on: 2026-10-20
 ---
 # Self-hosted AI services, client side, Phase 1. Implementation Plan
@@ -72,7 +72,7 @@ Waits for the services to report `api_version` (Task 4 of the `sentence-transfor
 
 ### Task 4: Documentation and closing
 
-**Files:** modify `Modules/AI/docs/SENTENCE_TRANSFORMERS_INSTALLATION.md`, `Modules/AI/docs/WHISPER_INSTALLATION.md`, the relevant `Modules/AI/docs/rag/` developer page, `../specs/2026-10-20-self-hosted-ai-services-client-design.md`, `INDEX.md` files, this plan.
+**Files:** modify `docs/SENTENCE_TRANSFORMERS_INSTALLATION.md of the AI module (replaced on 2026-10-23 by STANDARD_SERVERS_INSTALLATION.md)`, `docs/WHISPER_INSTALLATION.md of the AI module (replaced on 2026-10-23 by STANDARD_SERVERS_INSTALLATION.md)`, the relevant `Modules/AI/docs/rag/` developer page, `../specs/2026-10-20-self-hosted-ai-services-client-design.md`, `INDEX.md` files, this plan.
 
 - [x] **Docs.** The request id in both guides (how to find a failed call in the service log); `/ready` as the healthcheck; the fixture update step for a service release in the developer docs; the guides' status lines follow the services' readiness.
 - [x] **Spec.** Status line points to this plan and records Phase 1 delivered; note P3 against R7.
@@ -93,4 +93,4 @@ All four tasks are built, in `Modules/AI` (`laraplate-ai` 248591b, b617ddc, 2635
 - **Review minors (9f7b206, c0a4292d).** The exception message keeps the HTTP exception's reason with every URL reduced to scheme, host, port and path; `WhisperTranscriber` logs a client-side error apart (`Self-hosted AI service call could not be handled`, by class only); an `api_version` of `"1"` or `1.0` counts as `1`; the contract helper checks `pattern` and a `null` const and refuses keywords it does not check; the contract test reads the API version from `EmbeddingServiceIdentity::API_VERSION` and lets optional multipart fields through; the batcher's burst of warnings is documented. `embedDocuments()` declares Neuron's `Document[]` contract (any keys, renumbered) and drops a redundant `array_values` reported by PHPStan.
 - **Task 3 tests** live in a new `tests/Unit/Ai/Embeddings/EmbeddingServiceIdentityTest.php`: the class had no direct test before.
 
-**Documented in:** `Modules/AI/docs/SENTENCE_TRANSFORMERS_INSTALLATION.md` (Verify the embedding host, Tracing a failed call), `Modules/AI/docs/WHISPER_INSTALLATION.md` (HTTP contract, Tracing a failed call), `Modules/AI/docs/rag/MODULE.md` (Self-hosted AI services: request id, API version, contract test and the fixture update of a service release), `Modules/AI/docs/rag/MEDIA_ANALYSIS_DEVELOPER.md` (Failure), `Modules/Core/docs/rag/SEARCH_RETRIEVAL_PIPELINE.md` (the `Reranker failed` warning).
+**Documented in:** `Modules/AI/docs/STANDARD_SERVERS_INSTALLATION.md` (Verify the embedding host, Tracing a failed call), `Modules/AI/docs/STANDARD_SERVERS_INSTALLATION.md` (HTTP contract, Tracing a failed call), `Modules/AI/docs/rag/MODULE.md` (Self-hosted AI services: request id, API version, contract test and the fixture update of a service release), `Modules/AI/docs/rag/MEDIA_ANALYSIS_DEVELOPER.md` (Failure), `Modules/Core/docs/rag/SEARCH_RETRIEVAL_PIPELINE.md` (the `Reranker failed` warning).

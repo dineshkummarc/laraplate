@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Octane Readiness Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -1247,3 +1250,14 @@ how `composer.json` defines them. Running all three in one process exhausts the 
 inside `dg/bypass-finals`; that predates this work. `composer test:lint` is red on
 `app/Models/User.php` (last touched 2026-07-07) and on 525 files for one Rector rule —
 both pre-existing. Every file this plan touched passes Pint individually.
+
+## Delivery status (2026-08-27): delivered without installing Octane, reconciled against the code on 2026-10-23
+
+The outcome table above records each task. Since then:
+
+- The grid surface was removed in Core 1.75.0, not only deprecated.
+- The four `$router->middleware()` calls are `pushMiddlewareToGroup` calls.
+- Test files moved: `Modules/Core/tests/Integration/Config/LongLivedWorkerConfigTest.php`, `Modules/Core/tests/Integration/Services/DatabaseSettingsOverlayTest.php`; depth caching is covered by `Modules/Core/tests/Integration/Helpers/HasClosureTableTest.php`.
+- The worker probe in `ApplicationContentDeadlineExecutor` still tests `class_exists(\Laravel\Octane\Octane::class)` and must change when Octane is adopted. No document describes the soft deadline; to write in the AI repository.
+
+**Documented in:** `Modules/Core/docs/rag/PERFORMANCE_TOOLKIT.md` (*Process-level vs request-level caches*).
