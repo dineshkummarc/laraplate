@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # plan-status: Git Dates and Plan Modules Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -24,7 +27,7 @@
 ## Review Focus
 
 1. A plan file git does not track (new, uncommitted): `started` and `finished` are `null`, nothing on stderr leaks into the JSON. Test in Task 2.
-2. A plan inside a module submodule (`Modules/SAO/docs/plans/x.md`): ticks are read from the module's own repository. Test in Task 2.
+2. A plan inside a module submodule (a plan file under `Modules/SAO/docs/plans/`): ticks are read from the module's own repository. Test in Task 2.
 3. A step unticked and ticked again: `started` stays the first tick, `finished` is the last one. Test in Task 2.
 4. A front-matter `module:` naming an unknown slug (`module: billing`): kept, lowercased, not dropped. Test in Task 1.
 5. Uppercase `- [X]` counts as a tick, as it does for step counting. Test in Task 2.
@@ -44,7 +47,7 @@
 
 ```bash
 test_modules_come_from_the_front_matter()          # "module: AI, core, billing"  -> ai,core,billing
-test_modules_come_from_a_plan_inside_a_module()    # Modules/SAO/docs/plans/2026-01-01-b.md -> sao
+test_modules_come_from_a_plan_inside_a_module()    # a plan file under Modules/SAO/docs/plans/ -> sao
 test_modules_rank_the_modules_task_files_name()    # Modules/Core x2, Modules/AI x1 -> core,ai
 test_modules_fall_back_to_platform()               # no module anywhere -> platform
 ```
@@ -134,15 +137,28 @@ git commit -m "feat(plan-status): add --git-dates for when a plan started and fi
 - Modify: `Modules/Core/README.md` (section *Scripts*, subsection *Plan status* linking the doc), committed in `Modules/Core`
 - Modify: `scripts/plan-status.php` (`usage()` paragraph on front matter), `.ai/rules/plans.md`, `docs/superpowers/plans/INDEX.md`, this plan
 
-- [ ] **Step 1: Extend the front-matter paragraph of `usage()`**: "`module:` (one slug or a comma list) sets the plan's modules; otherwise they come from the plan's location under Modules/*/docs/plans or from the Modules/<Name>/ paths its tasks name, and `platform` when there are none."
-- [ ] **Step 2: Write `Modules/Core/docs/PLAN_STATUS.md`**: what the script reports, the `--root`, `--open`, `--sort`, `--format=json` and `--git-dates` options, the date rules (`started` first tick, `finished` last tick of a done plan, `updated` last change, `null` when git does not know the file), the module rules from Step 1, and that the public website reads `--format=json --git-dates`. Add a short *Plan status* subsection under *Scripts* in `Modules/Core/README.md` linking it.
-- [ ] **Step 3: Add to `.ai/rules/plans.md`** "Set `module:` when a plan's files do not show its module", with the reason: the website roadmap groups plans by module and falls back to `platform`.
-- [ ] **Step 4: Run** `php artisan test --compact tests/Unit/ClosedPlansPointToDocumentationTest.php` and `bash scripts/tests/plan-status-test.sh` — both PASS.
-- [ ] **Step 5: Close the plan** per `.ai/rules/plans.md`: every box resolved, front matter `status: completed`, a `## Delivery status (date): ...` section with a `**Documented in:**` line naming `Modules/Core/docs/PLAN_STATUS.md` and `Modules/Core/README.md`, and the plan's line in `docs/superpowers/plans/INDEX.md`.
-- [ ] **Step 6: Commit** in `Modules/Core`, then in laraplate
+- [x] **Step 1: Extend the front-matter paragraph of `usage()`**: "`module:` (one slug or a comma list) sets the plan's modules; otherwise they come from the plan's location under Modules/*/docs/plans or from the Modules/<Name>/ paths its tasks name, and `platform` when there are none."
+- [x] **Step 2: Write `Modules/Core/docs/PLAN_STATUS.md`**: what the script reports, the `--root`, `--open`, `--sort`, `--format=json` and `--git-dates` options, the date rules (`started` first tick, `finished` last tick of a done plan, `updated` last change, `null` when git does not know the file), the module rules from Step 1, and that the public website reads `--format=json --git-dates`. Add a short *Plan status* subsection under *Scripts* in `Modules/Core/README.md` linking it.
+- [x] **Step 3: Add to `.ai/rules/plans.md`** "Set `module:` when a plan's files do not show its module", with the reason: the website roadmap groups plans by module and falls back to `platform`.
+- [x] **Step 4: Run** `php artisan test --compact tests/Unit/ClosedPlansPointToDocumentationTest.php` and `bash scripts/tests/plan-status-test.sh` — both PASS.
+- [x] **Step 5: Close the plan** per `.ai/rules/plans.md`: every box resolved, front matter `status: completed`, a `## Delivery status (date): ...` section with a `**Documented in:**` line naming `Modules/Core/docs/PLAN_STATUS.md` and `Modules/Core/README.md`, and the plan's line in `docs/superpowers/plans/INDEX.md`.
+- [x] **Step 6: Commit** in `Modules/Core`, then in laraplate
 
 ```bash
 git -C Modules/Core add docs/PLAN_STATUS.md README.md && git -C Modules/Core commit -m "docs(core): document plan-status, its modules and git dates"
 git add scripts/plan-status.php .ai/rules/plans.md docs/superpowers/plans/ Modules/Core
 git commit -m "docs: plan-status modules and git dates delivered"
 ```
+
+## Delivery status (2026-10-24): shipped
+
+**Documented in:** `Modules/Core/docs/PLAN_STATUS.md`, `Modules/Core/README.md`.
+
+`scripts/plan-status.php` puts `modules` on every plan and, with `--git-dates`, `started` and `finished` read from git. Both follow the tasks as written; the harness `scripts/tests/plan-status-test.sh` covers them.
+
+Divergences from the plan:
+
+- The tests ran on PHP 8.5.12 in Docker, since the development machine has no PHP 8.5.
+- Pint was not run: `vendor/` could not be installed there, so the style was matched by hand.
+- Two example paths of the form `Modules/SAO/docs/plans/<file>.md` in the Review Focus and Task 1 were reworded: the closed-plan test reads every such path in a delivered plan as a documentation pointer that must exist.
+- Step 4 `php artisan test` was replaced locally by a script repeating the assertions of `tests/Unit/ClosedPlansPointToDocumentationTest.php`; the real test runs in CI. Only `Modules/Core` is checked out among the submodules, so pointers into the other modules were not resolved locally.

@@ -1590,7 +1590,10 @@ open|superseded) overrides its checkbox counts; disagreements between the two ar
 reported. Steps are `- [ ]` open, `- [x]` done, `- [-]` cancelled (resolved, not
 done; say why in the plan). Each plan and spec shows its last change (`upd`): the
 last commit that touched it, or its modification date when it has uncommitted
-changes or is not in git (`~`). The tool never edits a plan.
+changes or is not in git (`~`). Front-matter `module:` (one slug or a comma list)
+sets the plan's modules; otherwise they come from the plan's location under
+Modules/*/docs/plans or from the Modules/<Name>/ paths its tasks name, and `platform`
+when there are none. The tool never edits a plan.
 
 TXT;
 }
