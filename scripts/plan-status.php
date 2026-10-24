@@ -152,6 +152,38 @@ final class LastChange
     }
 
     /**
+     * The days a plan file got its first and its last ticked step, read from the
+     * repository that owns the file: `started` is the commit date of the first commit
+     * adding a `- [x]` or `* [x]` line, `finished` that of the last one. Both are null
+     * when git does not know the file or no commit ever ticked a step.
+     *
+     * @return array{started: ?string, finished: ?string}
+     */
+    public function ticks(string $file): array
+    {
+        $log = $this->git(dirname($file), ['log', '--no-color', '--reverse', '--format=%x00%cs', '-p', '--', basename($file)]);
+
+        $started = null;
+        $finished = null;
+        $day = '';
+
+        foreach (explode("\n", $log ?? '') as $line) {
+            if (str_starts_with($line, "\0")) {
+                $day = mb_substr($line, 1);
+
+                continue;
+            }
+
+            if (preg_match('~^\+\s*[-*] \[[xX]\]~', $line) === 1) {
+                $started ??= $day;
+                $finished = $day;
+            }
+        }
+
+        return ['started' => $started, 'finished' => $finished];
+    }
+
+    /**
      * @return array{0: array<string, string>, 1: array<string, true>}|null
      */
     private function folder(string $dir): ?array
@@ -246,7 +278,7 @@ final class PlanParser
     /**
      * @return list<array<string, mixed>>
      */
-    public function all(?string $repo_filter, ?string $name_filter, bool $with_evidence): array
+    public function all(?string $repo_filter, ?string $name_filter, bool $with_evidence, bool $with_git_dates = false): array
     {
         $plans = [];
 
@@ -275,7 +307,7 @@ final class PlanParser
                             continue;
                         }
 
-                        $plan = $this->parse($file, $repo, $relative, $plan_dir, $with_evidence);
+                        $plan = $this->parse($file, $repo, $relative, $plan_dir, $with_evidence, $with_git_dates);
 
                         $plans[] = $plan;
                     }
@@ -299,7 +331,7 @@ final class PlanParser
     /**
      * @return array<string, mixed>
      */
-    private function parse(string $file, string $repo, string $repo_relative, string $plan_dir, bool $with_evidence): array
+    private function parse(string $file, string $repo, string $repo_relative, string $plan_dir, bool $with_evidence, bool $with_git_dates): array
     {
         $lines = file($file, FILE_IGNORE_NEW_LINES) ?: [];
 
@@ -421,7 +453,9 @@ final class PlanParser
         [$date, $date_source] = $this->dateOf($file);
         [$updated, $updated_source] = $this->workspace->last_change->of($file);
 
-        return [
+        $state = $this->effectiveState($declared, $checkbox_state);
+
+        $plan = [
             'kind' => 'plan',
             'repo' => $repo,
             'source' => $plan_dir,
@@ -431,6 +465,7 @@ final class PlanParser
             'updated' => $updated,
             'updated_source' => $updated_source,
             'path' => $this->workspace->relative($file),
+            'modules' => $this->modules($front_matter, $this->workspace->relative($file), $tasks),
             'title' => $title,
             'front_matter_status' => $declared,
             'status_banner' => $status_banner,
@@ -438,9 +473,64 @@ final class PlanParser
             'total_steps' => $total,
             'checked_steps' => $checked,
             'checkbox_state' => $checkbox_state,
-            'state' => $this->effectiveState($declared, $checkbox_state),
+            'state' => $state,
             'inconsistency' => $this->inconsistency($declared, $status_banner, $checkbox_state, $checked, $total, $delivered),
         ];
+
+        if ($with_git_dates) {
+            $ticks = $this->workspace->last_change->ticks($file);
+
+            $plan['started'] = $ticks['started'];
+            $plan['finished'] = $state === 'done' ? $ticks['finished'] : null;
+        }
+
+        return $plan;
+    }
+
+    /**
+     * The modules a plan is about, as lowercased `Modules/` directory names, or `platform`
+     * when it names none. First match wins: the front-matter `module:` (kept even when the
+     * slug is unknown), the module the plan lives in, then the modules its task files
+     * touch, most files first.
+     *
+     * @param  array<string, string>  $front_matter
+     * @param  list<array{files: list<string>}>  $tasks
+     * @return non-empty-list<string>
+     */
+    private function modules(array $front_matter, string $path, array $tasks): array
+    {
+        $declared = array_values(array_filter(
+            array_map(static fn (string $slug): string => mb_strtolower(mb_trim($slug, " \t[]\"'")), explode(',', $front_matter['module'] ?? '')),
+            static fn (string $slug): bool => $slug !== '',
+        ));
+
+        if ($declared !== []) {
+            return array_values(array_unique($declared));
+        }
+
+        if (preg_match('~(?:^|/)Modules/([A-Za-z][A-Za-z0-9]*)/docs/plans/~', $path, $m) === 1) {
+            return [mb_strtolower($m[1])];
+        }
+
+        $counts = [];
+
+        foreach ($tasks as $task) {
+            foreach ($task['files'] as $task_file) {
+                if (preg_match('~^Modules/([A-Za-z][A-Za-z0-9]*)/~', $task_file, $m) === 1) {
+                    $slug = mb_strtolower($m[1]);
+                    $counts[$slug] = ($counts[$slug] ?? 0) + 1;
+                }
+            }
+        }
+
+        if ($counts === []) {
+            return ['platform'];
+        }
+
+        // Sorting is stable since PHP 8.0: equal counts keep their first-appearance order.
+        arsort($counts);
+
+        return array_map('strval', array_keys($counts));
     }
 
     /**
@@ -1488,6 +1578,8 @@ Usage: composer run plan-status [-- options]
   --todo-limit=<n>           cap code markers (default: 200)
   --out=<path>               write to a file instead of stdout
   --no-evidence              skip filesystem checks (faster)
+  --git-dates                add started and finished from git history (first and
+                             last commit that ticked a step); updated is the last change
   --repos                    list the repositories found under the root and exit
   -h, --help                 this help
 
@@ -1498,7 +1590,10 @@ open|superseded) overrides its checkbox counts; disagreements between the two ar
 reported. Steps are `- [ ]` open, `- [x]` done, `- [-]` cancelled (resolved, not
 done; say why in the plan). Each plan and spec shows its last change (`upd`): the
 last commit that touched it, or its modification date when it has uncommitted
-changes or is not in git (`~`). The tool never edits a plan.
+changes or is not in git (`~`). Front-matter `module:` (one slug or a comma list)
+sets the plan's modules; otherwise they come from the plan's location under
+Modules/*/docs/plans or from the Modules/<Name>/ paths its tasks name, and `platform`
+when there are none. The tool never edits a plan.
 
 TXT;
 }
@@ -1551,6 +1646,7 @@ if (($options['repos'] ?? false) === true) {
 
 $repo = is_string($options['repo'] ?? null) ? resolve_repo($options['repo'], $repos) : null;
 $with_evidence = ($options['no-evidence'] ?? false) !== true;
+$with_git_dates = ($options['git-dates'] ?? false) === true;
 $only_open = ($options['open'] ?? false) === true;
 $only_stale = ($options['stale'] ?? false) === true;
 
@@ -1566,7 +1662,7 @@ if (! in_array($sort, ['date', 'repo', 'progress', 'updated'], true)) {
 
 $plans = in_array('plans', $kinds, true)
     ? PlanParser::sort(
-        $plan_parser->all($repo, is_string($options['plan'] ?? null) ? $options['plan'] : null, $with_evidence),
+        $plan_parser->all($repo, is_string($options['plan'] ?? null) ? $options['plan'] : null, $with_evidence, $with_git_dates),
         $sort,
     )
     : [];
