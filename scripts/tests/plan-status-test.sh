@@ -498,6 +498,34 @@ PLAN
     assert_eq "$(modules_of_plans)" "2026-01-01-a.md=ai,core,billing " "modules"
 }
 
+test_modules_come_from_a_flow_style_list() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    mkdir -p "$ws/docs/superpowers/plans"
+    cat > "$ws/docs/superpowers/plans/2026-01-01-a.md" <<'PLAN'
+---
+module: [AI, core]
+---
+# A
+
+## Task 1: do the thing
+
+- [ ] first step
+PLAN
+    cat > "$ws/docs/superpowers/plans/2026-01-02-b.md" <<'PLAN'
+---
+module: ["sao", 'mes']
+---
+# B
+
+## Task 1: do the thing
+
+- [ ] first step
+PLAN
+    run_plan_status "$ws" --format=json
+    assert_status 0
+    assert_eq "$(modules_of_plans)" "2026-01-01-a.md=ai,core 2026-01-02-b.md=sao,mes " "modules"
+}
+
 test_modules_come_from_a_plan_inside_a_module() {
     local ws="$WORK_DIR/${FUNCNAME[0]}"
     make_plan "$ws/backend/Modules/SAO/docs/plans/2026-01-01-b.md" "B"
@@ -613,6 +641,33 @@ test_git_dates_count_an_uppercase_x() {
     run_plan_status "$ws" --format=json --git-dates
     assert_status 0
     assert_eq "$(git_dates_of_plan)" "2026-05-02|null|2026-05-02" "started|finished|updated"
+}
+
+test_git_dates_ignore_a_forced_colour_setting() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    local plan="$ws/docs/superpowers/plans/2026-06-01-plan.md"
+    make_plan "$plan" "Plan"
+    git -C "$ws" init -q
+    git -C "$ws" config color.ui always
+    commit_all "$ws" 2026-06-01
+    replace_in_file "$plan" '- \[ \] first step' '- [x] first step'
+    commit_all "$ws" 2026-06-02
+    run_plan_status "$ws" --format=json --git-dates
+    assert_status 0
+    assert_eq "$(git_dates_of_plan)" "2026-06-02|null|2026-06-02" "started|finished|updated"
+}
+
+test_git_dates_count_a_star_bullet() {
+    local ws="$WORK_DIR/${FUNCNAME[0]}"
+    local plan="$ws/docs/superpowers/plans/2026-06-01-plan.md"
+    make_plan "$plan" "Plan"
+    git -C "$ws" init -q
+    commit_all "$ws" 2026-06-01
+    replace_in_file "$plan" '- \[ \] first step' '* [x] first step'
+    commit_all "$ws" 2026-06-03
+    run_plan_status "$ws" --format=json --git-dates
+    assert_status 0
+    assert_eq "$(git_dates_of_plan)" "2026-06-03|null|2026-06-03" "started|finished|updated"
 }
 
 test_git_dates_read_the_repository_owning_the_plan() {

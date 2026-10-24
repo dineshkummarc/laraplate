@@ -154,14 +154,14 @@ final class LastChange
     /**
      * The days a plan file got its first and its last ticked step, read from the
      * repository that owns the file: `started` is the commit date of the first commit
-     * adding a `- [x]` line, `finished` that of the last one. Both are null when git
-     * does not know the file or no commit ever ticked a step.
+     * adding a `- [x]` or `* [x]` line, `finished` that of the last one. Both are null
+     * when git does not know the file or no commit ever ticked a step.
      *
      * @return array{started: ?string, finished: ?string}
      */
     public function ticks(string $file): array
     {
-        $log = $this->git(dirname($file), ['log', '--reverse', '--format=%x00%cs', '-p', '--', basename($file)]);
+        $log = $this->git(dirname($file), ['log', '--no-color', '--reverse', '--format=%x00%cs', '-p', '--', basename($file)]);
 
         $started = null;
         $finished = null;
@@ -174,7 +174,7 @@ final class LastChange
                 continue;
             }
 
-            if (preg_match('~^\+\s*- \[[xX]\]~', $line) === 1) {
+            if (preg_match('~^\+\s*[-*] \[[xX]\]~', $line) === 1) {
                 $started ??= $day;
                 $finished = $day;
             }
@@ -500,7 +500,7 @@ final class PlanParser
     private function modules(array $front_matter, string $path, array $tasks): array
     {
         $declared = array_values(array_filter(
-            array_map(static fn (string $slug): string => mb_strtolower(mb_trim($slug)), explode(',', $front_matter['module'] ?? '')),
+            array_map(static fn (string $slug): string => mb_strtolower(mb_trim($slug, " \t[]\"'")), explode(',', $front_matter['module'] ?? '')),
             static fn (string $slug): bool => $slug !== '',
         ));
 
