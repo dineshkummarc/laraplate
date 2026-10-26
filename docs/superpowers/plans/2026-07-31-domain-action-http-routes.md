@@ -894,7 +894,7 @@ git -C Modules/Core commit -m "feat(core): add domain action dispatcher"
 - Consumes: `DomainActionDispatcher::dispatch()` from Task 5
 - Produces: route name `core.crud.domain-action`, URI `app/crud/{action}/{module}/{entity}`
 
-`CrudController::__construct()` is **not** changed: `Modules/CMS/app/Http/Controllers/ContentsController.php:18` calls `parent::__construct($crudService)`, so an extra constructor parameter would break CMS. The dispatcher arrives through method injection instead.
+`CrudController::__construct()` is **not** changed: the dispatcher arrives through method injection instead. At delivery time CMS `ContentsController` still extended `CrudController` and called `parent::__construct($crudService)`; as of 2026-10-26 it extends `Controller` and injects `CrudController` to call `list()` (composition), so that constructor coupling no longer exists — method injection stays because it keeps `CrudController`'s constructor stable.
 
 - [x] **Step 1: Write the failing test**
 
@@ -1052,8 +1052,8 @@ and this method, after `clearModelCache()`:
     /**
      * Invoke a module-registered domain action on one record.
      *
-     * The dispatcher arrives by method injection: adding it to the constructor
-     * would break every subclass that calls parent::__construct($crudService).
+     * The dispatcher arrives by method injection so CrudController's constructor
+     * stays a single CrudService dependency (no subclass coupling required).
      */
     final public function domainAction(DomainActionRequest $request, DomainActionDispatcher $dispatcher): Response
     {
@@ -1784,5 +1784,7 @@ The registry, the `domain-action` route, `PermissionName`, the ERP handlers and 
 - Task 2's `ERPDatabaseSeeder::domainPermissions()` became the declaration class `Modules/ERP/app/Authorization/ERPPermissions.php`; `post` and `unpost` stay on Invoice and DeliveryNote only.
 - `unlock` is not registered (spec decision D6); its permission is still declared on Quotation.
 - No Core document describes `PermissionName` (3-04); to write in the Core repository.
+
+**Later (2026-10-26):** CMS `ContentsController` no longer extends `CrudController`; it injects it and delegates to `list()`. The method-injection choice for `DomainActionDispatcher` remains valid; the “subclass `parent::__construct($crudService)`” rationale in Task 6 is historical.
 
 **Documented in:** `Modules/Core/docs/CRUD_SYSTEM.md` (*Domain Actions*), `Modules/ERP/docs/rag/MODULE.md` (*Domain actions over HTTP*).

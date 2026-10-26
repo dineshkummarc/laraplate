@@ -254,7 +254,7 @@ Default: if not implemented, all standard CRUD ops allowed when global `expose_c
 
 - [-] **Step 3: Integrate in `CrudService`** — before `list`/`detail`/`insert`/etc., call `CrudExposureRegistry::assertAllowed($model, $operation)`. — dropped, see Delivery status
 
-**CMS safety:** gate at service entry (CrudService), not by removing routes — `ContentsController` extending `CrudController` for CMS-specific paths must not call blocked operations on ERP entities.
+**CMS safety:** gate at service entry (CrudService), not by removing routes — CMS `ContentsController` reuses generic list in-process via an injected `CrudController` (composition; formerly extended it) and must not call blocked operations on ERP entities.
 
 - [-] **Step 4: ERP models** — dropped, see Delivery status
 
@@ -1153,5 +1153,7 @@ Every task is either delivered or resolved. Task 2 (`3-03`, per-model CRUD/API e
 - **A registry inside `CrudService` cannot tell `/app` from `/api/v1`.** Both surfaces reach the same service through the same `crud.php` routes, so a per-entity `core.crud_exposure.*` registry would block the Laraplate UI as well. Splitting the surfaces is a product decision, and the Point 0 condition for this task (an approved external consumer and entity/operation matrix) is still unmet.
 
 **Divergences:** Steps 1 to 6 of Task 2 are `- [-]`; no `ExposesCrudApi` contract, `CrudExposureRegistry`, `core.crud_exposure` setting or `EnsureModelCrudExposed` middleware exists. If an external `/api/v1` consumer is approved, start from a new spec that decides whether exposure is per surface, instead of reviving these steps.
+
+**Later (2026-10-26):** CMS `ContentsController` reuses `CrudController::list()` by composition (constructor injection), not by extending `CrudController`. The CMS-safety note under Task 2 Step 3 still applies at the service gate.
 
 **Documented in:** `Modules/Core/docs/CRUD_SYSTEM.md` (generic CRUD write restriction), `Modules/Core/docs/rag/MODULE.md`, `Modules/ERP/docs/rag/MODULE.md`, `Modules/ERP/docs/ERP_GUIDA_SEMPLICE.md` and `Modules/ERP/README.md`.
