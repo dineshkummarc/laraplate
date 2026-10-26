@@ -1,6 +1,6 @@
 # Documentation RAG evaluation baseline (R0)
 
-**Status:** Approved for planning
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-08-04-documentation-rag-evaluation-baseline.md`. Was: Approved for planning.
 
 **Date:** 2026-08-04
 

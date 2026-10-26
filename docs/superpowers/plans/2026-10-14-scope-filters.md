@@ -1,5 +1,5 @@
 ---
-status: closed
+status: completed
 created_on: 2026-10-14
 ---
 # Scope filters in ACLs and CRUD queries. Implementation Plan

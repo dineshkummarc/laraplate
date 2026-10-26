@@ -1,6 +1,6 @@
 # RAG documentation — multi-instance readiness (design)
 
-**Status:** Approved direction (user choice: multi-instance, not necessarily immediate; prepare architecture).
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-05-13-rag-multi-instance-elasticsearch.md`. Was: Approved direction (user choice: multi-instance, not necessarily immediate; prepare architecture).
 
 **Date:** 2026-05-13
 

@@ -1,6 +1,6 @@
 # Portable Adaptive Search Matching Design
 
-**Status:** Approved for implementation
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-07-14-portable-search-matching.md`. Was: Approved for implementation.
 
 **Date:** 2026-07-14
 

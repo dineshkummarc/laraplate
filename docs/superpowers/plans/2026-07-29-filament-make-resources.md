@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Filament make-resources — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -47,3 +50,14 @@
 **Spec:** `docs/superpowers/specs/2026-07-29-filament-make-resources-design.md`
 
 **Also implements:** `docs/superpowers/specs/2026-07-30-filament-generate-trait-merge-design.md` — the generate/trait merge (`LaraplateResource*ClassGenerator`, `FilamentTraitResolver::HAS_TABLE_STRIP_FROM_GENERATED_COLUMNS`) shipped through this plan.
+
+## Delivery status (2026-07-29): delivered, reconciled against the code on 2026-10-23
+
+`filament:make-resources` and the Laraplate generators shipped in Core 1.65.0. Divergences:
+
+- `laraplate_owned: true` is set on eight modules, not five.
+- Seven generators are rebound, not four: Infolist, CreateRecord and EditRecord were added, and the create and edit pages get `HasCloseOrCancelFormAction`.
+- The command delegates to `make:filament-resource` / `module:make:filament-resource` with `--generate` (spec 2026-07-30), not to the Coolsam makers.
+- The `Module::isLaraplateOwned()` macro is not documented.
+
+**Documented in:** `Modules/Core/docs/rag/MODULE.md` (*Filament scaffolding*), `Modules/Core/README.md` (*Installed Packages*).

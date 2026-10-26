@@ -1,7 +1,7 @@
 # Filament make-resources — Design
 
 Date: 2026-07-29  
-Status: approved for planning (pending user review of this file)
+Status: Implemented 2026-07-29; see the delivery status of `docs/superpowers/plans/2026-07-29-filament-make-resources.md`. Was: approved for planning (pending user review of this file).
 
 ## Goal
 

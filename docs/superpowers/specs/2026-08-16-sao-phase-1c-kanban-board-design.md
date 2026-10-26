@@ -4,7 +4,7 @@
 **Module:** `Modules/SAO`
 **Parent spec:** `docs/superpowers/specs/2026-07-31-sao-module-design.md` (phase 1)
 **Builds on:** `docs/superpowers/specs/2026-08-01-sao-phase-1a-ticketing-core-design.md` (1a) and `docs/superpowers/specs/2026-08-15-sao-phase-1b-ticket-enrichment-design.md` (1b)
-**Status:** Design proposed.
+**Status:** Implemented 2026-08-25; see the delivery status of `docs/superpowers/plans/2026-08-16-sao-phase-1c-kanban-board.md`. Was: Design proposed.
 
 ---
 

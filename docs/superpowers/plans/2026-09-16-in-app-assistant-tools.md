@@ -1,3 +1,6 @@
+---
+status: superseded
+---
 # In-app Assistant Tools Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development (or executing-plans). Steps use checkbox (`- [ ]`) tracking.

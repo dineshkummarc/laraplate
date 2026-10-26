@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # ERP external cash-import foundation implementation plan
 
 > **For Codex:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task.
@@ -546,3 +549,16 @@ ERP host rejects non-ERP importers, external identities are idempotent, changed
 posted movements are protected, allocation writes remain separate from dated
 cash events, and the focused Core/CMS/ERP suites pass. It does not require or
 authorize any source-specific parser in Laraplate.
+
+## Delivery status (2026-08-03): delivered, reconciled against the code on 2026-10-23
+
+Every task is built; it shipped in Core 1.69.0, ERP 1.22.0 and CMS 1.40.2. The tasks are written as headings, so the plan has no checkboxes. Divergences:
+
+- Task 1: no `add_import_metadata` migration; `fingerprint`, `source_updated_at` and their index are in the create migration `Modules/Core/database/migrations/2026_07_07_120000_create_record_origins_table.php`. `source_updated_at` is an accessor returning `CarbonImmutable`, not an `immutable_datetime` cast. A malformed URL is dropped instead of failing the record.
+- Task 2: the CMS `register()` accepts an optional fingerprint and source timestamp; the plan said no fingerprint.
+- Task 3: no `extend_movement_type_for_funding` migration; the `type` column of the movements create migration is built from `MovementType::values()`.
+- Task 4: the command badge is yellow, the ERP convention since ERP 1.23.2; the stub `WrongModuleImporter` is `CoreOnlyImporter`.
+- Task 6: `ingest()` returns `ImportMutation`, not a result object.
+- Task 7: nothing records the final verification run.
+
+**Documented in:** `Modules/Core/docs/IMPORT_FRAMEWORK.md` (*External record identities*, *Concrete module commands*), `Modules/ERP/README.md` (*Cash Movements and Journal*, *External ERP imports*, *Partner Pools and Settle-up*), `Modules/ERP/docs/rag/MODULE.md` (*Cash Movements and Journal*, *External ERP imports*), `Modules/ERP/docs/rag/GLOSSARY.md` (*Cash / Tricount adapters*).

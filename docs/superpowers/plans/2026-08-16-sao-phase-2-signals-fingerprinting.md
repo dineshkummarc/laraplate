@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # SAO Phase 2 — Signals, Shared Fingerprinting & Loop Protection Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

@@ -28,6 +28,10 @@ declare(strict_types=1);
  * resolved without being done: it counts towards the resolved steps, and a task
  * whose steps are all cancelled reads as cancelled. The plan says why next to it.
  *
+ * Every plan and spec carries its last change: the date of the last commit that
+ * touched it, or its modification date when the working copy has uncommitted
+ * changes or git does not track it. It is read, never written into the plan.
+ *
  * Usage: composer run plan-status [-- options]
  *        php scripts/plan-status.php [--root=<path>] [options]
  */
@@ -49,7 +53,10 @@ final class Workspace
      */
     private ?array $repos = null;
 
-    public function __construct(public readonly string $root) {}
+    public function __construct(
+        public readonly string $root,
+        public readonly LastChange $last_change = new LastChange(),
+    ) {}
 
     /**
      * The repositories to scan, discovered rather than declared: any directory
@@ -107,6 +114,139 @@ final class Workspace
     }
 }
 
+/**
+ * When each file of a folder was last changed. The date of the last commit that
+ * touched it, since a fresh clone gives every file the same modification date;
+ * the modification date only when the working copy differs from that commit or
+ * git does not know the file. In a shallow clone the files unchanged since its
+ * oldest commit get that commit's date. Each folder costs three git calls, once.
+ */
+final class LastChange
+{
+    /**
+     * @var array<string, array{0: array<string, string>, 1: array<string, true>}|null>
+     */
+    private array $folders = [];
+
+    /**
+     * The date and where it comes from: `git` (last commit), `worktree` (uncommitted
+     * change, modification date) or `mtime` (not tracked by git, modification date).
+     *
+     * @return array{0: string, 1: string}
+     */
+    public function of(string $file): array
+    {
+        $known = $this->folder(dirname($file));
+        $name = basename($file);
+
+        if ($known !== null && ! isset($known[1][$name]) && isset($known[0][$name])) {
+            return [$known[0][$name], 'git'];
+        }
+
+        $mtime = @filemtime($file);
+
+        return [
+            $mtime === false ? '0000-00-00' : date('Y-m-d', $mtime),
+            $known !== null && isset($known[1][$name]) ? 'worktree' : 'mtime',
+        ];
+    }
+
+    /**
+     * The days a plan file got its first and its last ticked step, read from the
+     * repository that owns the file: `started` is the commit date of the first commit
+     * adding a `- [x]` or `* [x]` line, `finished` that of the last one. Both are null
+     * when git does not know the file or no commit ever ticked a step.
+     *
+     * @return array{started: ?string, finished: ?string}
+     */
+    public function ticks(string $file): array
+    {
+        $log = $this->git(dirname($file), ['log', '--no-color', '--reverse', '--format=%x00%cs', '-p', '--', basename($file)]);
+
+        $started = null;
+        $finished = null;
+        $day = '';
+
+        foreach (explode("\n", $log ?? '') as $line) {
+            if (str_starts_with($line, "\0")) {
+                $day = mb_substr($line, 1);
+
+                continue;
+            }
+
+            if (preg_match('~^\+\s*[-*] \[[xX]\]~', $line) === 1) {
+                $started ??= $day;
+                $finished = $day;
+            }
+        }
+
+        return ['started' => $started, 'finished' => $finished];
+    }
+
+    /**
+     * @return array{0: array<string, string>, 1: array<string, true>}|null
+     */
+    private function folder(string $dir): ?array
+    {
+        if (array_key_exists($dir, $this->folders)) {
+            return $this->folders[$dir];
+        }
+
+        $log = $this->git($dir, ['log', '--format=%x00%cs', '--name-only', '--relative', '--', '.']);
+
+        if ($log === null) {
+            return $this->folders[$dir] = null;
+        }
+
+        $dates = [];
+        $day = '';
+
+        foreach (explode("\n", $log) as $line) {
+            if (str_starts_with($line, "\0")) {
+                $day = mb_substr($line, 1);
+
+                continue;
+            }
+
+            // Newest first: the first commit seen for a file is its last change.
+            if ($line !== '' && ! str_contains($line, '/') && ! isset($dates[$line])) {
+                $dates[$line] = $day;
+            }
+        }
+
+        $changed = [];
+
+        foreach ([['diff', 'HEAD', '--name-only', '--relative', '--', '.'], ['ls-files', '--others', '--exclude-standard', '--', '.']] as $args) {
+            foreach (explode("\n", $this->git($dir, $args) ?? '') as $line) {
+                if ($line !== '' && ! str_contains($line, '/')) {
+                    $changed[$line] = true;
+                }
+            }
+        }
+
+        return $this->folders[$dir] = [$dates, $changed];
+    }
+
+    /**
+     * @param  list<string>  $args
+     */
+    private function git(string $dir, array $args): ?string
+    {
+        $process = @proc_open(['git', '-C', $dir, ...$args], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+
+        if (! is_resource($process)) {
+            return null;
+        }
+
+        $output = stream_get_contents($pipes[1]);
+        stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        return proc_close($process) === 0 && $output !== false ? $output : null;
+    }
+}
+
 final class PlanParser
 {
     public function __construct(private readonly Workspace $workspace) {}
@@ -126,6 +266,7 @@ final class PlanParser
                 $b['total_steps'] > 0 ? $b['checked_steps'] / $b['total_steps'] : 1.0,
                 $b['date'],
             ],
+            'updated' => static fn (array $a, array $b): int => [$b['updated'], $b['repo'], $b['file']] <=> [$a['updated'], $a['repo'], $a['file']],
             default => static fn (array $a, array $b): int => [$a['date'], $a['repo'], $a['file']] <=> [$b['date'], $b['repo'], $b['file']],
         };
 
@@ -137,7 +278,7 @@ final class PlanParser
     /**
      * @return list<array<string, mixed>>
      */
-    public function all(?string $repo_filter, ?string $name_filter, bool $with_evidence): array
+    public function all(?string $repo_filter, ?string $name_filter, bool $with_evidence, bool $with_git_dates = false): array
     {
         $plans = [];
 
@@ -166,7 +307,7 @@ final class PlanParser
                             continue;
                         }
 
-                        $plan = $this->parse($file, $repo, $relative, $plan_dir, $with_evidence);
+                        $plan = $this->parse($file, $repo, $relative, $plan_dir, $with_evidence, $with_git_dates);
 
                         $plans[] = $plan;
                     }
@@ -190,7 +331,7 @@ final class PlanParser
     /**
      * @return array<string, mixed>
      */
-    private function parse(string $file, string $repo, string $repo_relative, string $plan_dir, bool $with_evidence): array
+    private function parse(string $file, string $repo, string $repo_relative, string $plan_dir, bool $with_evidence, bool $with_git_dates): array
     {
         $lines = file($file, FILE_IGNORE_NEW_LINES) ?: [];
 
@@ -198,6 +339,7 @@ final class PlanParser
         $title = basename($file, '.md');
         $title_seen = false;
         $status_banner = null;
+        $delivered = false;
         $tasks = [];
         $current = $this->newTask('(plan level)', 0);
         $in_fence = false;
@@ -242,6 +384,8 @@ final class PlanParser
                 if ($current['total'] > 0) {
                     $tasks[] = $current;
                 }
+
+                $delivered = $delivered || str_starts_with($m[1], 'Delivery status');
 
                 $current = $this->newTask(mb_trim($m[1]), $index + 1);
 
@@ -307,15 +451,21 @@ final class PlanParser
         $declared = $front_matter['status'] ?? null;
 
         [$date, $date_source] = $this->dateOf($file);
+        [$updated, $updated_source] = $this->workspace->last_change->of($file);
 
-        return [
+        $state = $this->effectiveState($declared, $checkbox_state);
+
+        $plan = [
             'kind' => 'plan',
             'repo' => $repo,
             'source' => $plan_dir,
             'file' => basename($file),
             'date' => $date,
             'date_source' => $date_source,
+            'updated' => $updated,
+            'updated_source' => $updated_source,
             'path' => $this->workspace->relative($file),
+            'modules' => $this->modules($front_matter, $this->workspace->relative($file), $tasks),
             'title' => $title,
             'front_matter_status' => $declared,
             'status_banner' => $status_banner,
@@ -323,9 +473,64 @@ final class PlanParser
             'total_steps' => $total,
             'checked_steps' => $checked,
             'checkbox_state' => $checkbox_state,
-            'state' => $this->effectiveState($declared, $checkbox_state),
-            'inconsistency' => $this->inconsistency($declared, $status_banner, $checkbox_state, $checked, $total),
+            'state' => $state,
+            'inconsistency' => $this->inconsistency($declared, $status_banner, $checkbox_state, $checked, $total, $delivered),
         ];
+
+        if ($with_git_dates) {
+            $ticks = $this->workspace->last_change->ticks($file);
+
+            $plan['started'] = $ticks['started'];
+            $plan['finished'] = $state === 'done' ? $ticks['finished'] : null;
+        }
+
+        return $plan;
+    }
+
+    /**
+     * The modules a plan is about, as lowercased `Modules/` directory names, or `platform`
+     * when it names none. First match wins: the front-matter `module:` (kept even when the
+     * slug is unknown), the module the plan lives in, then the modules its task files
+     * touch, most files first.
+     *
+     * @param  array<string, string>  $front_matter
+     * @param  list<array{files: list<string>}>  $tasks
+     * @return non-empty-list<string>
+     */
+    private function modules(array $front_matter, string $path, array $tasks): array
+    {
+        $declared = array_values(array_filter(
+            array_map(static fn (string $slug): string => mb_strtolower(mb_trim($slug, " \t[]\"'")), explode(',', $front_matter['module'] ?? '')),
+            static fn (string $slug): bool => $slug !== '',
+        ));
+
+        if ($declared !== []) {
+            return array_values(array_unique($declared));
+        }
+
+        if (preg_match('~(?:^|/)Modules/([A-Za-z][A-Za-z0-9]*)/docs/plans/~', $path, $m) === 1) {
+            return [mb_strtolower($m[1])];
+        }
+
+        $counts = [];
+
+        foreach ($tasks as $task) {
+            foreach ($task['files'] as $task_file) {
+                if (preg_match('~^Modules/([A-Za-z][A-Za-z0-9]*)/~', $task_file, $m) === 1) {
+                    $slug = mb_strtolower($m[1]);
+                    $counts[$slug] = ($counts[$slug] ?? 0) + 1;
+                }
+            }
+        }
+
+        if ($counts === []) {
+            return ['platform'];
+        }
+
+        // Sorting is stable since PHP 8.0: equal counts keep their first-appearance order.
+        arsort($counts);
+
+        return array_map('strval', array_keys($counts));
     }
 
     /**
@@ -364,16 +569,29 @@ final class PlanParser
         };
     }
 
-    private function inconsistency(?string $declared, ?string $banner, string $checkbox_state, int $checked, int $total): ?string
+    /**
+     * A disagreement between what the plan declares and what its checkboxes say. A
+     * finished plan declares itself twice, in the front matter `status:` and in its
+     * `## Delivery status` section, so either one alone is a disagreement too.
+     */
+    private function inconsistency(?string $declared, ?string $banner, string $checkbox_state, int $checked, int $total, bool $delivered = false): ?string
     {
+        $effective = $this->effectiveState($declared, $checkbox_state);
+
+        if ($delivered && ! in_array($effective, ['done', 'superseded'], true)) {
+            return sprintf('delivery status written but the plan reads %s (%d/%d steps flagged)', $effective, $checked, $total);
+        }
+
+        if ($declared !== null && in_array($effective, ['done', 'superseded'], true) && ! $delivered) {
+            return sprintf('front-matter says %s but the plan has no delivery status', $declared);
+        }
+
         // A plan with no checkboxes cannot disagree with its checkboxes. Retrospective
         // records are written that way on purpose, and flagging them would bury the
         // real disagreements.
         if ($total === 0) {
             return null;
         }
-
-        $effective = $this->effectiveState($declared, $checkbox_state);
 
         if ($declared === null && $banner !== null && preg_match('/^complet/i', $banner) === 1 && $checkbox_state !== 'done') {
             return sprintf('banner says completed but %d/%d steps are flagged', $checked, $total);
@@ -383,7 +601,8 @@ final class PlanParser
             return sprintf('front-matter says %s but %d/%d steps are flagged', $declared, $checked, $total);
         }
 
-        if ($declared !== null && $effective !== 'done' && $checkbox_state === 'done') {
+        // A superseded plan resolves its steps too, cancelled or done: that is its normal end.
+        if ($declared !== null && ! in_array($effective, ['done', 'superseded'], true) && $checkbox_state === 'done') {
             return sprintf('front-matter says %s but every step is flagged', $declared);
         }
 
@@ -558,6 +777,7 @@ final class SpecScanner
                         $sibling !== null => 'plan_uncited',
                         default => 'unplanned',
                     };
+                    [$updated, $updated_source] = $this->workspace->last_change->of($file);
 
                     $specs[] = [
                         'kind' => 'spec',
@@ -565,6 +785,8 @@ final class SpecScanner
                         'file' => $name,
                         'path' => $this->workspace->relative($file),
                         'title' => $this->title($file),
+                        'updated' => $updated,
+                        'updated_source' => $updated_source,
                         'has_plan' => ! in_array($state, ['unplanned', 'reference'], true),
                         'sibling_plan' => $sibling,
                         'state' => $state,
@@ -854,9 +1076,10 @@ final class Renderer
                     : '';
 
                 $out[] = sprintf(
-                    '%s%s  [%s]  %d/%d steps  %s%s',
+                    '%s%s  %s  [%s]  %d/%d steps  %s%s',
                     $plan['date_source'] === 'mtime' ? sprintf('~%s  ', $plan['date']) : '',
                     $plan['file'],
+                    $this->updated($plan),
                     $plan['repo'],
                     $plan['checked_steps'],
                     $plan['total_steps'],
@@ -901,7 +1124,7 @@ final class Renderer
             $out[] = $this->rule('SPECS WHOSE PLAN EXISTS BUT NEVER NAMES THEM');
 
             foreach ($uncited as $spec) {
-                $out[] = sprintf('    %-8s [%s] %s', $this->state('plan_uncited'), $spec['repo'], $this->shorten((string) $spec['title'], 66));
+                $out[] = sprintf('    %-8s %s  [%s] %s', $this->state('plan_uncited'), $this->updated($spec), $spec['repo'], $this->shorten((string) $spec['title'], 66));
                 $out[] = sprintf('             spec: %s', $spec['path']);
                 $out[] = sprintf('             plan: %s', (string) $spec['sibling_plan']);
             }
@@ -918,7 +1141,7 @@ final class Renderer
             $out[] = $this->rule('SPECS WITH NO PLAN AT ALL');
 
             foreach ($unplanned as $spec) {
-                $out[] = sprintf('    %-8s [%s] %s', $this->state('unplanned'), $spec['repo'], $this->shorten((string) $spec['title'], 70));
+                $out[] = sprintf('    %-8s %s  [%s] %s', $this->state('unplanned'), $this->updated($spec), $spec['repo'], $this->shorten((string) $spec['title'], 70));
                 $out[] = sprintf('             %s', $spec['path']);
             }
 
@@ -1000,7 +1223,7 @@ final class Renderer
 
             $rows[] = sprintf(
                 '<tr class="group plan %s" data-kind="plan"><td>%s</td><td><strong>%s</strong></td>'
-                . '<td class="num">%d/%d</td><td><span class="pill %s">%s</span></td><td>%s</td></tr>',
+                . '<td class="num">%d/%d</td><td><span class="pill %s">%s</span></td><td>%s</td><td class="dim">%s</td></tr>',
                 $state,
                 $this->escape((string) $plan['repo']),
                 $this->escape((string) $plan['title']),
@@ -1009,6 +1232,7 @@ final class Renderer
                 $state,
                 self::LABEL[$state] ?? $state,
                 $note,
+                $this->escape($this->updated($plan)),
             );
 
             foreach ($plan['tasks'] as $task) {
@@ -1020,7 +1244,7 @@ final class Renderer
 
                 $rows[] = sprintf(
                     '<tr class="row %s" data-kind="plan"><td class="dim">%s</td><td>%s</td>'
-                    . '<td class="num">%d/%d</td><td><span class="box" title="%s">%s</span></td><td>%s%s</td></tr>',
+                    . '<td class="num">%d/%d</td><td><span class="box" title="%s">%s</span></td><td>%s%s</td><td></td></tr>',
                     $task_state,
                     $this->escape((string) $plan['file']),
                     $this->escape((string) $task['name']),
@@ -1041,20 +1265,21 @@ final class Renderer
 
             $rows[] = sprintf(
                 '<tr class="row %s" data-kind="spec"><td class="dim">%s</td><td>%s</td>'
-                . '<td class="num"></td><td><span class="pill %s">%s</span></td><td class="dim">%s</td></tr>',
+                . '<td class="num"></td><td><span class="pill %s">%s</span></td><td class="dim">%s</td><td class="dim">%s</td></tr>',
                 (string) $spec['state'],
                 $this->escape((string) $spec['repo']),
                 $this->escape((string) $spec['title']),
                 (string) $spec['state'],
                 self::LABEL[(string) $spec['state']] ?? '',
                 $this->escape((string) ($spec['sibling_plan'] ?? $spec['path'])),
+                $this->escape($this->updated($spec)),
             );
         }
 
         foreach ($report['todos'] as $todo) {
             $rows[] = sprintf(
                 '<tr class="row open" data-kind="todo"><td class="dim">%s</td><td>%s</td>'
-                . '<td class="num"></td><td><span class="pill open">%s</span></td><td class="dim">%s:%d</td></tr>',
+                . '<td class="num"></td><td><span class="pill open">%s</span></td><td class="dim">%s:%d</td><td></td></tr>',
                 $this->escape((string) $todo['repo']),
                 $this->escape((string) $todo['text']),
                 $this->escape((string) $todo['marker']),
@@ -1249,6 +1474,16 @@ HTML;
         return '[' . (self::COLOR[$state] ?? '') . $mark . "\033[0m" . ']';
     }
 
+    /**
+     * The last change, marked `~` when only the modification date was there to go by.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private function updated(array $item): string
+    {
+        return ($item['updated_source'] === 'mtime' ? '~' : '') . 'upd ' . $item['updated'];
+    }
+
     private function shorten(string $text, int $max): string
     {
         $text = mb_trim(preg_replace('/\*\*|`/', '', $text) ?? $text);
@@ -1335,13 +1570,16 @@ Usage: composer run plan-status [-- options]
   --stale                    only unflagged tasks that create files, all of which exist
   --plan=<substring>         filter plans by file name
   --repo=<name>              limit to one repository; a unique substring is enough
-  --sort=date|repo|progress  order plans: oldest first (default), grouped by repo,
-                             or least-advanced first
+  --sort=date|repo|progress|updated
+                             order plans: oldest first (default), grouped by repo,
+                             least-advanced first, or last changed first
   --style=icon|box           task marks as icons (default) or ASCII checkboxes
   --summary                  one line per plan, no task detail
   --todo-limit=<n>           cap code markers (default: 200)
   --out=<path>               write to a file instead of stdout
   --no-evidence              skip filesystem checks (faster)
+  --git-dates                add started and finished from git history (first and
+                             last commit that ticked a step); updated is the last change
   --repos                    list the repositories found under the root and exit
   -h, --help                 this help
 
@@ -1350,7 +1588,12 @@ is one. Sources are docs/superpowers/{plans,specs}, .cursor/{plans,specs} and
 Modules/*/docs/plans. A plan's YAML front-matter `status:` (completed|in-progress|
 open|superseded) overrides its checkbox counts; disagreements between the two are
 reported. Steps are `- [ ]` open, `- [x]` done, `- [-]` cancelled (resolved, not
-done; say why in the plan). The tool never edits a plan.
+done; say why in the plan). Each plan and spec shows its last change (`upd`): the
+last commit that touched it, or its modification date when it has uncommitted
+changes or is not in git (`~`). Front-matter `module:` (one slug or a comma list)
+sets the plan's modules; otherwise they come from the plan's location under
+Modules/*/docs/plans or from the Modules/<Name>/ paths its tasks name, and `platform`
+when there are none. The tool never edits a plan.
 
 TXT;
 }
@@ -1403,6 +1646,7 @@ if (($options['repos'] ?? false) === true) {
 
 $repo = is_string($options['repo'] ?? null) ? resolve_repo($options['repo'], $repos) : null;
 $with_evidence = ($options['no-evidence'] ?? false) !== true;
+$with_git_dates = ($options['git-dates'] ?? false) === true;
 $only_open = ($options['open'] ?? false) === true;
 $only_stale = ($options['stale'] ?? false) === true;
 
@@ -1410,15 +1654,15 @@ $plan_parser = new PlanParser($workspace);
 
 $sort = is_string($options['sort'] ?? null) ? $options['sort'] : 'date';
 
-if (! in_array($sort, ['date', 'repo', 'progress'], true)) {
-    fwrite(STDERR, "Invalid --sort. Use date, repo or progress.\n");
+if (! in_array($sort, ['date', 'repo', 'progress', 'updated'], true)) {
+    fwrite(STDERR, "Invalid --sort. Use date, repo, progress or updated.\n");
 
     exit(1);
 }
 
 $plans = in_array('plans', $kinds, true)
     ? PlanParser::sort(
-        $plan_parser->all($repo, is_string($options['plan'] ?? null) ? $options['plan'] : null, $with_evidence),
+        $plan_parser->all($repo, is_string($options['plan'] ?? null) ? $options['plan'] : null, $with_evidence, $with_git_dates),
         $sort,
     )
     : [];

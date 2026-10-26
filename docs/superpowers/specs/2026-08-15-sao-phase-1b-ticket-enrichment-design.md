@@ -4,7 +4,7 @@
 **Module:** `Modules/SAO`
 **Parent spec:** `docs/superpowers/specs/2026-07-31-sao-module-design.md` (phase 1)
 **Builds on:** `docs/superpowers/specs/2026-08-01-sao-phase-1a-ticketing-core-design.md` (slice 1a)
-**Status:** Design proposed. No implementation started.
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-08-15-sao-phase-1b-ticket-enrichment.md`. Was: Design proposed. No implementation started.
 
 ---
 

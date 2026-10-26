@@ -1,6 +1,6 @@
 # ES Multilingual Index & Multi-Model Embeddings — Design
 
-**Status:** Draft (for review)
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-09-12-es-multilingual-index-and-multimodel-embeddings.md`. Was: Draft (for review).
 **Date:** 2026-09-12
 **Author:** swolley + Claude
 **Related:**

@@ -1,6 +1,6 @@
 # ERP factories and demo dataset — Design
 
-**Status:** Draft (for review)
+**Status:** Implemented 2026-09-15; see the delivery status of `docs/superpowers/plans/2026-09-15-erp-factories-and-demo-dataset.md`. Was: Draft (for review).
 **Date:** 2026-09-15
 **Module:** `Modules/ERP`
 **Related:**

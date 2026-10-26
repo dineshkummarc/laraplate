@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # SAO Phase 5b — Code-to-Work, Releases & Deploy Census Plan
 
 > REQUIRED SUB-SKILL: superpowers:executing-plans. Checkbox (`- [ ]`) steps.

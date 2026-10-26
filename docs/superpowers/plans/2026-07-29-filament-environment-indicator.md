@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Filament Environment Indicator Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
@@ -39,3 +42,12 @@
 
 - Run catalog + plugin Pest tests
 - `vendor/bin/pint --dirty`
+
+## Delivery status (2026-07-29): delivered, reconciled against the code on 2026-10-23
+
+Shipped in Core 1.65.0: `ModuleVersionCatalog` with `ModuleVersionEntry`, `EnvironmentIndicatorPlugin` with its badge and debug warning views, registered in `app/Providers/Filament/AdminPanelProvider.php`, and `pxlrbt/filament-environment-indicator` removed. The tasks are written as headings, so the plan has no checkboxes. Divergences:
+
+- The badge renders at `PanelsRenderHook::GLOBAL_SEARCH_BEFORE`, for super-admins only.
+- Task 4: the four Pest tests exist; nothing records their run.
+
+**Documented in:** `Modules/Core/docs/rag/MODULE.md` (*How to use Core capabilities correctly*, for product/admin teams), `Modules/Core/README.md` (*Installed Packages*, UI / Admin).

@@ -1,6 +1,6 @@
 # RAG retrieval strategy — vector baseline and evidence-gated graph retrieval
 
-**Status:** Approved direction
+**Status:** Implemented 2026-10-08; see the delivery status of `docs/superpowers/plans/2026-07-16-rag-retrieval-strategy.md`. Was: Approved direction.
 
 **Date:** 2026-07-16
 

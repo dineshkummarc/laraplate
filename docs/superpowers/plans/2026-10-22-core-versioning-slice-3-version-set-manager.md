@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Core Versioning Rebuild, Slice 3 — Version-Set Manager
 
 > **For agentic workers:** execute task by task. Steps use checkbox (`- [ ]`) syntax; tick each step when it is done, in the same work block (`.ai/rules/plans.md`). A step deliberately not done is `- [-]` with its reason.

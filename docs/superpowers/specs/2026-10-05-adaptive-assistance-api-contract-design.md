@@ -1,6 +1,6 @@
 # Adaptive assistance: public API contract
 
-**Status:** Draft for owner review. Nothing in this document is built.
+**Status:** Implemented 2026-10-06; see the delivery status of `docs/superpowers/plans/2026-10-05-adaptive-assistance-api-contract.md`. Was: Draft for owner review, nothing built.
 
 **Date:** 2026-10-05
 

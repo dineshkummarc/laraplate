@@ -1,5 +1,5 @@
 ---
-status: closed
+status: completed
 created_on: 2026-10-21
 ---
 # CRM follow-ups: contact role, person names, intercompany, lead conversion. Implementation Plan

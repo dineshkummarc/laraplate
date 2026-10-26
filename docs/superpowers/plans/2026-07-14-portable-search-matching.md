@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # Portable Search Matching Implementation Plan
 
 **Goal:** Make short-name, acronym, identifier, and natural-language searches behave predictably across Elasticsearch, Typesense, PostgreSQL, Oracle, MySQL/MariaDB, and SQLite while preserving explicit caller intent and reporting engine degradations.

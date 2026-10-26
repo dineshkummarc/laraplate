@@ -1,3 +1,6 @@
+---
+status: completed
+---
 # ERP Spec 2 — Phase 2B Implementation Plan
 
 > **Navigation:** Implements backlog IDs `2B-01`…`2B-13` from
@@ -1200,3 +1203,15 @@ Plan saved to `docs/superpowers/plans/2026-06-30-erp-hardening-spec2-phase2b.md`
 2. **Inline Execution** — implement wave-by-wave in this session
 
 Which approach?
+
+## Delivery status (2026-07-12): delivered, reconciled against the code on 2026-10-23
+
+Tasks 7 to 11 and Task 14 were completed on 2026-07-12, as the plan records. Divergences:
+
+- Task 11, the sales pipeline, lives in CRM since the CRM extraction: `Modules/CRM/app/Filament/Pages/SalesPipelinePage.php`, `Modules/CRM/app/Services/SalesPipelineService.php` and its view, with the CSV through `Modules/CRM/app/Services/SalesPipelineCsvExporter.php`. `OperationalReportCsvExporter` keeps only `stockValuation()`.
+- Task 5: the private helper is `buildCreditOverridesOn()`, not `creditNoteLineOverrides`.
+- Built later although out of scope here: CBI bonifici (`CbiBonificiExporter`), PDF report snapshots, Ri.Ba and SDD. Direct bank or API submission is not built.
+- Task 14's version bump was left to the later ERP/Core patch cycle.
+- `Modules/ERP/README.md` (*Spec 2 Phase 2A/2B*) still places the sales pipeline in ERP; to correct in the ERP repository.
+
+**Documented in:** `Modules/ERP/docs/rag/MODULE.md` (*Spec 2 Phase 2A/2B — Domain Actions & Commercial UX*, *Supplier Payment Runs*, *M5.1 — Payment Schedule & Receivables*, *M6.1 — Bank Reconciliation*, *M6.2 — Returns Management*, *M7.1 — Advanced Pricelists & Party Rules*, *Filament Admin UI*), `Modules/CRM/docs/rag/MODULE.md` (*Integration with the ERP*).

@@ -14,7 +14,7 @@ git submodule foreach --recursive '
     echo ""
 '
 
-echo "Back to Laraplate"
+echo "Back to 'laraplate'"
 before=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "no tag")
 git pull
 after=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || echo "no tag")
@@ -39,11 +39,13 @@ echo ""
 read -p "Do you want to run the full Laraplate update? (y/N): " choice
 
 if [[ ! "$choice" =~ ^[Yy]$ ]]; then
-    # echo "Update aborted."
-    exit 0
+    composer install --ignore-platform-req=ext-oci8
+    npm install
+else
+    composer update --ignore-platform-req=ext-oci8
+    npm update
 fi
 
-composer install --ignore-platform-req=ext-oci8
 
 php artisan migrate
 php artisan db:seed

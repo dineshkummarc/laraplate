@@ -38,6 +38,20 @@ function closedPlanFiles(): array
     ));
 }
 
+/**
+ * The `status:` of a plan's YAML front matter, lowercased; null when it has none.
+ */
+function frontMatterStatus(string $file): ?string
+{
+    $content = (string) file_get_contents($file);
+
+    if (preg_match('/\A---\R(.*?)\R---\R/s', $content, $front) !== 1) {
+        return null;
+    }
+
+    return preg_match('/^status:\s*(\S+)/m', $front[1], $status) === 1 ? mb_strtolower(mb_trim($status[1], "\"'")) : null;
+}
+
 it('finds plans marked as delivered', function (): void {
     // Guards the guard: a glob that silently matches nothing would make every case below vacuous.
     expect(closedPlanFiles())->not->toBeEmpty();
@@ -69,4 +83,31 @@ it('keeps those pointers resolving to files that exist', function (): void {
     }
 
     expect($broken)->toBe([], implode('; ', $broken));
+});
+
+it('makes every delivered plan declare it in its front matter', function (): void {
+    // plan-status reads the front matter and this file reads the delivery status: a plan carrying
+    // only one of the two reads as finished to one reader and as open to the other.
+    $undeclared = [];
+
+    foreach (closedPlanFiles() as $file) {
+        if (! in_array(frontMatterStatus($file), ['completed', 'superseded'], true)) {
+            $undeclared[] = basename($file) . ' (' . (frontMatterStatus($file) ?? 'no status') . ')';
+        }
+    }
+
+    expect($undeclared)->toBe([], implode(', ', $undeclared) . ' report delivery without status: completed or superseded');
+});
+
+it('makes every plan declared completed carry a delivery status', function (): void {
+    $closed = closedPlanFiles();
+    $silent = [];
+
+    foreach (glob(base_path('docs/superpowers/plans/*.md')) ?: [] as $file) {
+        if (frontMatterStatus($file) === 'completed' && ! in_array($file, $closed, true)) {
+            $silent[] = basename($file);
+        }
+    }
+
+    expect($silent)->toBe([], implode(', ', $silent) . ' declare completed but have no delivery status');
 });

@@ -1,7 +1,7 @@
 # Core: the UI apps a user can open
 
 **Date:** 2026-10-21  
-**Status:** Draft  
+**Status:** Implemented 2026-10-21; see the delivery status of `docs/superpowers/plans/2026-10-21-core-user-ui-apps.md`. Was: Draft.  
 **Consumer:** `laraplate-ui` workspace overview (`docs/superpowers/specs/2026-10-21-workspace-overview-design.md` at the stack root)
 
 ## Goal
