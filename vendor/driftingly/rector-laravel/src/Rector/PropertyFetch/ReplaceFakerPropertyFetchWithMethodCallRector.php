@@ -1,0 +1,69 @@
+<?php
+
+declare(strict_types=1);
+
+namespace RectorLaravel\Rector\PropertyFetch;
+
+use PhpParser\BuilderFactory;
+use PhpParser\Node;
+use PhpParser\Node\Expr\PropertyFetch;
+use PHPStan\Type\ObjectType;
+use Rector\VersionBonding\Contract\ComposerPackageConstraintInterface;
+use Rector\VersionBonding\ValueObject\ComposerPackageConstraint;
+use RectorLaravel\AbstractRector;
+use RectorLaravel\Tests\Rector\PropertyFetch\ReplaceFakerInstanceWithHelperRector\ReplaceFakerInstanceWithHelperRectorTest;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * @see ReplaceFakerInstanceWithHelperRectorTest
+ */
+final class ReplaceFakerPropertyFetchWithMethodCallRector extends AbstractRector implements ComposerPackageConstraintInterface
+{
+    public function __construct(
+        private readonly BuilderFactory $builderFactory,
+    ) {}
+
+    public function provideComposerPackageConstraint(): ComposerPackageConstraint
+    {
+        return new ComposerPackageConstraint('fakerphp/faker', '>=1.0');
+    }
+
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Replace deprecated faker property fetch with method call',
+            [
+                new CodeSample(
+                    <<<'CODE_SAMPLE'
+$faker->name,
+CODE_SAMPLE
+                    ,
+                    <<<'CODE_SAMPLE'
+$faker->name(),
+CODE_SAMPLE
+                ),
+            ]
+        );
+    }
+
+    /**
+     * @return array<class-string<Node>>
+     */
+    public function getNodeTypes(): array
+    {
+        return [PropertyFetch::class];
+    }
+
+    /**
+     * @param  PropertyFetch  $node
+     */
+    public function refactor(Node $node): ?Node
+    {
+        if (! $this->isObjectType($node->var, new ObjectType('Faker\Generator'))) {
+            return null;
+        }
+
+        return $this->builderFactory->methodCall($node->var, $node->name);
+    }
+}

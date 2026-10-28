@@ -1,0 +1,137 @@
+<?php
+
+namespace Coolsam\Modules;
+
+use Coolsam\Modules\Enums\ConfigMode;
+use Coolsam\Modules\Facades\FilamentModules;
+use Filament\Contracts\Plugin;
+use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
+use Filament\Panel;
+use Filament\Support\Icons\Heroicon;
+use Nwidart\Modules\Facades\Module as ModuleFacade;
+
+class ModulesPlugin implements Plugin
+{
+    public function getId(): string
+    {
+        return 'modules';
+    }
+
+    public function register(Panel $panel): void
+    {
+        $panel
+            ->topNavigation(config('filament-modules.clusters.enabled', false) && config('filament-modules.clusters.use-top-navigation', false));
+        $mode = ConfigMode::tryFrom(config('filament-modules.mode', ConfigMode::BOTH->value));
+        if ($mode?->shouldRegisterPlugins()) {
+            $plugins = $this->getModulePlugins();
+            foreach ($plugins as $modulePlugin) {
+                $panel->plugin($modulePlugin::make());
+            }
+        }
+    }
+
+    public function boot(Panel $panel): void
+    {
+        // Register panels
+        $mode = ConfigMode::tryFrom(config('filament-modules.mode', ConfigMode::BOTH->value));
+        if ($mode?->shouldRegisterPanels()) {
+            $group = config('filament-modules.panels.group', 'Modules');
+            $groupIcon = config('filament-modules.panels.group-icon', Heroicon::OutlinedRectangleStack);
+            $groupSort = config('filament-modules.panels.group-sort', 0);
+            $openInNewTab = config('filament-modules.panels.open-in-new-tab', false);
+
+            $panels = $this->getModulePanels();
+            $panel->navigationGroups([
+                NavigationGroup::make($group)
+                    ->icon($groupIcon)
+                    ->collapsed(),
+            ]);
+            $navItems = collect($panels)->map(function (Panel $panel) use ($group, $groupSort, $openInNewTab) {
+                $moduleName = str($panel->getPath())->before('/');
+                $module = ModuleFacade::find($moduleName);
+                if (! $module) {
+                    return null;
+                }
+                //                $panelLabel = str($panel->getId())->after($moduleName)->trim('-')->snake()->title()->replace('_', ' ');
+                //                $label = str($module->getTitle())->append(" - ")->append($panelLabel);
+                $label = $panel->getBrandName() ?: str($panel->getId())->after($moduleName)->trim('-')->studly()->snake()->replace('_', ' ')->toString();
+
+                return NavigationItem::make($label)
+                    ->group($group)
+                    ->sort($groupSort)
+                    ->url($panel->getUrl())
+                    ->openUrlInNewTab($openInNewTab);
+            })->toArray();
+            $panel->navigationItems($navItems);
+        }
+    }
+
+    public static function make(): static
+    {
+        return app(static::class);
+    }
+
+    public static function get(): static
+    {
+        /** @var static $plugin */
+        $plugin = filament(app(static::class)->getId());
+
+        return $plugin;
+    }
+
+    protected function getModulePlugins(): array
+    {
+        if (! config('filament-modules.auto-register-plugins', false)) {
+            return [];
+        }
+        // get a glob of all Filament plugins
+        $basePath = str(config('modules.paths.modules', 'Modules'));
+        $appFolder = trim(config('modules.paths.app_folder', 'app'), '/\\');
+        $appPath = $appFolder . DIRECTORY_SEPARATOR;
+        $pattern = str($basePath . DIRECTORY_SEPARATOR . '*' . DIRECTORY_SEPARATOR . $appPath . 'Filament' . DIRECTORY_SEPARATOR . '*Plugin.php')->replace('//', '/')->toString();
+        $pluginPaths = glob($pattern);
+
+        return collect($pluginPaths)->map(fn ($path) => FilamentModules::convertPathToNamespace($path))->toArray();
+
+    }
+
+    /**
+     * Get all Filament panels registered by modules.
+     *
+     * @return Panel[]
+     */
+    protected function getModulePanels(): array
+    {
+        // get a glob of all Filament panels
+        $basePath = str(config('modules.paths.modules', 'Modules'));
+        $appFolder = str(config('modules.paths.app_folder', 'app'));
+        $pattern = $basePath . DIRECTORY_SEPARATOR . '*' . DIRECTORY_SEPARATOR . $appFolder . DIRECTORY_SEPARATOR . 'Providers' . DIRECTORY_SEPARATOR . 'Filament' . DIRECTORY_SEPARATOR . '*.php';
+        $panelPaths = glob($pattern);
+
+        $panelIds = collect($panelPaths)->map(function ($path) {
+            $class = FilamentModules::resolveProviderClass($path);
+
+            if (! class_exists($class)) {
+                return null;
+            }
+
+            $moduleName = FilamentModules::findModuleNameForPath($path);
+            $module = $moduleName ? ModuleFacade::find($moduleName) : null;
+
+            if (! $module) {
+                return null;
+            }
+
+            $id = str($class)->afterLast('\\')->before('PanelProvider')->kebab()->lower();
+
+            return str($id)->prepend('-')->prepend($module->getKebabName());
+        });
+
+        return collect(filament()->getPanels())->filter(function ($panel) use ($panelIds) {
+            // Check if the panel ID is in the list of panel IDs
+            return $panelIds->contains($panel->getId());
+        })->values()->all();
+
+    }
+}

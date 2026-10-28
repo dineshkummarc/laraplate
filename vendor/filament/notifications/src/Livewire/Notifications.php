@@ -1,0 +1,148 @@
+<?php
+
+namespace Filament\Notifications\Livewire;
+
+use Filament\Notifications\Collection;
+use Filament\Notifications\Notification;
+use Filament\Notifications\NotificationMailbox;
+use Filament\Support\Components\Attributes\Exposed;
+use Filament\Support\Components\Attributes\Unexposed;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\VerticalAlignment;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Model;
+use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
+use Livewire\Component;
+
+class Notifications extends Component
+{
+    // Used to check if Livewire messages should trigger notification animations.
+    #[Locked]
+    public bool $isFilamentNotificationsComponent = true;
+
+    #[Locked]
+    public Collection $notifications;
+
+    public static Alignment $alignment = Alignment::Right;
+
+    public static VerticalAlignment $verticalAlignment = VerticalAlignment::Start;
+
+    public static ?string $authGuard = null;
+
+    #[Unexposed]
+    public function mount(): void
+    {
+        $this->notifications = new Collection;
+    }
+
+    /** @param array<string> $batches */
+    #[Exposed]
+    #[On('notificationsSent')]
+    public function pullNotificationsFromSession(array $batches = []): void
+    {
+        validator(['batches' => $batches], [
+            'batches' => ['array', 'max:50'],
+            'batches.*' => ['required', 'string', 'regex:/\A[a-f0-9]{40}\z/'],
+        ])->validate();
+
+        foreach (app(NotificationMailbox::class)->pull($batches) as $notification) {
+            $notification = Notification::fromArray($notification);
+
+            $this->pushNotification($notification);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $notification
+     */
+    #[Exposed]
+    #[On('notificationSent')]
+    public function pushNotificationFromEvent(array $notification): void
+    {
+        $notification = Notification::fromArray($notification);
+
+        $this->pushNotification($notification);
+    }
+
+    #[Exposed]
+    #[On('notificationClosed')]
+    public function removeNotification(string $id): void
+    {
+        if (! $this->notifications->has($id)) {
+            return;
+        }
+
+        $this->notifications->forget($id);
+    }
+
+    /**
+     * @param  array<string, mixed>  $notification
+     */
+    #[Exposed]
+    public function handleBroadcastNotification(array $notification): void
+    {
+        if (($notification['format'] ?? null) !== 'filament') {
+            return;
+        }
+
+        $this->pushNotification(Notification::fromArray($notification));
+    }
+
+    protected function pushNotification(Notification $notification): void
+    {
+        $this->notifications->put(
+            $notification->getId(),
+            $notification,
+        );
+    }
+
+    #[Unexposed]
+    public function getUser(): Model | Authenticatable | null
+    {
+        return auth(static::$authGuard)->user();
+    }
+
+    #[Unexposed]
+    public function getBroadcastChannel(): ?string
+    {
+        $user = $this->getUser();
+
+        if (! $user) {
+            return null;
+        }
+
+        if (method_exists($user, 'receivesBroadcastNotificationsOn')) {
+            return $user->receivesBroadcastNotificationsOn();
+        }
+
+        $userClass = str_replace('\\', '.', $user::class);
+
+        return "{$userClass}.{$user->getKey()}";
+    }
+
+    #[Unexposed]
+    public static function alignment(Alignment $alignment): void
+    {
+        static::$alignment = $alignment;
+    }
+
+    #[Unexposed]
+    public static function verticalAlignment(VerticalAlignment $alignment): void
+    {
+        static::$verticalAlignment = $alignment;
+    }
+
+    #[Unexposed]
+    public static function authGuard(?string $guard): void
+    {
+        static::$authGuard = $guard;
+    }
+
+    #[Unexposed]
+    public function render(): View
+    {
+        return view('filament-notifications::notifications');
+    }
+}

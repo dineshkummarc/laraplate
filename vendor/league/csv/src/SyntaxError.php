@@ -1,0 +1,59 @@
+<?php
+
+/**
+ * League.Csv (https://csv.thephpleague.com)
+ *
+ * (c) Ignace Nyamagana Butera <nyamsprod@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+declare(strict_types=1);
+
+namespace League\Csv;
+
+use Throwable;
+
+use function array_count_values;
+use function array_filter;
+use function array_keys;
+
+/**
+ * SyntaxError Exception.
+ */
+class SyntaxError extends Exception
+{
+    /**
+     * @var list<int|string>
+     */
+    protected array $duplicateColumnNames = [];
+
+    public function __construct(string $message = '', int $code = 0, ?Throwable $previous = null)
+    {
+        parent::__construct($message, $code, $previous);
+    }
+
+    public static function dueToHeaderNotFound(int $offset): self
+    {
+        return new self('The header record does not exist or is empty at offset: `'.$offset.'`');
+    }
+
+    public static function dueToInvalidHeaderColumnNames(): self
+    {
+        return new self('The header record contains non string column names.');
+    }
+
+    public static function dueToDuplicateHeaderColumnNames(array $header): self
+    {
+        $instance = new self('The header record contains duplicate column names.');
+        $instance->duplicateColumnNames = array_keys(array_filter(array_count_values($header), fn (int $value): bool => $value > 1));
+
+        return $instance;
+    }
+
+    public function duplicateColumnNames(): array
+    {
+        return $this->duplicateColumnNames;
+    }
+}

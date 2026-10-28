@@ -1,0 +1,18 @@
+<?php
+
+namespace Filament\Widgets;
+
+class FilamentInfoWidget extends Widget
+{
+    protected static ?int $sort = -2;
+
+    /**
+     * @deprecated Use `$isLazyLoaded` instead.
+     */
+    protected static bool $isLazy = false;
+
+    /**
+     * @var view-string
+     */
+    protected string $view = 'filament-panels::widgets.filament-info-widget';
+}

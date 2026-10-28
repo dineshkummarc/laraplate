@@ -1,0 +1,42 @@
+<?php
+
+namespace Filament\Livewire;
+
+use Filament\Facades\Filament;
+use Filament\GlobalSearch\GlobalSearchResults;
+use Filament\Support\Components\Attributes\Unexposed;
+use Illuminate\Contracts\View\View;
+use Livewire\Component;
+
+class GlobalSearch extends Component
+{
+    public ?string $search = '';
+
+    #[Unexposed]
+    public function getResults(): ?GlobalSearchResults
+    {
+        $search = trim($this->search);
+
+        if (blank($search)) {
+            return null;
+        }
+
+        $results = Filament::getGlobalSearchProvider()->getResults($search);
+
+        if ($results === null) {
+            return $results;
+        }
+
+        $this->dispatch('open-global-search-results');
+
+        return $results;
+    }
+
+    #[Unexposed]
+    public function render(): View
+    {
+        return view('filament-panels::livewire.global-search', [
+            'results' => $this->getResults(),
+        ]);
+    }
+}

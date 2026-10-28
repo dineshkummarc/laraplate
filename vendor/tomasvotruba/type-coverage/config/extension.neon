@@ -1,0 +1,79 @@
+includes:
+    - ../packages/type-perfect/config/extension.neon
+
+parametersSchema:
+    # see https://doc.nette.org/en/schema for configuration
+    type_coverage: structure([
+        # deprecated, no-op
+        declare: anyOf(schema(float(), nullable()), schema(int(), nullable()))
+        # type declarations
+        return_type: anyOf(float(), int())
+        param_type: anyOf(float(), int())
+        property_type: anyOf(float(), int())
+        constant_type: anyOf(float(), int())
+        # deprecated, no-op
+        print_suggestions: schema(bool(), nullable())
+        # aliases to avoid typos
+        return: anyOf(schema(float(), nullable()), schema(int(), nullable()))
+        param: anyOf(schema(float(), nullable()), schema(int(), nullable()))
+        property: anyOf(schema(float(), nullable()), schema(int(), nullable()))
+        constant: anyOf(schema(float(), nullable()), schema(int(), nullable()))
+
+        # measure
+        measure: bool()
+    ])
+
+# default parameters
+parameters:
+    type_coverage:
+        # deprecated, no-op
+        declare: null
+        # type declarations
+        return_type: 99
+        param_type: 99
+        property_type: 99
+        constant_type: 99
+        # deprecated, no-op
+        print_suggestions: null
+        # aliases
+        return: null
+        param: null
+        property: null
+        constant: null
+
+        measure: false
+
+services:
+    - TomasVotruba\TypeCoverage\Formatter\TypeCoverageFormatter
+    - TomasVotruba\TypeCoverage\CollectorDataNormalizer
+
+    -
+        factory: TomasVotruba\TypeCoverage\Configuration
+        arguments:
+            - %type_coverage%
+
+    # collectors
+    -
+        class: TomasVotruba\TypeCoverage\Collectors\ReturnTypeDeclarationCollector
+        tags:
+            - phpstan.collector
+
+    -
+        class: TomasVotruba\TypeCoverage\Collectors\ParamTypeDeclarationCollector
+        tags:
+            - phpstan.collector
+
+    -
+        class: TomasVotruba\TypeCoverage\Collectors\PropertyTypeDeclarationCollector
+        tags:
+            - phpstan.collector
+    -
+        class: TomasVotruba\TypeCoverage\Collectors\ConstantTypeDeclarationCollector
+        tags:
+            - phpstan.collector
+
+rules:
+    - TomasVotruba\TypeCoverage\Rules\ParamTypeCoverageRule
+    - TomasVotruba\TypeCoverage\Rules\ReturnTypeCoverageRule
+    - TomasVotruba\TypeCoverage\Rules\PropertyTypeCoverageRule
+    - TomasVotruba\TypeCoverage\Rules\ConstantTypeCoverageRule

@@ -1,0 +1,137 @@
+<?php
+
+namespace Filament\Tables\Columns;
+
+use Filament\Support\Components\Contracts\HasEmbeddedView;
+use Filament\Support\Concerns\CanBeCopied;
+use Filament\Support\Concerns\CanWrap;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\View\ComponentAttributeBag as FilamentComponentAttributeBag;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Js;
+use Illuminate\Support\Str;
+
+class ColorColumn extends Column implements HasEmbeddedView
+{
+    use CanBeCopied;
+    use CanWrap;
+
+    public function toEmbeddedHtml(): string
+    {
+        $state = $this->getState();
+
+        if ($state instanceof Collection) {
+            $state = $state->all();
+        }
+
+        $alignment = $this->getAlignment();
+
+        $attributes = $this->getExtraAttributeBag()
+            ->class([
+                'fi-ta-color',
+                'fi-inline' => $this->isInline(),
+                ($alignment instanceof Alignment) ? "fi-align-{$alignment->value}" : (is_string($alignment) ? $alignment : ''),
+            ]);
+
+        if (blank($state)) {
+            $attributes = $attributes
+                ->merge([
+                    'x-tooltip' => filled($tooltip = $this->getEmptyTooltip())
+                        ? '{
+                            content: ' . Js::from($tooltip) . ',
+                            theme: $store.theme,
+                            allowHTML: ' . Js::from($tooltip instanceof Htmlable) . ',
+                        }'
+                        : null,
+                ], escape: false);
+
+            $placeholder = $this->getPlaceholder();
+
+            ob_start(); ?>
+
+            <div <?= $attributes->toHtml() ?>>
+                <?php if (filled($placeholder)) { ?>
+                    <p class="fi-ta-placeholder">
+                        <?= e($placeholder) ?>
+                    </p>
+                <?php } ?>
+            </div>
+
+            <?php return ob_get_clean();
+        }
+
+        $state = Arr::wrap($state);
+        $relatedRecords = $this->getRelatedRecordsForState($state);
+
+        $attributes = $attributes
+            ->class([
+                'fi-wrapped' => $this->canWrap(),
+            ]);
+
+        ob_start(); ?>
+
+        <div <?= $attributes->toHtml() ?>>
+            <?php foreach ($state as $stateItemIndex => $stateItem) { ?>
+                <?php
+                    $relatedRecord = $relatedRecords[$stateItemIndex] ?? null;
+                $isCopyable = $this->isCopyable($stateItem, $relatedRecord);
+                $copyableStateJs = $isCopyable ? Js::from($this->getCopyableState($stateItem, $relatedRecord) ?? $stateItem) : null;
+                $copyMessageJs = $isCopyable ? Js::from($this->getCopyMessage($stateItem, $relatedRecord)) : null;
+                $copyMessageDurationJs = $isCopyable ? Js::from($this->getCopyMessageDuration($stateItem, $relatedRecord)) : null;
+                $tooltip = $this->getTooltip($stateItem, $relatedRecord);
+
+                $sanitizedColor = Str::sanitizeCssColor($stateItem);
+                $copyLabelJs = Js::from(__('filament::components/copyable.label', [
+                    'label' => $sanitizedColor ?? $this->getName(),
+                ]));
+                $copyFailureMessageJs = Js::from(__('filament::components/copyable.messages.failed'));
+                ?>
+
+                <div <?= (new FilamentComponentAttributeBag)
+                    ->merge([
+                        // The swatch conveys its value purely through `background-color`, so expose the color as a
+                        // named `role="img"` for screen readers. Only the sanitized colour is used, so an invalid
+                        // value is never announced. `filamentCopyable` supplies button semantics and a name
+                        // only when the copyable swatch is not inside another interactive control.
+                        'aria-label' => ($isCopyable || blank($sanitizedColor)) ? null : e($sanitizedColor),
+                        'role' => ($isCopyable || blank($sanitizedColor)) ? null : 'img',
+                        'x-data' => $isCopyable ? 'filamentCopyable' : null,
+                        'x-bind' => $isCopyable ? 'bindings' : null,
+                        'x-bind:aria-label' => $isCopyable ? "isStandalone ? {$copyLabelJs} : null" : null,
+                        'x-on:click.prevent.stop' => $isCopyable
+                            ? <<<JS
+                            if (isStandalone) {
+                                copy({$copyableStateJs}, {$copyMessageJs}, {$copyMessageDurationJs}, {$copyFailureMessageJs})
+                            } else {
+                                window.navigator.clipboard.writeText({$copyableStateJs})
+                                \$tooltip({$copyMessageJs}, {
+                                    theme: \$store.theme,
+                                    timeout: {$copyMessageDurationJs},
+                                })
+                            }
+                            JS
+                            : null,
+                        'x-tooltip' => filled($tooltip)
+                            ? '{
+                                content: ' . Js::from($tooltip) . ',
+                                theme: $store.theme,
+                                allowHTML: ' . Js::from($tooltip instanceof Htmlable) . ',
+                            }'
+                            : null,
+                    ], escape: false)
+                    ->class([
+                        'fi-ta-color-item',
+                        'fi-copyable' => $isCopyable,
+                    ])
+                    ->style([
+                        'background-color: ' . e($sanitizedColor) => filled($sanitizedColor),
+                    ])
+                    ->toHtml() ?>></div>
+            <?php } ?>
+        </div>
+
+        <?php return ob_get_clean();
+    }
+}

@@ -1,0 +1,157 @@
+<?php
+
+namespace Coolsam\Modules\Concerns;
+
+use Coolsam\Modules\Facades\FilamentModules;
+use Illuminate\Console\Concerns\PromptsForMissingInput;
+use Illuminate\Support\Str;
+use Nwidart\Modules\Module;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Finder\Finder;
+
+/**
+ * @property string|null $type
+ *
+ * @method string getStub()
+ * @method static replaceNamespace(string $stub, string $name)
+ */
+trait GeneratesModularFiles
+{
+    use PromptsForMissingInput;
+
+    protected function getArguments(): array
+    {
+        return array_merge(parent::getArguments(), [
+            ['module', InputArgument::OPTIONAL, 'The name of the module in which this should be installed'],
+        ]);
+    }
+
+    protected function resolveStubPath($stub): string
+    {
+        $stub = str($stub)->trim('/\\')->replace(['/', '\\'], DIRECTORY_SEPARATOR)->toString();
+
+        return FilamentModules::packagePath('src' . DIRECTORY_SEPARATOR . 'Commands' . DIRECTORY_SEPARATOR . $stub);
+    }
+
+    public function getModule(): Module
+    {
+        return FilamentModules::getModule($this->argument('module'));
+    }
+
+    protected function getDefaultNamespace($rootNamespace): string
+    {
+        return trim($rootNamespace, '\\') . '\\' . trim(Str::replace(DIRECTORY_SEPARATOR, '\\', $this->getRelativeNamespace()), '\\');
+    }
+
+    abstract protected function getRelativeNamespace(): string;
+
+    protected function rootNamespace(): string
+    {
+        return $this->getModule()->namespace('');
+    }
+
+    protected function getPath($name): string
+    {
+        $appFolder = trim(config('modules.paths.app_folder', 'app/'), '/\\');
+        $rootNamespace = str($this->rootNamespace())->trim('\\')->toString();
+        $name = Str::replaceFirst($rootNamespace, $appFolder, $name);
+
+        $path = $this->getModule()->getExtraPath(str_replace('\\', DIRECTORY_SEPARATOR, $name) . '.php');
+
+        return str($path)
+            ->replace(['/', '\\'], DIRECTORY_SEPARATOR)
+            ->replace(DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR, DIRECTORY_SEPARATOR)
+            ->toString();
+    }
+
+    protected function possibleModels()
+    {
+        $appFolder = trim(config('modules.paths.app_folder', 'app/'), '/\\');
+        $modelPath = str(config('modules.paths.model_folder', 'app/Models'))
+            ->replaceFirst($appFolder, '')->replace(DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR, DIRECTORY_SEPARATOR)->trim(DIRECTORY_SEPARATOR)->toString();
+        $modelPath = $this->getModule()->appPath($modelPath);
+
+        return collect(Finder::create()->files()->depth(0)->in($modelPath))
+            ->map(fn ($file) => $file->getBasename('.php'))
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    public function possibleFqnModels(): array
+    {
+        return collect($this->possibleModels())
+            ->map(fn ($model) => str($this->getModule()->appNamespace('Models'))->trim('\\')->append("\\{$model}")->toString())
+            ->all();
+    }
+
+    protected function viewPath($path = ''): string
+    {
+        $views = $this->getModule()->resourcesPath('views');
+
+        return $views . ($path ? DIRECTORY_SEPARATOR . $path : $path);
+    }
+
+    protected function buildClass($name)
+    {
+        $stub = $this->files->get($this->getStub());
+
+        return $this->replaceNamespace($stub, $name)->applyStubReplacements($stub)->replaceClass($stub, $name);
+    }
+
+    protected function applyStubReplacements(&$stub): static
+    {
+        foreach ($this->stubReplacements() as $key => $replacement) {
+            $stub = str_replace(["{{ $key }}", "{{{$key}}}"], $replacement, $stub);
+        }
+
+        return $this;
+    }
+
+    protected function stubReplacements(): array
+    {
+        return [];
+    }
+
+    protected function promptForMissingArgumentsUsing(): array
+    {
+        return [
+            'name' => [
+                'What should the ' . strtolower($this->type ?: 'class') . ' be named?',
+                match ($this->type) {
+                    'Cast' => 'E.g. Json',
+                    'Channel' => 'E.g. OrderChannel',
+                    'Console command' => 'E.g. SendEmails',
+                    'Component' => 'E.g. Alert',
+                    'Controller' => 'E.g. UserController',
+                    'Event' => 'E.g. PodcastProcessed',
+                    'Exception' => 'E.g. InvalidOrderException',
+                    'Factory' => 'E.g. PostFactory',
+                    'Job' => 'E.g. ProcessPodcast',
+                    'Listener' => 'E.g. SendPodcastNotification',
+                    'Mailable' => 'E.g. OrderShipped',
+                    'Middleware' => 'E.g. EnsureTokenIsValid',
+                    'Model' => 'E.g. Flight',
+                    'Notification' => 'E.g. InvoicePaid',
+                    'Observer' => 'E.g. UserObserver',
+                    'Policy' => 'E.g. PostPolicy',
+                    'Provider' => 'E.g. ElasticServiceProvider',
+                    'Request' => 'E.g. StorePodcastRequest',
+                    'Resource' => 'E.g. UserResource',
+                    'Rule' => 'E.g. Uppercase',
+                    'Scope' => 'E.g. TrendingScope',
+                    'Seeder' => 'E.g. UserSeeder',
+                    'Test' => 'E.g. UserTest',
+                    'Filament Cluster' => 'E.g Settings',
+                    'Filament Plugin' => 'e.g AccessControlPlugin',
+                    default => '',
+                },
+            ],
+            'module' => [
+                'In which Module should we create this?',
+                'e.g Blog',
+                true,
+            ],
+        ];
+    }
+}

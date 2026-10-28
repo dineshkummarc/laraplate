@@ -1,0 +1,104 @@
+<?php
+
+namespace Filament\Pages\Dashboard\Concerns;
+
+use Filament\Facades\Filament;
+use Filament\Support\Components\Attributes\Unexposed;
+use Livewire\Attributes\Url;
+
+use function Filament\Support\encode_key_segments;
+
+trait HasFilters /** @phpstan-ignore trait.unused */
+{
+    /**
+     * @var array<string, mixed> | null
+     */
+    #[Url]
+    public ?array $filters = null;
+
+    protected bool $persistsFiltersInSession = true;
+
+    #[Unexposed]
+    public function mountHasFilters(): void
+    {
+        $shouldPersistFiltersInSession = $this->persistsFiltersInSession();
+        $filtersSessionKey = $this->getFiltersSessionKey();
+
+        if (! count($this->filters ?? [])) {
+            $this->filters = null;
+        }
+
+        if (
+            ($this->filters === null) &&
+            $shouldPersistFiltersInSession &&
+            session()->has($filtersSessionKey)
+        ) {
+            $this->filters = session()->get($filtersSessionKey);
+        }
+
+        // https://github.com/filamentphp/filament/pull/7999
+        if ($this->filters) {
+            $this->normalizeTableFilterValuesFromQueryString($this->filters);
+        }
+
+        if (method_exists($this, 'getFiltersForm')) {
+            $this->getFiltersForm()->fill($this->filters);
+        }
+
+        if ($shouldPersistFiltersInSession) {
+            session()->put(
+                $filtersSessionKey,
+                $this->filters,
+            );
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function normalizeTableFilterValuesFromQueryString(array &$data): void
+    {
+        foreach ($data as &$value) {
+            if (is_array($value)) {
+                $this->normalizeTableFilterValuesFromQueryString($value);
+            } elseif ($value === 'null') {
+                $value = null;
+            } elseif ($value === 'false') {
+                $value = false;
+            } elseif ($value === 'true') {
+                $value = true;
+            }
+        }
+    }
+
+    #[Unexposed]
+    public function updatedFilters(): void
+    {
+        if ($this->persistsFiltersInSession()) {
+            session()->put(
+                $this->getFiltersSessionKey(),
+                $this->filters,
+            );
+        }
+    }
+
+    #[Unexposed]
+    public function getFiltersSessionKey(): string
+    {
+        $namespace = $this::class;
+
+        if (filled($tenantKey = Filament::getTenant()?->getKey())) {
+            $namespace = encode_key_segments($namespace, (string) $tenantKey);
+        }
+
+        $livewire = hash('sha256', $namespace);
+
+        return "filament.dashboard.{$livewire}.filters";
+    }
+
+    #[Unexposed]
+    public function persistsFiltersInSession(): bool
+    {
+        return $this->persistsFiltersInSession;
+    }
+}

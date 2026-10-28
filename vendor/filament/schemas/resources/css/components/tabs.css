@@ -1,0 +1,69 @@
+.fi-sc-tabs {
+    @apply flex flex-col;
+
+    & > .fi-tabs > .fi-sc-tabs-tablist {
+        @apply contents;
+    }
+
+    & .fi-sc-tabs-header-overflow:not(.fi-sc-tabs-header-overflow-open) {
+        @apply sr-only;
+    }
+
+    & .fi-sc-tabs-header-overflow-open {
+        @apply focus-visible:ring-primary-600 dark:focus-visible:ring-primary-500 fixed z-32 justify-start rounded-md px-2 font-normal focus-visible:ring-2 focus-visible:ring-inset;
+
+        left: var(--tab-overflow-left);
+        top: var(--tab-overflow-top);
+        width: var(--tab-overflow-width);
+        height: var(--tab-overflow-height);
+        clip-path: var(--tab-overflow-clip);
+
+        & .fi-tabs-item-label {
+            @apply flex-1 truncate text-start;
+        }
+    }
+
+    & .fi-sc-tabs-overflow-panel {
+        @apply fixed z-31 overflow-y-auto;
+    }
+
+    & .fi-sc-tabs-overflow-placeholder {
+        @apply invisible;
+    }
+
+    & .fi-tabs.fi-invisible {
+        @apply invisible;
+    }
+
+    & .fi-sc-tabs-tab {
+        @apply focus-visible:ring-primary-600 dark:focus-visible:ring-primary-500 outline-hidden focus-visible:ring-2;
+
+        &.fi-active {
+            @apply mt-6;
+        }
+
+        &:not(.fi-active) {
+            @apply hidden;
+        }
+    }
+
+    &.fi-contained {
+        @apply rounded-xl bg-white shadow-xs ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10;
+
+        & .fi-sc-tabs-tab {
+            &.fi-active {
+                @apply mt-0 p-6;
+            }
+        }
+    }
+
+    &.fi-vertical {
+        @apply flex-row;
+
+        & .fi-sc-tabs-tab {
+            &.fi-active {
+                @apply ms-6 mt-0 flex-1;
+            }
+        }
+    }
+}

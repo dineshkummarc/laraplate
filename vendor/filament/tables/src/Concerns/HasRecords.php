@@ -1,0 +1,392 @@
+<?php
+
+namespace Filament\Tables\Concerns;
+
+use Filament\Support\ArrayRecord;
+use Filament\Support\Components\Attributes\Unexposed;
+use Filament\Tables\Enums\PaginationMode;
+use Illuminate\Contracts\Pagination\CursorPaginator;
+use Illuminate\Contracts\Pagination\Paginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
+use LogicException;
+
+use function Livewire\invade;
+
+trait HasRecords
+{
+    /**
+     * @deprecated Override the `table()` method to configure the table.
+     */
+    protected bool $allowsDuplicates = false;
+
+    protected Collection | Paginator | CursorPaginator | null $cachedTableRecords = null;
+
+    protected bool $shouldApplyTableColumnRelationshipAggregates = true;
+
+    #[Unexposed]
+    public function getFilteredTableQuery(): ?Builder
+    {
+        $query = $this->getTable()->getQuery();
+
+        if (! $query) {
+            return null;
+        }
+
+        $shouldApplyTableColumnRelationshipAggregates = $this->shouldApplyTableColumnRelationshipAggregates;
+        $this->shouldApplyTableColumnRelationshipAggregates = true;
+
+        try {
+            return $this->filterTableQuery($query);
+        } finally {
+            $this->shouldApplyTableColumnRelationshipAggregates = $shouldApplyTableColumnRelationshipAggregates;
+        }
+    }
+
+    #[Unexposed]
+    public function filterTableQuery(Builder $query): Builder
+    {
+        $this->applyFiltersToTableQuery($query);
+
+        $this->applySearchToTableQuery($query);
+
+        foreach ($this->getTable()->getVisibleColumns() as $column) {
+            if ($this->shouldApplyTableColumnRelationshipAggregates) {
+                $column->applyRelationshipAggregates($query);
+            }
+
+            if ($this->getTable()->isGroupsOnly()) {
+                continue;
+            }
+
+            $column->applyEagerLoading($query);
+        }
+
+        return $query;
+    }
+
+    #[Unexposed]
+    public function getFilteredSortedTableQuery(): ?Builder
+    {
+        $query = $this->getFilteredTableQuery();
+
+        if (! $query) {
+            return null;
+        }
+
+        $this->applyGroupingToTableQuery($query);
+
+        $this->applySortingToTableQuery($query);
+
+        return $query;
+    }
+
+    #[Unexposed]
+    public function getTableQueryForExport(): Builder
+    {
+        $query = $this->getTable()->getQuery();
+
+        $this->applyFiltersToTableQuery($query);
+        $this->applySearchToTableQuery($query);
+        $this->applySortingToTableQuery($query);
+
+        return $query;
+    }
+
+    protected function hydratePivotRelationForTableRecords(EloquentCollection | Paginator | CursorPaginator $records): EloquentCollection | Paginator | CursorPaginator
+    {
+        $table = $this->getTable();
+        $relationship = $table->getRelationship();
+
+        if ($table->getRelationship() instanceof BelongsToMany && ! $table->allowsDuplicates()) {
+            invade($relationship)->hydratePivotRelation($records->all());
+        }
+
+        return $records;
+    }
+
+    #[Unexposed]
+    public function getTableRecords(): Collection | Paginator | CursorPaginator
+    {
+        if (! $this->getTable()->hasQuery()) {
+            if ($this->cachedTableRecords) {
+                return $this->cachedTableRecords;
+            }
+
+            $sortColumn = $this->getTableSortColumn();
+            $sortDirection = $this->getTableSortDirection();
+
+            if ($sortColumn && $this->getTable()->getColumn($sortColumn)?->isToggledHidden()) {
+                $sortColumn = null;
+                $sortDirection = null;
+            }
+
+            $records = $this->getTable()->evaluate($this->getTable()->getDataSource(), [
+                'columnSearches' => fn (): array => $this->getTableColumnSearches(),
+                'filters' => fn (): ?array => $this->tableFilters,
+                'page' => fn (): int | string => $this->getTablePage(),
+                'recordsPerPage' => fn (): int | string => $this->getTableRecordsPerPage(),
+                'search' => fn (): ?string => $this->getTableSearch(),
+                'sort' => static fn (): array => [$sortColumn, $sortDirection],
+                'sortColumn' => static fn (): ?string => $sortColumn,
+                'sortDirection' => static fn (): ?string => $sortDirection,
+            ]);
+
+            if (is_array($records)) {
+                $collection = collect($records);
+            } elseif (
+                ($records instanceof Paginator || $records instanceof CursorPaginator) &&
+                method_exists($records, 'getCollection')
+            ) {
+                $collection = $records->getCollection();
+            } else {
+                $collection = $records;
+            }
+
+            $collection = $collection->mapWithKeys(function (array | Model $record, string | int $key): array {
+                if ($record instanceof Model) {
+                    return [$record->getKey() => $record];
+                }
+
+                $keyName = ArrayRecord::getKeyName();
+
+                $record[$keyName] ??= $key;
+                $record[$keyName] = (string) $record[$keyName];
+
+                return [$record[$keyName] => $record];
+            });
+
+            if (
+                ($records instanceof Paginator || $records instanceof CursorPaginator) &&
+                method_exists($records, 'setCollection')
+            ) {
+                $records->setCollection($collection);
+            } else {
+                $records = $collection;
+            }
+
+            return $this->cachedTableRecords = $records;
+        }
+
+        if ($translatableContentDriver = $this->makeFilamentTranslatableContentDriver()) {
+            $setRecordLocales = function (EloquentCollection | Paginator | CursorPaginator $records) use ($translatableContentDriver): EloquentCollection | Paginator | CursorPaginator {
+                $records->transform(fn (Model $record) => $translatableContentDriver->setRecordLocale($record));
+
+                return $records;
+            };
+        } else {
+            $setRecordLocales = fn (EloquentCollection | Paginator | CursorPaginator $records): EloquentCollection | Paginator | CursorPaginator => $records;
+        }
+
+        if ($this->cachedTableRecords) {
+            return $setRecordLocales($this->cachedTableRecords);
+        }
+
+        $query = $this->getFilteredSortedTableQuery();
+
+        if (! $query) {
+            $livewireClass = $this::class;
+
+            throw new LogicException("Table [{$livewireClass}] must have a [query()], [relationship()], or [records()].");
+        }
+
+        if ($this->getTable()->hasPivotRecordKeys()) {
+            $query = $this->applyPivotRecordKeyToTableQuery($query);
+        }
+
+        if (
+            (! $this->getTable()->isPaginated()) ||
+            ($this->isTableReordering() && (! $this->getTable()->isPaginatedWhileReordering()))
+        ) {
+            return $setRecordLocales($this->cachedTableRecords = $this->hydratePivotRelationForTableRecords($query->get()));
+        }
+
+        return $setRecordLocales($this->cachedTableRecords = $this->hydratePivotRelationForTableRecords($this->paginateTableQuery($query)));
+    }
+
+    /**
+     * @return Model | array<string, mixed> | null
+     */
+    protected function resolveTableRecord(?string $key): Model | array | null
+    {
+        if ($key === null) {
+            return null;
+        }
+
+        if (! $this->getTable()->hasQuery()) {
+            return $this->getTable()->getRecords()[$key] ?? null;
+        }
+
+        if (! ($this->getTable()->getRelationship() instanceof BelongsToMany)) {
+            $query = $this->applyFiltersToTableQuery(
+                $this->getTable()->getQuery(isResolvingRecord: true),
+                isResolvingRecord: true,
+            );
+
+            foreach ($this->getTable()->getVisibleColumns() as $column) {
+                $column->applyRelationshipAggregates($query);
+            }
+
+            return $query->find($key);
+        }
+
+        /** @var BelongsToMany $relationship */
+        $relationship = $this->getTable()->getRelationship();
+
+        $pivotClass = $relationship->getPivotClass();
+        $pivotKeyName = app($pivotClass)->getKeyName();
+
+        $table = $this->getTable();
+
+        $relationshipQuery = $relationship->getQuery();
+        $table->applyQueryScopes($relationshipQuery, isResolvingRecord: true);
+        $this->applyFiltersToTableQuery($relationshipQuery, isResolvingRecord: true);
+
+        $query = $table->allowsDuplicates() ?
+            $relationship->wherePivot($pivotKeyName, $key) :
+            $relationship->where($relationship->getQualifiedRelatedKeyName(), $key);
+
+        foreach ($table->getVisibleColumns() as $column) {
+            $column->applyRelationshipAggregates($query);
+        }
+
+        if ($table->hasPivotRecordKeys()) {
+            $this->applyPivotRecordKeyToTableQuery($query->getQuery());
+        }
+
+        $record = $table->selectPivotDataInQuery($query)->first();
+
+        return $record?->setRawAttributes($record->getRawOriginal());
+    }
+
+    /**
+     * @return Model | array<string, mixed> | null
+     */
+    #[Unexposed]
+    public function getTableRecord(?string $key): Model | array | null
+    {
+        $record = $this->resolveTableRecord($key);
+
+        if ($record && filled($this->getActiveTableLocale())) {
+            $this->makeFilamentTranslatableContentDriver()->setRecordLocale($record);
+        }
+
+        return $record;
+    }
+
+    /**
+     * @param  Model | array<string, mixed>  $record
+     */
+    #[Unexposed]
+    public function getTableRecordKey(Model | array $record): string
+    {
+        if (is_array($record)) {
+            return $record[ArrayRecord::getKeyName()] ?? throw new LogicException('Record arrays must have a unique [key] entry for identification.');
+        }
+
+        $table = $this->getTable();
+
+        if (! $table->hasPivotRecordKeys()) {
+            return $record->getKey();
+        }
+
+        if (array_key_exists('filament_pivot_key', $record->getAttributes())) {
+            return $record->getAttribute('filament_pivot_key');
+        }
+
+        /** @var BelongsToMany $relationship */
+        $relationship = $table->getRelationship();
+
+        $pivotClass = $relationship->getPivotClass();
+        $pivotKeyName = app($pivotClass)->getKeyName();
+
+        return $record->getAttributeValue($pivotKeyName);
+    }
+
+    protected function getQualifiedTablePivotKeyName(): string
+    {
+        /** @var BelongsToMany $relationship */
+        $relationship = $this->getTable()->getRelationship();
+
+        return $relationship->qualifyPivotColumn(app($relationship->getPivotClass())->getKeyName());
+    }
+
+    protected function applyPivotRecordKeyToTableQuery(Builder $query): Builder
+    {
+        $qualifiedKeyName = $this->getQualifiedTablePivotKeyName();
+        $query->addSelect("{$qualifiedKeyName} as filament_pivot_key");
+
+        if ($this->getTable()->getPaginationMode() === PaginationMode::Cursor) {
+            foreach ($query->getQuery()->orders ?? [] as $orderIndex => $order) {
+                if (($order['column'] ?? null) === $qualifiedKeyName) {
+                    $query->getQuery()->orders[$orderIndex]['column'] = 'filament_pivot_key';
+                }
+            }
+
+            if (! in_array('filament_pivot_key', array_column($query->getQuery()->orders ?? [], 'column'), true)) {
+                $query->orderBy('filament_pivot_key');
+            }
+        }
+
+        return $query->withGlobalScope('filamentPivotRecordKey', function (Builder $query) use ($qualifiedKeyName): void {
+            $this->getTable()->selectPivotDataInQuery($query);
+            $query->addSelect("{$qualifiedKeyName} as filament_pivot_key");
+        });
+    }
+
+    #[Unexposed]
+    public function getAllTableRecordsCount(): int
+    {
+        if ($this->cachedTableRecords instanceof LengthAwarePaginator) {
+            return $this->cachedTableRecords->total();
+        }
+
+        return $this->getFilteredTableQuery()->count();
+    }
+
+    #[Unexposed]
+    public function flushCachedTableRecords(): void
+    {
+        $this->cachedTableRecords = null;
+    }
+
+    /**
+     * @deprecated Override the `table()` method to configure the table.
+     */
+    #[Unexposed]
+    public function allowsDuplicates(): bool
+    {
+        return $this->allowsDuplicates;
+    }
+
+    /**
+     * @deprecated Override the `table()` method to configure the table.
+     */
+    #[Unexposed]
+    public function getTableRecordTitle(Model $record): ?string
+    {
+        return null;
+    }
+
+    /**
+     * @deprecated Override the `table()` method to configure the table.
+     */
+    #[Unexposed]
+    public function getTableModelLabel(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * @deprecated Override the `table()` method to configure the table.
+     */
+    #[Unexposed]
+    public function getTablePluralModelLabel(): ?string
+    {
+        return null;
+    }
+}

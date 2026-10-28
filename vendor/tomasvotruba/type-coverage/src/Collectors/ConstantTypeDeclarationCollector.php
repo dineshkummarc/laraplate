@@ -1,0 +1,93 @@
+<?php
+
+declare(strict_types=1);
+
+namespace TomasVotruba\TypeCoverage\Collectors;
+
+use PhpParser\Node;
+use PhpParser\Node\Stmt\ClassConst;
+use PHPStan\Analyser\Scope;
+use PHPStan\Collectors\Collector;
+use PHPStan\Node\ClassConstantsNode;
+use PHPStan\Reflection\ClassReflection;
+
+/**
+ * @see \TomasVotruba\TypeCoverage\Rules\ConstantTypeCoverageRule
+ */
+final class ConstantTypeDeclarationCollector implements Collector
+{
+    /**
+     * @return class-string<Node>
+     */
+    public function getNodeType(): string
+    {
+        return ClassConstantsNode::class;
+    }
+
+    /**
+     * @param ClassConstantsNode $node
+     * @return array{count: int, missingLines: list<int>, traitFilePath: string|null}
+     */
+    public function processNode(Node $node, Scope $scope): array
+    {
+        // enable only on PHP 8.3+
+        if (PHP_VERSION_ID < 80300) {
+            return [
+                'count' => 0,
+                'missingLines' => [],
+                'traitFilePath' => null,
+            ];
+        }
+
+        $constantCount = count($node->getConstants());
+
+        $missingTypeLines = [];
+
+        foreach ($node->getConstants() as $classConst) {
+            // blocked by parent type
+            if ($this->isGuardedByParentClassConstant($scope, $classConst)) {
+                continue;
+            }
+
+            // already typed
+            if ($classConst->type instanceof Node) {
+                continue;
+            }
+
+            // give useful context
+            $missingTypeLines[] = $classConst->getLine();
+        }
+
+        $traitFilePath = null;
+        if ($scope->isInTrait()) {
+            $traitFilePath = $scope->getTraitReflection()
+                ->getFileName();
+        }
+
+        return [
+            'count' => $constantCount,
+            'missingLines' => $missingTypeLines,
+            'traitFilePath' => $traitFilePath,
+        ];
+    }
+
+    private function isGuardedByParentClassConstant(Scope $scope, ClassConst $classConst): bool
+    {
+        $constName = $classConst->consts[0]->name->toString();
+
+        $classReflection = $scope->getClassReflection();
+        if (! $classReflection instanceof ClassReflection) {
+            return false;
+        }
+
+        $found = false;
+        foreach ($classReflection->getParents() as $parentClassReflection) {
+            if ($parentClassReflection->hasConstant($constName)) {
+                $found = true;
+                break;
+            }
+        }
+
+        return $found;
+    }
+}

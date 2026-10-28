@@ -1,0 +1,232 @@
+<?php
+
+namespace RectorLaravel\Rector\ArrayDimFetch;
+
+use PhpParser\Node;
+use PhpParser\Node\Arg;
+use PhpParser\Node\Expr;
+use PhpParser\Node\Expr\ArrayDimFetch;
+use PhpParser\Node\Expr\BinaryOp\NotIdentical;
+use PhpParser\Node\Expr\Isset_;
+use PhpParser\Node\Expr\StaticCall;
+use PhpParser\Node\Expr\Variable;
+use PhpParser\Node\Scalar;
+use PhpParser\Node\Scalar\String_;
+use Rector\NodeTypeResolver\Node\AttributeKey;
+use RectorLaravel\AbstractRector;
+use RectorLaravel\NodeVisitor\ArrayDimFetchContextNodeVisitor;
+use RectorLaravel\Tests\Rector\ArrayDimFetch\RequestVariablesToRequestFacadeRector\RequestVariablesToRequestFacadeRectorTest;
+use RectorLaravel\ValueObject\ReplaceRequestKeyAndMethodValue;
+use Symplify\RuleDocGenerator\ValueObject\CodeSample\CodeSample;
+use Symplify\RuleDocGenerator\ValueObject\RuleDefinition;
+
+/**
+ * @see RequestVariablesToRequestFacadeRectorTest
+ */
+final class RequestVariablesToRequestFacadeRector extends AbstractRector
+{
+    public function getRuleDefinition(): RuleDefinition
+    {
+        return new RuleDefinition(
+            'Change request variable definition in Facade',
+            [
+                new CodeSample(
+                    <<<'CODE_SAMPLE'
+$_GET['value'];
+$_POST['value'];
+$_REQUEST['value'];
+$_POST;
+$_GET;
+$_REQUEST;
+isset($_GET['value']);
+isset($_POST['value']);
+isset($_REQUEST['value']);
+CODE_SAMPLE,
+                    <<<'CODE_SAMPLE'
+\Illuminate\Support\Facades\Request::query('value');
+\Illuminate\Support\Facades\Request::post('value');
+\Illuminate\Support\Facades\Request::input('value');
+\Illuminate\Support\Facades\Request::query();
+\Illuminate\Support\Facades\Request::post();
+\Illuminate\Support\Facades\Request::all();
+\Illuminate\Support\Facades\Request::query('value') !== null;
+\Illuminate\Support\Facades\Request::post('value') !== null;
+\Illuminate\Support\Facades\Request::exists('value');
+CODE_SAMPLE
+                ),
+            ]
+        );
+    }
+
+    public function getNodeTypes(): array
+    {
+        return [ArrayDimFetch::class, Variable::class, Isset_::class];
+    }
+
+    /**
+     * @param  ArrayDimFetch|Variable|Isset_  $node
+     */
+    public function refactor(Node $node): StaticCall|NotIdentical|null
+    {
+        // skip direct assignment targets: $_POST = $data, $_POST['key'] = $value
+        if ($node->getAttribute(AttributeKey::IS_BEING_ASSIGNED) === true) {
+            return null;
+        }
+
+        // skip inner nodes of superglobal assignments (e.g. the $_POST Variable
+        // inside $_POST['key'] = ...) and non-assignment contexts like isset/unset
+        if ($node->getAttribute(ArrayDimFetchContextNodeVisitor::IS_IN_SUPERGLOBAL_ASSIGN) === true) {
+            return null;
+        }
+
+        // skip contexts that require a variable, e.g. $_GET['key'] .= 'x' or sort($_GET['key'])
+        if ($node->getAttribute(ArrayDimFetchContextNodeVisitor::IS_IN_WRITE_CONTEXT) === true) {
+            return null;
+        }
+
+        if ($node instanceof Variable) {
+            if ($node->getAttribute(ArrayDimFetchContextNodeVisitor::IS_INSIDE_ARRAY_DIM_FETCH_WITH_DIM_NOT_SCALAR) === true) {
+                return null;
+            }
+
+            return $this->processVariable($node);
+        }
+
+        if ($node instanceof Isset_) {
+            return $this->processIsset($node);
+        }
+
+        $replaceValue = $this->findAllKeys($node);
+
+        if ($replaceValue instanceof ReplaceRequestKeyAndMethodValue) {
+            return $this->nodeFactory->createStaticCall(
+                'Illuminate\Support\Facades\Request',
+                $replaceValue->getMethod(),
+                [new Arg(new String_($replaceValue->getKey()))]
+            );
+        }
+
+        return $replaceValue;
+    }
+
+    public function findAllKeys(ArrayDimFetch $arrayDimFetch): ?ReplaceRequestKeyAndMethodValue
+    {
+        if (! $arrayDimFetch->dim instanceof Scalar) {
+            return null;
+        }
+
+        $value = $this->getType($arrayDimFetch->dim)->getConstantScalarValues()[0] ?? null;
+
+        if ($value === null) {
+            return null;
+        }
+
+        if ($arrayDimFetch->var instanceof ArrayDimFetch) {
+            $replaceValue = $this->findAllKeys($arrayDimFetch->var);
+
+            if (! $replaceValue instanceof ReplaceRequestKeyAndMethodValue) {
+                return $replaceValue;
+            }
+
+            return new ReplaceRequestKeyAndMethodValue(implode('.', [$replaceValue->getKey(), $value]), $replaceValue->getMethod());
+        }
+
+        if ($this->isNames($arrayDimFetch->var, ['_GET', '_POST', '_REQUEST'])) {
+            if (! $arrayDimFetch->var instanceof Variable) {
+                return null;
+            }
+
+            $method = match ($arrayDimFetch->var->name) {
+                '_GET' => 'query',
+                '_POST' => 'post',
+                '_REQUEST' => 'input',
+                default => null,
+            };
+            if ($method === null) {
+                return null;
+            }
+
+            return new ReplaceRequestKeyAndMethodValue((string) $value, $method);
+        }
+
+        return null;
+    }
+
+    private function getGetterMethodName(Variable $variable): ?string
+    {
+        return match ($variable->name) {
+            '_GET' => 'query',
+            '_POST' => 'post',
+            '_REQUEST' => 'input',
+            default => null,
+        };
+    }
+
+    private function processIsset(Isset_ $isset): StaticCall|NotIdentical|null
+    {
+        if (count($isset->vars) < 1) {
+            return null;
+        }
+
+        $var = $isset->vars[0];
+
+        if (! $var instanceof ArrayDimFetch) {
+            return null;
+        }
+
+        if (! $var->var instanceof Variable) {
+            return null;
+        }
+
+        $method = $this->getGetterMethodName($var->var);
+        if ($method === null) {
+            return null;
+        }
+
+        if (! $var->dim instanceof Expr) {
+            return null;
+        }
+
+        $replaceValue = $this->findAllKeys($var);
+        if (! $replaceValue instanceof ReplaceRequestKeyAndMethodValue) {
+            return $replaceValue;
+        }
+
+        $args = [new Arg(new String_($replaceValue->getKey()))];
+
+        if ($method === 'input') {
+            return $this->nodeFactory->createStaticCall(
+                'Illuminate\Support\Facades\Request',
+                'exists',
+                $args,
+            );
+        }
+
+        return new NotIdentical(
+            $this->nodeFactory->createStaticCall(
+                'Illuminate\Support\Facades\Request',
+                $method,
+                $args,
+            ),
+            $this->nodeFactory->createNull(),
+        );
+    }
+
+    private function processVariable(Variable $variable): ?StaticCall
+    {
+        $method = match ($variable->name) {
+            '_GET' => 'query',
+            '_POST' => 'post',
+            '_REQUEST' => 'all',
+            default => null,
+        };
+        if ($method === null) {
+            return null;
+        }
+
+        return $this->nodeFactory->createStaticCall(
+            'Illuminate\Support\Facades\Request',
+            $method,
+        );
+    }
+}

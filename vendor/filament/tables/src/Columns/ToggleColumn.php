@@ -1,0 +1,182 @@
+<?php
+
+namespace Filament\Tables\Columns;
+
+use Filament\Forms\Components\Concerns\HasToggleColors;
+use Filament\Forms\Components\Concerns\HasToggleIcons;
+use Filament\Support\Components\Contracts\HasEmbeddedView;
+use Filament\Support\Enums\Alignment;
+use Filament\Support\Enums\IconSize;
+use Filament\Support\Facades\FilamentAsset;
+use Filament\Support\View\ComponentAttributeBag as FilamentComponentAttributeBag;
+use Filament\Support\View\Components\ToggleComponent;
+use Filament\Tables\Columns\Contracts\Editable;
+use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Js;
+
+use function Filament\Support\generate_icon_html;
+use function Filament\Support\get_component_color_classes;
+
+class ToggleColumn extends Column implements Editable, HasEmbeddedView
+{
+    // Security: This column saves directly without checking Laravel
+    // Model Policies. Use `disabled()` to restrict editing
+    // based on your own authorization logic.
+
+    use Concerns\CanBeValidated;
+    use Concerns\CanUpdateState;
+    use HasToggleColors;
+    use HasToggleIcons;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->disabledClick();
+
+        $this->rules(['boolean']);
+    }
+
+    public function toEmbeddedHtml(): string
+    {
+        $offColor = $this->getOffColor() ?? 'gray';
+        $offIcon = $this->getOffIcon();
+        $onColor = $this->getOnColor() ?? 'primary';
+        $onIcon = $this->getOnIcon();
+        $state = (bool) $this->getState();
+        $relatedRecord = $this->getRelatedRecord();
+
+        $attributes = $this->getExtraAttributeBag()
+            ->merge([
+                'x-load' => true,
+                'x-load-src' => FilamentAsset::getAlpineComponentSrc('columns/toggle', 'filament/tables'),
+                'x-data' => 'toggleTableColumn({
+                    messages: ' . Js::from($this->getUpdateStateMessages()) . ',
+                    name: ' . Js::from($this->getName()) . ',
+                    recordKey: ' . Js::from($this->getRecordKey()) . ',
+                    state: ' . Js::from($state) . ',
+                })',
+                'x-id' => "['table-column-error']",
+                'x-on:click.capture' => 'blockEdit($event)',
+                'x-on:keydown.capture' => 'blockEdit($event)',
+            ], escape: false)
+            ->class([
+                'fi-ta-toggle',
+                ((($alignment = $this->getAlignment()) instanceof Alignment) ? "fi-align-{$alignment->value}" : (is_string($alignment) ? $alignment : '')),
+                'fi-inline' => $this->isInline(),
+            ]);
+
+        $buttonAttributes = (new FilamentComponentAttributeBag)
+            ->merge([
+                'aria-disabled' => 'true',
+                'aria-label' => e(trim(strip_tags(($ariaLabel = $this->getLabel()) instanceof Htmlable ? $ariaLabel->toHtml() : $ariaLabel)), doubleEncode: false),
+                'disabled' => $this->isDisabled(),
+                'wire:loading.attr' => 'disabled',
+                'wire:target' => implode(',', Table::LOADING_TARGETS),
+                'x-bind:aria-invalid' => "error ? 'true' : null",
+                'x-bind:aria-busy' => "isLoading ? 'true' : null",
+                'x-bind:aria-describedby' => "getAccessibilityAttributes()['aria-describedby']",
+                'x-tooltip' => 'error === undefined ? ' . (filled($tooltip = $this->getTooltip($state, $relatedRecord))
+                    ? '{
+                        content: ' . Js::from($tooltip) . ',
+                        theme: $store.theme,
+                        allowHTML: ' . Js::from($tooltip instanceof Htmlable) . ',
+                        aria: { content: \'auto\' },
+                    }'
+                    : 'false') . ' : {
+                        content: error,
+                        theme: $store.theme,
+                        allowHTML: false,
+                        aria: { content: null },
+                    }',
+            ], escape: false)
+            ->class(['fi-toggle']);
+
+        $onClasses = Js::from(Arr::toCssClasses([
+            'fi-toggle-on',
+            ...get_component_color_classes(ToggleComponent::class, $onColor),
+        ]));
+
+        $offClasses = Js::from(Arr::toCssClasses([
+            'fi-toggle-off',
+            ...get_component_color_classes(ToggleComponent::class, $offColor),
+        ]));
+
+        ob_start(); ?>
+
+        <div
+            wire:ignore.self
+            <?= $attributes->toHtml() ?>
+        >
+            <input type="hidden" value="<?= $state ? 1 : 0 ?>" x-ref="serverState" />
+
+            <div
+                aria-checked="<?= $state ? 'true' : 'false' ?>"
+                x-bind:aria-checked="state ? 'true' : 'false'"
+                <?php // `tabindex` is bound client-side rather than server-rendered on purpose: a `ToggleColumn`
+                      // in a table with a record URL/action is rendered inside the record `<a>`/`<button>`, and a
+                      // `tabindex` descendant is invalid inside an `<a>`. Applying it after Alpine boots keeps the
+                      // served markup valid while still making the switch keyboard-focusable.?>
+                x-bind:tabindex="$el.hasAttribute('disabled') ? '-1' : '0'"
+                x-bind:aria-disabled="isLoading || $el.hasAttribute('disabled') ? 'true' : null"
+                x-on:click.prevent.stop="if (! $el.hasAttribute('disabled')) { clearError(); state = ! state }"
+                x-on:keydown.enter.prevent.stop="if (! $el.hasAttribute('disabled')) { clearError(); state = ! state }"
+                x-on:keydown.space.prevent.stop="if (! $el.hasAttribute('disabled')) { clearError(); state = ! state }"
+                x-bind:class="state ? <?= $onClasses ?> : <?= $offClasses ?>"
+                <?php if ($state) { ?> x-cloak <?php } ?>
+                role="switch"
+                <?= $buttonAttributes->toHtml() ?>
+            >
+                <div>
+                    <div aria-hidden="true">
+                        <?= generate_icon_html($offIcon, size: IconSize::ExtraSmall)?->toHtml() ?>
+                    </div>
+
+                    <div aria-hidden="true">
+                        <?= generate_icon_html($onIcon, size: IconSize::ExtraSmall)?->toHtml() ?>
+                    </div>
+                </div>
+            </div>
+
+            <?php if ($state) { ?>
+                <div
+                    x-cloak="inline-flex"
+                    wire:ignore
+                    class="<?= Arr::toCssClasses([
+                        'fi-toggle fi-toggle-on fi-hidden',
+                        ...get_component_color_classes(ToggleComponent::class, $onColor),
+                    ]) ?>"
+                >
+                    <div>
+                        <div aria-hidden="true"></div>
+
+                        <div aria-hidden="true">
+                            <?= generate_icon_html($onIcon, size: IconSize::ExtraSmall)?->toHtml() ?>
+                        </div>
+                    </div>
+                </div>
+            <?php } ?>
+
+            <p
+                x-cloak
+                x-show="error"
+                x-bind:id="$id('table-column-error')"
+                x-ref="error"
+                x-text="error"
+                class="fi-sr-only"
+            ></p>
+
+            <p
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                x-text="status"
+                class="fi-sr-only"
+            ></p>
+        </div>
+
+        <?php return ob_get_clean();
+    }
+}
